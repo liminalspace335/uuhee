@@ -175,7 +175,7 @@ td .del{color:var(--warn);background:none;border:0;font-size:12px;text-decoratio
             <div class="field"><label>© 저작권 연도</label><input data-site="copyYear" /></div>
             <div class="fgrid">
               <div class="field"><label>히어로 배경 이미지</label><div class="up-row"><input data-site="heroImg" placeholder="URL 또는 업로드"><label class="upbtn">⬆<input type="file" accept="image/*" data-siteup="heroImg" hidden></label></div></div>
-              <div class="field"><label>소개 대표 이미지</label><div class="up-row"><input data-site="conceptImg" placeholder="URL 또는 업로드"><label class="upbtn">⬆<input type="file" accept="image/*" data-siteup="conceptImg" hidden></label></div></div>
+              <div class="field"><label>소개 대표 이미지/영상</label><div class="up-row"><input data-site="conceptImg" placeholder="URL 또는 업로드"><label class="upbtn">⬆<input type="file" accept="image/*,video/*" data-siteup="conceptImg" hidden></label></div></div>
             </div>
           </div>
         </div>
@@ -272,6 +272,7 @@ window.UUHEE_SB={url:'https://ybfwnmgnledlumppfjbh.supabase.co',key:'sb_publisha
   }
   window.__cloud={
     pushSettings:pushSettings,
+    uploadFile:function(file){if(!file)return Promise.reject(new Error('no file'));var ext=((file.name||'').split('.').pop()||'bin').toLowerCase().replace(/[^a-z0-9]/g,'')||'bin';var path=Date.now()+'_'+Math.random().toString(36).slice(2,8)+'.'+ext;return sb.storage.from('media').upload(path,file,{cacheControl:'3600',upsert:false}).then(function(r){if(r.error)throw r.error;return sb.storage.from('media').getPublicUrl(path).data.publicUrl;});},
     insertApplication:function(rec){return sb.from('applications').insert({branch:s(rec.branch),cls:s(rec.class),size:s(rec.size),sdate:s(rec.date),stime:s(rec.time),people:N(rec.people),name:s(rec.name),phone:s(rec.phone),email:s(rec.email),msg:s(rec.msg),estimate:N(rec.estimate),qty:rec.qty||null});},
     insertInquiry:function(rec){return sb.from('inquiries').insert({itype:s(rec.type),volume:s(rec.volume),branch:s(rec.branch),company:s(rec.company),name:s(rec.name),phone:s(rec.phone),email:s(rec.email),isize:s(rec.size),msg:s(rec.msg)});}
   };
@@ -363,7 +364,7 @@ $('#csvGroup').addEventListener('click',()=>download('uuhee_group.csv',toCSV([['
 /* 사이트 정보 (단일 필드) */
 function renderSite(){$$('[data-site]').forEach(i=>{i.value=(S.site[i.dataset.site]||'');});}
 document.addEventListener('input',e=>{const t=e.target;if(t.dataset.site!=null)S.site[t.dataset.site]=t.value;});
-document.addEventListener('change',e=>{const t=e.target;if(t.dataset.siteup!=null){const f=t.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{S.site[t.dataset.siteup]=r.result;renderSite();};r.readAsDataURL(f);}});
+document.addEventListener('change',e=>{const t=e.target;if(t.dataset.siteup!=null){const f=t.files[0];if(!f)return;const k=t.dataset.siteup;if(window.__cloud&&window.__cloud.uploadFile){window.__cloud.uploadFile(f).then(function(u){S.site[k]=u;renderSite();}).catch(function(er){alert('업로드 실패: '+(er.message||er));});}else{const r=new FileReader();r.onload=()=>{S.site[k]=r.result;renderSite();};r.readAsDataURL(f);}}});
 $('#saveSite').addEventListener('click',()=>{try{save();flash($('#siteSaved'));}catch(e){alert('저장 실패: 이미지 용량이 큽니다.');}});
 
 /* 공통 표 엔진 */
@@ -390,7 +391,7 @@ function makeTable(sel,key,cols,blank,addLabel){
   if(!mount._wired){mount._wired=1;
     mount.addEventListener('input',e=>{const t=e.target;if(t.dataset.c!=null&&t.dataset.i!=null&&t.type!=='file')S[key][+t.dataset.i][t.dataset.c]=t.value;});
     mount.addEventListener('change',e=>{const t=e.target;
-      if(t.dataset.up!=null){const f=t.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{S[key][+t.dataset.up][t.dataset.c]=r.result;render();};r.readAsDataURL(f);}
+      if(t.dataset.up!=null){const f=t.files[0];if(!f)return;const ri=+t.dataset.up,ck=t.dataset.c;if(window.__cloud&&window.__cloud.uploadFile){window.__cloud.uploadFile(f).then(function(u){S[key][ri][ck]=u;render();}).catch(function(er){alert('업로드 실패: '+(er.message||er));});}else{const r=new FileReader();r.onload=()=>{S[key][ri][ck]=r.result;render();};r.readAsDataURL(f);}}
       else if(t.dataset.ck!=null)S[key][+t.dataset.ck][t.dataset.c]=t.checked;
       else if(t.dataset.mi!=null){var ri=+t.dataset.mi,ck=t.dataset.c;var arr=S[key][ri][ck];if(!Array.isArray(arr))arr=arr?String(arr).split(',').map(function(s){return s.trim();}):[];var ix=arr.indexOf(t.value);if(t.checked){if(ix<0)arr.push(t.value);}else if(ix>-1)arr.splice(ix,1);S[key][ri][ck]=arr;}});
     mount.addEventListener('click',e=>{const t=e.target;
@@ -445,12 +446,13 @@ function renderFolderMgr(cat,mountId){
   html+='</tbody></table><div class="row-tools" style="margin-top:10px"><button class="btn ghost" data-fadd="'+esc(cat)+'">+ 폴더 추가</button><span class="sp"></span><span class="saved">저장됨 ✓</span><button class="btn gold" data-fsave="1">저장</button></div>';
   box.innerHTML=html;
 }
+function isVid(u){u=String(u||'');return /^data:video/i.test(u)||/\.(mp4|webm|ogg|mov|m4v)(\?|#|$)/i.test(u);}
 function renderUploader(cat,boxId){
   var box=document.getElementById(boxId);if(!box)return;
   if(!box._wired){box._wired=1;
     box.addEventListener('input',function(e){var t=e.target;if(t.dataset.pi!=null&&t.dataset.pc&&t.type!=='file'){S.photos[+t.dataset.pi][t.dataset.pc]=t.value;}});
     box.addEventListener('change',function(e){var t=e.target;
-      if(t.dataset.pup!=null){var f=t.files[0];if(!f)return;var r=new FileReader();r.onload=function(){S.photos[+t.dataset.pup].img=r.result;renderUploadersAll();};r.readAsDataURL(f);}
+      if(t.dataset.pup!=null){var f=t.files[0];if(!f)return;var gi=+t.dataset.pup;if(window.__cloud&&window.__cloud.uploadFile){window.__cloud.uploadFile(f).then(function(u){S.photos[gi].img=u;renderUploadersAll();}).catch(function(er){alert('업로드 실패: '+(er.message||er));});}else{var r=new FileReader();r.onload=function(){S.photos[gi].img=r.result;renderUploadersAll();};r.readAsDataURL(f);}}
       else if(t.dataset.pck!=null){S.photos[+t.dataset.pck].cover=t.checked;}});
     box.addEventListener('click',function(e){var t=e.target;
       if(t.dataset.padd!=null){var parts=t.dataset.padd.split('||');S.photos.push({img:'',category:parts[0]||'갤러리',folder:parts[1]||'',title:'',desc:'',cover:false,order:S.photos.length+1,link:''});renderUploadersAll();}
@@ -466,7 +468,7 @@ function renderUploader(cat,boxId){
     html+='<table class="pf-table"><thead><tr><th>이미지</th><th>제목</th><th>설명</th><th>대표</th><th>순서</th><th>링크</th><th></th></tr></thead><tbody>';
     if(!ps.length)html+='<tr><td colspan="7" class="empty">사진이 없습니다. 아래 + 버튼으로 추가하세요.</td></tr>';
     ps.forEach(function(o){var p=o.p,gi=o.gi;
-      html+='<tr><td><span class="thumb" style="'+(p.img?"background-image:url('"+String(p.img).replace(/\'/g,'%27')+"')":'')+'"></span><span class="up-row" style="display:inline-flex;width:calc(100% - 64px)"><input data-pi="'+gi+'" data-pc="img" value="'+esc(String(p.img||'').slice(0,160))+'" placeholder="URL 또는 업로드"><label class="upbtn">⬆<input type="file" accept="image/*" data-pup="'+gi+'" hidden></label></span></td>'
+      html+='<tr><td><span class="thumb" style="'+((p.img&&!isVid(p.img))?("background-image:url('"+String(p.img).replace(/'/g,'%27')+"')"):'')+'">'+((p.img&&isVid(p.img))?'▶':'')+'</span><span class="up-row" style="display:inline-flex;width:calc(100% - 64px)"><input data-pi="'+gi+'" data-pc="img" value="'+esc(String(p.img||'').slice(0,160))+'" placeholder="URL 또는 업로드"><label class="upbtn">⬆<input type="file" accept="image/*,video/*" data-pup="'+gi+'" hidden></label></span></td>'
         +'<td><input data-pi="'+gi+'" data-pc="title" value="'+esc(p.title||'')+'"></td>'
         +'<td><input data-pi="'+gi+'" data-pc="desc" value="'+esc(p.desc||'')+'"></td>'
         +'<td><input type="checkbox" data-pck="'+gi+'" '+(p.cover?'checked':'')+' style="width:auto"></td>'
