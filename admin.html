@@ -175,8 +175,9 @@ td .del{color:var(--warn);background:none;border:0;font-size:12px;text-decoratio
             <div class="field"><label>© 저작권 연도</label><input data-site="copyYear" /></div>
             <div class="fgrid">
               <div class="field"><label>히어로 배경 이미지</label><div class="up-row"><input data-site="heroImg" placeholder="URL 또는 업로드"><label class="upbtn">⬆<input type="file" accept="image/*" data-siteup="heroImg" hidden></label></div></div>
-              <div class="field"><label>소개 대표 이미지/영상</label><div class="up-row"><input data-site="conceptImg" placeholder="URL 또는 업로드"><label class="upbtn">⬆<input type="file" accept="image/*,video/*" data-siteup="conceptImg" hidden></label></div></div>
+              <div class="field"><label>소개 대표 이미지(단일·폴백)</label><div class="up-row"><input data-site="conceptImg" placeholder="URL 또는 업로드"><label class="upbtn">⬆<input type="file" accept="image/*,video/*" data-siteup="conceptImg" hidden></label></div></div>
             </div>
+            <div class="field"><label>소개 영상 (최대 5개 · 순환 재생)</label><div class="desc">영상을 등록하면 소개 섹션에서 음소거 자동재생되고, 끝나면 다음 영상으로 넘어갑니다(1개면 반복). 클릭 시 확대·소리 재생. 비우면 위의 대표 이미지가 표시됩니다.</div><div id="conceptMediaBox"></div></div>
           </div>
         </div>
 
@@ -233,7 +234,7 @@ window.UUHEE_SB={url:'https://ybfwnmgnledlumppfjbh.supabase.co',key:'sb_publisha
       var br=r[2].data||[],cl=r[3].data||[],de=r[4].data||[],sl=r[5].data||[],pa=r[6].data||[],ph=r[7].data||[],pf=r[8].data||[],sc=r[9].data||[],ho=r[10].data||[];
       if(!site&&!legal&&!br.length&&!cl.length&&!de.length&&!sl.length&&!pa.length&&!ph.length&&!pf.length&&!sc.length&&!ho.length)return null;
       var S={};
-      if(site)S.site={brand:s(site.brand),est:s(site.est),copyYear:s(site.copy_year),heroImg:s(site.hero_img),conceptImg:s(site.concept_img)};
+      if(site)S.site={brand:s(site.brand),est:s(site.est),copyYear:s(site.copy_year),heroImg:s(site.hero_img),conceptImg:s(site.concept_img)};if(site)S.conceptMedia=Array.isArray(site.concept_media)?site.concept_media:[];
       if(legal)S.legal={company:s(legal.company),ceo:s(legal.ceo),bizno:s(legal.bizno),mailorder:s(legal.mailorder),privacy:s(legal.privacy),addr:s(legal.addr),tel:s(legal.tel),email:s(legal.email),kakao:s(legal.kakao),hosting:s(legal.hosting),termsUrl:s(legal.terms_url),privacyUrl:s(legal.privacy_url),refundUrl:s(legal.refund_url)};
       S.branches=br.map(function(b){return {name:s(b.name),phone:s(b.phone),addr:s(b.addr),map:s(b.map),hours:s(b.hours),ig:s(b.ig),fb:s(b.fb),lt:s(b.lt)};});
       S.classes=cl.map(function(x){return {order:x.ord,tag:s(x.tag),name:s(x.name),desc:s(x.descr),active:!!x.active,inquiryOnly:!!x.inquiry_only,branches:x.branches||[]};});
@@ -257,7 +258,7 @@ window.UUHEE_SB={url:'https://ybfwnmgnledlumppfjbh.supabase.co',key:'sb_publisha
   function repl(t,rows){return sb.from(t).delete().gte('id',0).then(function(){return rows.length?sb.from(t).insert(rows):{};});}
   function pushSettings(S){
     var st=S.site||{},lg=S.legal||{};var jobs=[];
-    jobs.push(sb.from('site').upsert({id:'uuhee',brand:s(st.brand),est:s(st.est),copy_year:s(st.copyYear),hero_img:s(st.heroImg),concept_img:s(st.conceptImg)}));
+    jobs.push(sb.from('site').upsert({id:'uuhee',brand:s(st.brand),est:s(st.est),copy_year:s(st.copyYear),hero_img:s(st.heroImg),concept_img:s(st.conceptImg),concept_media:(S.conceptMedia||[])}));
     jobs.push(sb.from('legal').upsert({id:'uuhee',company:s(lg.company),ceo:s(lg.ceo),bizno:s(lg.bizno),mailorder:s(lg.mailorder),privacy:s(lg.privacy),addr:s(lg.addr),tel:s(lg.tel),email:s(lg.email),kakao:s(lg.kakao),hosting:s(lg.hosting),terms_url:s(lg.termsUrl),privacy_url:s(lg.privacyUrl),refund_url:s(lg.refundUrl)}));
     jobs.push(repl('branches',(S.branches||[]).map(function(b,i){return {ord:i,name:s(b.name),phone:s(b.phone),addr:s(b.addr),map:s(b.map),hours:s(b.hours),ig:s(b.ig),fb:s(b.fb),lt:s(b.lt)};})));
     jobs.push(repl('classes',(S.classes||[]).map(function(x,i){return {ord:(x.order!=null?x.order:i),tag:s(x.tag),name:s(x.name),descr:s(x.desc),active:!!x.active,inquiry_only:!!x.inquiryOnly,branches:(x.branches||[])};})));
@@ -426,7 +427,7 @@ function buildTables(){
   T.partners=makeTable('#tbl-partners','partners',[
     {k:'name',l:'이름'},{k:'logo',l:'로고',type:'image'},{k:'cover',l:'대표',type:'check'},{k:'order',l:'순서',type:'num'},{k:'link',l:'링크'}],
     ()=>({name:'',logo:'',cover:false,order:S.partners.length+1,link:''}),'로고 추가');
-  renderFoldersAll();renderUploadersAll();
+  renderFoldersAll();renderUploadersAll();renderConceptMedia();
 }
 function renderFoldersAll(){renderFolderMgr('공간','spaceFolders');renderFolderMgr('갤러리','galFolders');}
 function renderUploadersAll(){renderUploader('공간','spaceUploader');renderUploader('갤러리','galUploader');}
@@ -479,6 +480,22 @@ function renderUploader(cat,boxId){
     html+='</tbody></table><div class="row-tools" style="margin:8px 0 0"><button class="btn ghost" data-padd="'+esc(cat)+'||'+esc(f.name)+'">+ 사진 추가</button></div></div>';
   });
   html+='<div class="row-tools" style="margin-top:16px"><span class="saved">저장됨 ✓</span><button class="btn gold" data-psave>저장</button></div>';
+  box.innerHTML=html;
+}
+function renderConceptMedia(){
+  var box=document.getElementById('conceptMediaBox');if(!box)return;
+  if(!Array.isArray(S.conceptMedia))S.conceptMedia=[];
+  if(!box._wired){box._wired=1;
+    box.addEventListener('input',function(e){var t=e.target;if(t.dataset.cm!=null)S.conceptMedia[+t.dataset.cm]=t.value;});
+    box.addEventListener('change',function(e){var t=e.target;if(t.dataset.cmup!=null){var f=t.files[0];if(!f)return;var i=+t.dataset.cmup;if(window.__cloud&&window.__cloud.uploadFile){window.__cloud.uploadFile(f).then(function(u){S.conceptMedia[i]=u;renderConceptMedia();}).catch(function(er){alert('업로드 실패: '+(er.message||er));});}else{var r=new FileReader();r.onload=function(){S.conceptMedia[i]=r.result;renderConceptMedia();};r.readAsDataURL(f);}}});
+    box.addEventListener('click',function(e){var t=e.target;
+      if(t.dataset.cmadd!=null){if(S.conceptMedia.length<5){S.conceptMedia.push('');renderConceptMedia();}}
+      else if(t.dataset.cmrm!=null){S.conceptMedia.splice(+t.dataset.cmrm,1);renderConceptMedia();}
+      else if(t.dataset.cmsave!=null){try{save();flash(box.querySelector('.saved'));}catch(err){alert('저장 실패: 용량이 큽니다.');}}});
+  }
+  var html='';
+  S.conceptMedia.forEach(function(src,i){var v=isVid(src);html+='<div class="up-row" style="margin-bottom:8px"><span class="thumb" style="'+((src&&!v)?("background-image:url('"+String(src).replace(/'/g,'%27')+"')"):'')+'">'+((src&&v)?'▶':'')+'</span><input data-cm="'+i+'" value="'+esc(src||'')+'" placeholder="URL 또는 업로드"><label class="upbtn">⬆<input type="file" accept="image/*,video/*" data-cmup="'+i+'" hidden></label><button class="del" data-cmrm="'+i+'" style="margin-left:6px">삭제</button></div>';});
+  html+='<div class="row-tools" style="margin-top:8px"><button class="btn ghost" data-cmadd="1"'+(S.conceptMedia.length>=5?' disabled':'')+'>+ 영상 추가 ('+S.conceptMedia.length+'/5)</button><span class="sp"></span><span class="saved">저장됨 ✓</span><button class="btn gold" data-cmsave="1">저장</button></div>';
   box.innerHTML=html;
 }
 function renderLegalForm(){
