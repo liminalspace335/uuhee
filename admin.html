@@ -175,9 +175,8 @@ td .del{color:var(--warn);background:none;border:0;font-size:12px;text-decoratio
             <div class="field"><label>© 저작권 연도</label><input data-site="copyYear" /></div>
             <div class="fgrid">
               <div class="field"><label>히어로 배경 이미지</label><div class="up-row"><input data-site="heroImg" placeholder="URL 또는 업로드"><label class="upbtn">⬆<input type="file" accept="image/*" data-siteup="heroImg" hidden></label></div></div>
-              <div class="field"><label>소개 대표 이미지(단일·폴백)</label><div class="up-row"><input data-site="conceptImg" placeholder="URL 또는 업로드"><label class="upbtn">⬆<input type="file" accept="image/*,video/*" data-siteup="conceptImg" hidden></label></div></div>
             </div>
-            <div class="field"><label>소개 영상 (최대 5개 · 순환 재생)</label><div class="desc">영상을 등록하면 소개 섹션에서 음소거 자동재생되고, 끝나면 다음 영상으로 넘어갑니다(1개면 반복). 클릭 시 확대·소리 재생. 비우면 위의 대표 이미지가 표시됩니다.</div><div id="conceptMediaBox"></div></div>
+            <div class="field"><label>소개 미디어 (이미지/영상 · 최대 5개 · 순환 · 순서 변경)</label><div class="desc">영상을 등록하면 소개 섹션에서 음소거 자동재생되고, 끝나면 다음 영상으로 넘어갑니다(1개면 반복). 클릭 시 확대·소리 재생. 비우면 위의 대표 이미지가 표시됩니다.</div><div id="conceptMediaBox"></div></div>
           </div>
         </div>
 
@@ -410,17 +409,17 @@ const spaceFolderNames=()=>S.spaceFolders.map(f=>f.name).filter(Boolean);
 let T={};
 function buildTables(){
   T.branches=makeTable('#tbl-branches','branches',[
-    {k:'name',l:'지점명'},{k:'phone',l:'연락처'},{k:'addr',l:'주소'},{k:'map',l:'네이버 지도 링크'},{k:'hours',l:'운영시간'},
+    {k:'name',l:'지점명'},{k:'nameEn',l:'지점명(EN)'},{k:'phone',l:'연락처'},{k:'addr',l:'주소'},{k:'addrEn',l:'주소(EN)'},{k:'map',l:'네이버 지도 링크'},{k:'hours',l:'운영시간'},
     {k:'ig',l:'Instagram'},{k:'fb',l:'Facebook'},{k:'lt',l:'Linktree'}],
-    ()=>({name:'',phone:'',addr:'',map:'',hours:'',ig:'',fb:'',lt:''}),'지점 추가');
+    ()=>({name:'',nameEn:'',phone:'',addr:'',addrEn:'',map:'',hours:'',ig:'',fb:'',lt:''}),'지점 추가');
   T.classes=makeTable('#tbl-classes','classes',[
-    {k:'branches',l:'지점(복수선택)',type:'multi',options:branchNames},{k:'order',l:'순서',type:'num'},{k:'tag',l:'라벨(EN)'},{k:'name',l:'이름'},{k:'desc',l:'클래스 설명'},
+    {k:'branches',l:'지점(복수선택)',type:'multi',options:branchNames},{k:'order',l:'순서',type:'num'},{k:'tag',l:'라벨(EN)'},{k:'name',l:'이름'},{k:'nameEn',l:'이름(EN)'},{k:'desc',l:'클래스 설명'},{k:'descEn',l:'설명(EN)'},
     {k:'active',l:'상태',type:'toggle',on:'활성',off:'중지'},{k:'inquiryOnly',l:'문의전용',type:'toggle',on:'문의',off:'일반'}],
-    ()=>({branches:branchNames(),order:S.classes.length+1,tag:'',name:'',desc:'',active:true,inquiryOnly:false}),'클래스 추가');
+    ()=>({branches:branchNames(),order:S.classes.length+1,tag:'',name:'',nameEn:'',desc:'',descEn:'',active:true,inquiryOnly:false}),'클래스 추가');
   T.details=makeTable('#tbl-details','details',[
     {k:'branch',l:'지점',type:'select',options:branchNames},{k:'cls',l:'클래스',type:'select',options:classNames},{k:'size',l:'용량'},
-    {k:'price',l:'₩ 가격',type:'num'},{k:'discountType',l:'할인유형',type:'select',options:['없음','% 할인','정액 할인']},{k:'discountVal',l:'할인값',type:'num'},{k:'desc',l:'상세설명'}],
-    ()=>({branch:branchNames()[0]||'',cls:'',size:'',price:'',discountType:'없음',discountVal:'',desc:''}),'항목 추가');
+    {k:'price',l:'₩ 가격',type:'num'},{k:'discountType',l:'할인유형',type:'select',options:['없음','% 할인','정액 할인']},{k:'discountVal',l:'할인값',type:'num'},{k:'desc',l:'상세설명'},{k:'descEn',l:'상세설명(EN)'}],
+    ()=>({branch:branchNames()[0]||'',cls:'',size:'',price:'',discountType:'없음',discountVal:'',desc:'',descEn:''}),'항목 추가');
   T.slots=makeTable('#tbl-slots','slots',[
     {k:'branch',l:'지점',type:'select',options:branchNames},{k:'cls',l:'클래스',type:'select',options:classNames},{k:'time',l:'시간',type:'time'},{k:'cap',l:'정원',type:'num'}],
     ()=>({branch:branchNames()[0]||'',cls:'',time:'',cap:''}),'시간대 추가');
@@ -491,10 +490,12 @@ function renderConceptMedia(){
     box.addEventListener('click',function(e){var t=e.target;
       if(t.dataset.cmadd!=null){if(S.conceptMedia.length<5){S.conceptMedia.push('');renderConceptMedia();}}
       else if(t.dataset.cmrm!=null){S.conceptMedia.splice(+t.dataset.cmrm,1);renderConceptMedia();}
+      else if(t.dataset.cmmu!=null){var iu=+t.dataset.cmmu;if(iu>0){var a=S.conceptMedia;var tp=a[iu-1];a[iu-1]=a[iu];a[iu]=tp;renderConceptMedia();}}
+      else if(t.dataset.cmmd!=null){var idn=+t.dataset.cmmd;var b=S.conceptMedia;if(idn<b.length-1){var tp2=b[idn+1];b[idn+1]=b[idn];b[idn]=tp2;renderConceptMedia();}}
       else if(t.dataset.cmsave!=null){try{save();flash(box.querySelector('.saved'));}catch(err){alert('저장 실패: 용량이 큽니다.');}}});
   }
   var html='';
-  S.conceptMedia.forEach(function(src,i){var v=isVid(src);html+='<div class="up-row" style="margin-bottom:8px"><span class="thumb" style="'+((src&&!v)?("background-image:url('"+String(src).replace(/'/g,'%27')+"')"):'')+'">'+((src&&v)?'▶':'')+'</span><input data-cm="'+i+'" value="'+esc(src||'')+'" placeholder="URL 또는 업로드"><label class="upbtn">⬆<input type="file" accept="image/*,video/*" data-cmup="'+i+'" hidden></label><button class="del" data-cmrm="'+i+'" style="margin-left:6px">삭제</button></div>';});
+  S.conceptMedia.forEach(function(src,i){var v=isVid(src);html+='<div class="up-row" style="margin-bottom:8px"><span class="thumb" style="'+((src&&!v)?("background-image:url('"+String(src).replace(/'/g,'%27')+"')"):'')+'">'+((src&&v)?'▶':'')+'</span><input data-cm="'+i+'" value="'+esc(src||'')+'" placeholder="URL 또는 업로드"><label class="upbtn">⬆<input type="file" accept="image/*,video/*" data-cmup="'+i+'" hidden></label><button class="del" data-cmmu="'+i+'" title="위로" style="margin-left:6px">▲</button><button class="del" data-cmmd="'+i+'" title="아래로">▼</button><button class="del" data-cmrm="'+i+'">삭제</button></div>';});
   html+='<div class="row-tools" style="margin-top:8px"><button class="btn ghost" data-cmadd="1"'+(S.conceptMedia.length>=5?' disabled':'')+'>+ 영상 추가 ('+S.conceptMedia.length+'/5)</button><span class="sp"></span><span class="saved">저장됨 ✓</span><button class="btn gold" data-cmsave="1">저장</button></div>';
   box.innerHTML=html;
 }
