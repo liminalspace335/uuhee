@@ -254,7 +254,7 @@ window.UUHEE_SB={url:'https://ybfwnmgnledlumppfjbh.supabase.co',key:'sb_publisha
       return {apps:apps,grp:grp};
     });
   }
-  function repl(t,rows){return sb.from(t).delete().gte('id',0).then(function(){return rows.length?sb.from(t).insert(rows):{};});}
+  function repl(t,rows){return sb.from(t).select('id').then(function(r){var oldIds=(r.data||[]).map(function(x){return x.id;});var ins=rows.length?sb.from(t).insert(rows):Promise.resolve({error:null});return Promise.resolve(ins).then(function(res){if(res&&res.error)throw res.error;if(oldIds.length)return sb.from(t).delete().in('id',oldIds);return res;});});}
   function pushSettings(S){
     var st=S.site||{},lg=S.legal||{};var jobs=[];
     jobs.push(sb.from('site').upsert({id:'uuhee',brand:s(st.brand),est:s(st.est),copy_year:s(st.copyYear),hero_img:s(st.heroImg),concept_img:s(st.conceptImg),concept_media:(S.conceptMedia||[])}));
