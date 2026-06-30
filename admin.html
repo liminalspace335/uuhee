@@ -278,7 +278,7 @@ window.UUHEE_SB={url:'https://ybfwnmgnledlumppfjbh.supabase.co',key:'sb_publisha
   };
   var isAdmin=/admin\.html$/i.test(location.pathname);
   var tasks=[ pullSettings().then(function(S){if(!S)return false;var j=JSON.stringify(S);if(j!==(localStorage.getItem('uuhee_settings')||'')){localStorage.setItem('uuhee_settings',j);return true;}return false;}) ];
-  if(isAdmin){tasks.push(pullSubs().then(function(o){var a=JSON.stringify(o.apps),g=JSON.stringify(o.grp),ch=false;if(a!==(localStorage.getItem('uuhee_apps')||'')){localStorage.setItem('uuhee_apps',a);ch=true;}if(g!==(localStorage.getItem('uuhee_group')||'')){localStorage.setItem('uuhee_group',g);ch=true;}return ch;}));}
+  /* 신청/문의는 어드민 스크립트에서 직접 갱신(refreshSubmissionsFromCloud) */
   Promise.all(tasks).then(function(res){if(res.indexOf(true)>=0){var n=+(sessionStorage.getItem('uuhee_rl')||0);if(n<2){sessionStorage.setItem('uuhee_rl',String(n+1));location.reload();}}else sessionStorage.removeItem('uuhee_rl');}).catch(function(e){console.warn('cloud hydrate fail',e);});
 })();
 </script>
@@ -335,7 +335,19 @@ function save(){var j=JSON.stringify(S);localStorage.setItem('uuhee_settings',j)
 const branchNames=()=>S.branches.map(b=>b.name).filter(Boolean);
 
 function unlock(){$('#gate').style.display='none';$('#app').style.display='flex';renderAll();}
-$('#loginBtn').addEventListener('click',()=>{if($('#pw').value===PW){sessionStorage.setItem('uuhee_admin','1');unlock();}else alert('비밀번호가 올바르지 않습니다.');});
+$('#loginBtn').addEventListener('click',()=>{if($('#pw').value===PW){sessionStorage.setItem('uuhee_admin','1');function refreshSubmissionsFromCloud(){
+  if(!window.__sb)return;
+  var s=function(v){return v==null?'':String(v);};
+  Promise.all([window.__sb.from('applications').select('*').order('id'),window.__sb.from('inquiries').select('*').order('id')]).then(function(r){
+    if(r[0].error||r[1].error){console.warn('subs load',r[0].error||r[1].error);return;}
+    apps=(r[0].data||[]).map(function(a){return {branch:s(a.branch),class:s(a.cls),size:s(a.size),date:s(a.sdate),time:s(a.stime),people:(a.people==null?'':String(a.people)),name:s(a.name),phone:s(a.phone),email:s(a.email),msg:s(a.msg),estimate:a.estimate,qty:a.qty,ts:a.created_at?Date.parse(a.created_at):Date.now()};});
+    group=(r[1].data||[]).map(function(g){return {type:s(g.itype),volume:s(g.volume),branch:s(g.branch),company:s(g.company),name:s(g.name),phone:s(g.phone),email:s(g.email),size:s(g.isize),msg:s(g.msg),ts:g.created_at?Date.parse(g.created_at):Date.now()};});
+    try{localStorage.setItem('uuhee_apps',JSON.stringify(apps));localStorage.setItem('uuhee_group',JSON.stringify(group));}catch(e){}
+    renderLists();renderOverview();
+  }).catch(function(e){console.warn('subs refresh',e);});
+}
+unlock();
+refreshSubmissionsFromCloud();}else alert('비밀번호가 올바르지 않습니다.');});
 $('#pw').addEventListener('keydown',e=>{if(e.key==='Enter')$('#loginBtn').click();});
 $('#logout').addEventListener('click',()=>{sessionStorage.removeItem('uuhee_admin');location.reload();});
 $$('#nav a').forEach(a=>a.addEventListener('click',()=>{$$('#nav a').forEach(x=>x.classList.remove('active'));a.classList.add('active');
@@ -586,7 +598,19 @@ function buildSchedule(){
 function renderAll(){renderOverview();renderLists();renderSite();buildTables();buildSchedule();renderSchedule();}
 
 /* 모든 정의 이후 자동 진입 (로그인 게이트 임시 비활성화) */
+function refreshSubmissionsFromCloud(){
+  if(!window.__sb)return;
+  var s=function(v){return v==null?'':String(v);};
+  Promise.all([window.__sb.from('applications').select('*').order('id'),window.__sb.from('inquiries').select('*').order('id')]).then(function(r){
+    if(r[0].error||r[1].error){console.warn('subs load',r[0].error||r[1].error);return;}
+    apps=(r[0].data||[]).map(function(a){return {branch:s(a.branch),class:s(a.cls),size:s(a.size),date:s(a.sdate),time:s(a.stime),people:(a.people==null?'':String(a.people)),name:s(a.name),phone:s(a.phone),email:s(a.email),msg:s(a.msg),estimate:a.estimate,qty:a.qty,ts:a.created_at?Date.parse(a.created_at):Date.now()};});
+    group=(r[1].data||[]).map(function(g){return {type:s(g.itype),volume:s(g.volume),branch:s(g.branch),company:s(g.company),name:s(g.name),phone:s(g.phone),email:s(g.email),size:s(g.isize),msg:s(g.msg),ts:g.created_at?Date.parse(g.created_at):Date.now()};});
+    try{localStorage.setItem('uuhee_apps',JSON.stringify(apps));localStorage.setItem('uuhee_group',JSON.stringify(group));}catch(e){}
+    renderLists();renderOverview();
+  }).catch(function(e){console.warn('subs refresh',e);});
+}
 unlock();
+refreshSubmissionsFromCloud();
 </script>
 </body>
 </html>
