@@ -580,17 +580,20 @@ function renderCal(){
 function selectSchedDate(ds){schedDate=ds;var key=schedBranch+'|'+ds;
   schedRows=(S.schedule&&S.schedule[key])?S.schedule[key].map(function(r){return Object.assign({},r);}):[];
   renderCal();renderSchedEditor();}
+function bookedForDay(cls,tm){var n=0;(typeof apps!=='undefined'?apps:[]).forEach(function(a){if(a.branch===schedBranch&&a.date===schedDate&&a.time===tm&&(!cls||a.class===cls)){n+=parseInt(a.people||'0',10)||0;}});return n;}
 function renderSchedEditor(){
   var ed=$('#schedEditor');if(!ed)return;
   if(!schedDate){ed.innerHTML='<div class="empty">왼쪽 달력에서 날짜를 선택해 주세요.</div>';return;}
   var key=schedBranch+'|'+schedDate,hol=(S.holidays||[]).indexOf(key)>-1,opts=classNames();
+  var bookedFor=function(cls,tm){var n=0;(typeof apps!=='undefined'?apps:[]).forEach(function(a){if(a.branch===schedBranch&&a.date===schedDate&&a.time===tm&&(!cls||a.class===cls)){n+=parseInt(a.people||'0',10)||0;}});return n;};
   ed.innerHTML='<div style="font-size:14px;font-weight:600;margin-bottom:4px">'+esc(schedBranch)+' · '+schedDate+'</div>'
     +'<div class="desc">'+(hol?'휴무일로 지정된 날짜입니다.':'이 날짜의 클래스·시간·정원을 설정하세요.')+'</div>'
-    +'<table><thead><tr><th>클래스</th><th>시간</th><th>정원</th><th></th></tr></thead><tbody>'
-    +(schedRows.length?schedRows.map(function(r,i){return '<tr><td><select data-sc="cls" data-i="'+i+'">'+['',].concat(opts).map(function(o){return '<option '+(o===r.cls?'selected':'')+'>'+esc(o)+'</option>';}).join('')+'</select></td>'
-      +'<td><input type="time" data-sc="time" data-i="'+i+'" value="'+esc(r.time||'')+'"></td>'
-      +'<td><input type="number" data-sc="cap" data-i="'+i+'" value="'+esc(r.cap||'')+'"></td>'
-      +'<td><button class="del" data-srm="'+i+'">삭제</button></td></tr>';}).join(''):'<tr><td colspan="4" class="empty">시간대가 없습니다.</td></tr>')
+    +'<table><thead><tr><th>클래스</th><th>시간</th><th>정원</th><th>신청</th><th></th></tr></thead><tbody>'
+    +(schedRows.length?schedRows.map(function(r,i){var bk=bookedFor(r.cls,r.time);var dis=bk>0?' disabled':'';return '<tr><td><select data-sc="cls" data-i="'+i+'"'+dis+'>'+['',].concat(opts).map(function(o){return '<option '+(o===r.cls?'selected':'')+'>'+esc(o)+'</option>';}).join('')+'</select></td>'
+      +'<td><input type="time" data-sc="time" data-i="'+i+'" value="'+esc(r.time||'')+'"'+dis+'></td>'
+      +'<td><input type="number" data-sc="cap" data-i="'+i+'" value="'+esc(r.cap||'')+'"'+dis+'></td>'
+      +'<td style="'+(bk>0?'color:#3c7d4f;font-weight:600':'color:var(--ink-soft)')+'">'+bk+'명</td>'
+      +'<td><button class="del" data-srm="'+i+'"'+(bk>0?' disabled title="접수된 시간대는 삭제할 수 없습니다"':'')+'>삭제</button></td></tr>';}).join(''):'<tr><td colspan="5" class="empty">시간대가 없습니다.</td></tr>')
     +'</tbody></table>'
     +'<div class="row-tools" style="margin-top:14px;gap:8px"><button class="btn ghost" id="schedAdd">+ 시간대 추가</button><button class="btn ghost" id="schedDefault">기본값 적용</button><button class="btn ghost" id="schedCopy">이 날짜 복사</button><span class="sp"></span><button class="btn ghost" id="schedHol">'+(hol?'휴무 해제':'휴무일 지정')+'</button><button class="btn ghost" id="schedClear">개별설정 해제</button><button class="btn gold" id="schedSave">이 날짜 저장</button></div>';
 }
@@ -614,10 +617,10 @@ function buildSchedule(){
     if(e.target.id==='schedPaste'){if(!schedClip){pasteMode=false;renderPasteBar();return;}var targets=selDates.length?selDates.slice():(schedDate?[schedDate]:[]);if(!targets.length){alert('붙여넣을 날짜를 선택하세요.');return;}if(!S.schedule)S.schedule={};targets.forEach(function(ds){S.schedule[schedBranch+'|'+ds]=schedClip.map(function(r){return Object.assign({},r);});var hk=schedBranch+'|'+ds,hi=(S.holidays||[]).indexOf(hk);if(hi>-1)S.holidays.splice(hi,1);});save();pasteMode=false;selDates=[];dragging=false;renderCal();renderPasteBar();renderSchedEditor();alert(targets.length+'개 날짜에 붙여넣었습니다.');return;}
     var rm=e.target.closest('[data-srm]');if(rm){schedRows.splice(+rm.dataset.srm,1);renderSchedEditor();return;}
     if(e.target.id==='schedAdd'){schedRows.push({cls:(classNames()[0]||''),time:'',cap:''});renderSchedEditor();return;}
-    if(e.target.id==='schedDefault'){schedRows=defSlots(schedBranch);renderSchedEditor();return;}
+    if(e.target.id==='schedDefault'){var anyB=schedRows.some(function(r){return bookedForDay(r.cls,r.time)>0;});if(anyB&&!confirm('이 날짜에 접수된 신청이 있습니다. 기본값으로 덮어쓸까요?'))return;schedRows=defSlots(schedBranch);renderSchedEditor();return;}
     if(e.target.id==='schedSave'){if(!S.schedule)S.schedule={};S.schedule[schedBranch+'|'+schedDate]=schedRows.map(function(r){return Object.assign({},r);});save();renderCal();alert('저장되었습니다.');return;}
     if(e.target.id==='schedHol'){var k=schedBranch+'|'+schedDate;if(!S.holidays)S.holidays=[];var ix=S.holidays.indexOf(k);if(ix>-1)S.holidays.splice(ix,1);else S.holidays.push(k);save();renderCal();renderSchedEditor();return;}
-    if(e.target.id==='schedClear'){var k2=schedBranch+'|'+schedDate;if(S.schedule)delete S.schedule[k2];schedRows=defSlots(schedBranch);save();renderCal();renderSchedEditor();return;}
+    if(e.target.id==='schedClear'){var anyB2=schedRows.some(function(r){return bookedForDay(r.cls,r.time)>0;});if(anyB2&&!confirm('이 날짜에 접수된 신청이 있습니다. 개별설정을 해제할까요?'))return;var k2=schedBranch+'|'+schedDate;if(S.schedule)delete S.schedule[k2];schedRows=defSlots(schedBranch);save();renderCal();renderSchedEditor();return;}
   });
   p.addEventListener('input',function(e){var t=e.target;if(t.dataset.sc!=null)schedRows[+t.dataset.i][t.dataset.sc]=t.value;});
   p.addEventListener('mousedown',function(e){if(!pasteMode)return;var day=e.target.closest('.d[data-d]');if(!day)return;e.preventDefault();dragging=true;didDrag=false;selDates=[day.dataset.d];renderCal();renderPasteBar();});
