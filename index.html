@@ -852,8 +852,8 @@ window.UUHEE_SB={url:'https://ybfwnmgnledlumppfjbh.supabase.co',key:'sb_publisha
   window.__cloud={
     pushSettings:pushSettings,
     uploadFile:function(file){if(!file)return Promise.reject(new Error('no file'));var ext=((file.name||'').split('.').pop()||'bin').toLowerCase().replace(/[^a-z0-9]/g,'')||'bin';var path=Date.now()+'_'+Math.random().toString(36).slice(2,8)+'.'+ext;return sb.storage.from('media').upload(path,file,{cacheControl:'3600',upsert:false}).then(function(r){if(r.error)throw r.error;return sb.storage.from('media').getPublicUrl(path).data.publicUrl;});},
-    insertApplication:function(rec){return sb.from('applications').insert({branch:s(rec.branch),cls:s(rec.class),size:s(rec.size),sdate:s(rec.date),stime:s(rec.time),people:N(rec.people),name:s(rec.name),phone:s(rec.phone),email:s(rec.email),msg:s(rec.msg),estimate:N(rec.estimate),qty:rec.qty||null});},
-    insertInquiry:function(rec){return sb.from('inquiries').insert({itype:s(rec.type),volume:s(rec.volume),branch:s(rec.branch),company:s(rec.company),name:s(rec.name),phone:s(rec.phone),email:s(rec.email),isize:s(rec.size),msg:s(rec.msg)});}
+    insertApplication:function(rec){return sb.from('applications').insert({status:1,branch:s(rec.branch),cls:s(rec.class),size:s(rec.size),sdate:s(rec.date),stime:s(rec.time),people:N(rec.people),name:s(rec.name),phone:s(rec.phone),email:s(rec.email),msg:s(rec.msg),estimate:N(rec.estimate),qty:rec.qty||null});},
+    insertInquiry:function(rec){return sb.from('inquiries').insert({status:1,itype:s(rec.type),volume:s(rec.volume),branch:s(rec.branch),company:s(rec.company),name:s(rec.name),phone:s(rec.phone),email:s(rec.email),isize:s(rec.size),msg:s(rec.msg)});}
   };
   var isAdmin=/admin\.html$/i.test(location.pathname);
   var tasks=[ pullSettings().then(function(S){if(!S)return false;var j=JSON.stringify(S);if(j!==(localStorage.getItem('uuhee_settings')||'')){localStorage.setItem('uuhee_settings',j);return true;}return false;}) ];

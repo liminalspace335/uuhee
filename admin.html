@@ -91,6 +91,8 @@ td .del{color:var(--warn);background:none;border:0;font-size:12px;text-decoratio
 .lg-f{display:flex;flex-direction:column;gap:5px;font-size:12px;color:var(--ink-soft)}
 .lg-f input{width:100%}
 @media(max-width:760px){.lg-grid{grid-template-columns:1fr}}
+.stt{padding:5px 6px;border:1px solid var(--line);border-radius:4px;font:inherit;font-size:12px;background:#fff;cursor:pointer}
+.memo{padding:6px 8px;border:1px solid var(--line);border-radius:4px;font:inherit;font-size:12px;min-width:130px}
 .pf-block{border:1px solid var(--line);border-radius:6px;padding:12px 14px;margin:0 0 12px}
 .pf-head{font-size:12px;color:var(--ink);margin-bottom:8px}
 .pf-table{width:100%}
@@ -132,10 +134,15 @@ td .del{color:var(--warn);background:none;border:0;font-size:12px;text-decoratio
       </div>
 
       <div class="panel" id="panel-list">
-        <div class="box"><div class="row-tools"><h3 style="flex:1">클래스 신청</h3><button class="btn ghost" id="csvApps">CSV 내보내기</button></div>
-          <div class="tbl-wrap"><table><thead><tr><th>지점</th><th>클래스</th><th>용량</th><th>날짜</th><th>시간</th><th>인원</th><th>이름</th><th>연락처</th><th>접수</th><th></th></tr></thead><tbody id="appsBody"></tbody></table></div></div>
-        <div class="box"><div class="row-tools"><h3 style="flex:1">단체·기업 문의</h3><button class="btn ghost" id="csvGroup">CSV 내보내기</button></div>
-          <div class="tbl-wrap"><table><thead><tr><th>유형</th><th>용량</th><th>지점</th><th>회사/단체</th><th>담당자</th><th>연락처</th><th>내용</th><th>접수</th><th></th></tr></thead><tbody id="groupBody"></tbody></table></div></div>
+        <div class="box"><div class="row-tools"><h3 style="flex:1">신청·문의 관리</h3><button class="btn ghost" id="csvApps">클래스 CSV</button><button class="btn ghost" id="csvGroup">문의 CSV</button></div>
+          <div class="desc">상태와 메모를 직접 수정할 수 있습니다. 상태 코드 — 1 신청 · 2 대기 · 3 확정 · 4 완료 · 5 취소 · 6 환불요청 · 7 환불완료</div>
+          <div class="subtabs" id="subTabs">
+            <button class="subtab active" data-st="all">전체</button>
+            <button class="subtab" data-st="class">클래스</button>
+            <button class="subtab" data-st="group">단체·기업</button>
+          </div>
+          <div class="tbl-wrap" id="subsTable"></div>
+        </div>
       </div>
 
       <div class="panel" id="panel-schedule">
@@ -250,7 +257,7 @@ window.UUHEE_SB={url:'https://ybfwnmgnledlumppfjbh.supabase.co',key:'sb_publisha
   }
   function pullSubs(){
     return Promise.all([sb.from('applications').select('*').order('id'),sb.from('inquiries').select('*').order('id')]).then(function(r){
-      var apps=(r[0].data||[]).map(function(a){return {branch:s(a.branch),class:s(a.cls),size:s(a.size),date:s(a.sdate),time:s(a.stime),people:(a.people==null?'':String(a.people)),name:s(a.name),phone:s(a.phone),email:s(a.email),msg:s(a.msg),estimate:a.estimate,qty:a.qty,ts:a.created_at?Date.parse(a.created_at):Date.now()};});
+      var apps=(r[0].data||[]).map(function(a){return {id:a.id,status:(a.status||1),memo:s(a.memo),branch:s(a.branch),class:s(a.cls),size:s(a.size),date:s(a.sdate),time:s(a.stime),people:(a.people==null?'':String(a.people)),name:s(a.name),phone:s(a.phone),email:s(a.email),msg:s(a.msg),estimate:a.estimate,qty:a.qty,ts:a.created_at?Date.parse(a.created_at):Date.now()};});
       var grp=(r[1].data||[]).map(function(g){return {type:s(g.itype),volume:s(g.volume),branch:s(g.branch),company:s(g.company),name:s(g.name),phone:s(g.phone),email:s(g.email),size:s(g.isize),msg:s(g.msg),ts:g.created_at?Date.parse(g.created_at):Date.now()};});
       return {apps:apps,grp:grp};
     });
@@ -341,8 +348,8 @@ $('#loginBtn').addEventListener('click',()=>{if($('#pw').value===PW){sessionStor
   var s=function(v){return v==null?'':String(v);};
   Promise.all([window.__sb.from('applications').select('*').order('id'),window.__sb.from('inquiries').select('*').order('id')]).then(function(r){
     if(r[0].error||r[1].error){console.warn('subs load',r[0].error||r[1].error);return;}
-    apps=(r[0].data||[]).map(function(a){return {branch:s(a.branch),class:s(a.cls),size:s(a.size),date:s(a.sdate),time:s(a.stime),people:(a.people==null?'':String(a.people)),name:s(a.name),phone:s(a.phone),email:s(a.email),msg:s(a.msg),estimate:a.estimate,qty:a.qty,ts:a.created_at?Date.parse(a.created_at):Date.now()};});
-    group=(r[1].data||[]).map(function(g){return {type:s(g.itype),volume:s(g.volume),branch:s(g.branch),company:s(g.company),name:s(g.name),phone:s(g.phone),email:s(g.email),size:s(g.isize),msg:s(g.msg),ts:g.created_at?Date.parse(g.created_at):Date.now()};});
+    apps=(r[0].data||[]).map(function(a){return {id:a.id,status:(a.status||1),memo:s(a.memo),branch:s(a.branch),class:s(a.cls),size:s(a.size),date:s(a.sdate),time:s(a.stime),people:(a.people==null?'':String(a.people)),name:s(a.name),phone:s(a.phone),email:s(a.email),msg:s(a.msg),estimate:a.estimate,qty:a.qty,ts:a.created_at?Date.parse(a.created_at):Date.now()};});
+    group=(r[1].data||[]).map(function(g){return {id:g.id,status:(g.status||1),memo:s(g.memo),type:s(g.itype),volume:s(g.volume),branch:s(g.branch),company:s(g.company),name:s(g.name),phone:s(g.phone),email:s(g.email),size:s(g.isize),msg:s(g.msg),ts:g.created_at?Date.parse(g.created_at):Date.now()};});
     try{localStorage.setItem('uuhee_apps',JSON.stringify(apps));localStorage.setItem('uuhee_group',JSON.stringify(group));}catch(e){}
     renderLists();renderOverview();
   }).catch(function(e){console.warn('subs refresh',e);});
@@ -363,12 +370,34 @@ function renderOverview(){
   const rec=[...apps.map(a=>({...a,_t:'클래스'})),...group.map(g=>({...g,_t:'단체문의'}))].sort((a,b)=>(b.ts||0)-(a.ts||0)).slice(0,10);
   $('#recentBody').innerHTML=rec.length?rec.map(r=>`<tr><td>${r._t}</td><td>${esc(r.class||r.type||'')}</td><td>${esc(r.name||'')}</td><td>${esc(r.phone||'')}</td><td class="mono">${fmt(r.ts)}</td></tr>`).join(''):'<tr><td colspan="5" class="empty">접수된 내역이 없습니다.</td></tr>';
 }
-function renderLists(){
-  $('#appsBody').innerHTML=apps.length?apps.map((a,i)=>`<tr><td>${esc(a.branch)}</td><td>${esc(a.class)}</td><td>${esc(a.size)}</td><td>${esc(a.date)}</td><td>${esc(a.time)}</td><td>${esc(a.people)}</td><td>${esc(a.name)}</td><td>${esc(a.phone)}</td><td class="mono">${fmt(a.ts)}</td><td><button class="del" data-del="apps" data-i="${i}">삭제</button></td></tr>`).join(''):'<tr><td colspan="10" class="empty">신청 내역이 없습니다.</td></tr>';
-  $('#groupBody').innerHTML=group.length?group.map((g,i)=>`<tr><td>${esc(g.type)}</td><td>${esc(g.volume||'-')}</td><td>${esc(g.branch)}</td><td>${esc(g.company)}</td><td>${esc(g.name)}</td><td>${esc(g.phone)}</td><td>${esc(g.msg||'')}</td><td class="mono">${fmt(g.ts)}</td><td><button class="del" data-del="group" data-i="${i}">삭제</button></td></tr>`).join(''):'<tr><td colspan="9" class="empty">문의 내역이 없습니다.</td></tr>';
+var SUBTAB='all';
+var STLAB={1:'신청',2:'대기',3:'확정',4:'완료',5:'취소',6:'환불요청',7:'환불완료'};
+function stColor(c){return {1:'#8a8a82',2:'#c98a2e',3:'#3c7d4f',4:'#4a4a44',5:'#c0392b',6:'#d35400',7:'#2e6da4'}[+c]||'#8a8a82';}
+function stOpts(cur){var o='';for(var k=1;k<=7;k++){o+='<option value="'+k+'"'+(+cur===k?' selected':'')+'>'+k+'. '+STLAB[k]+'</option>';}return o;}
+function stCell(w,row,i){var c=row.status||1;return '<select class="stt" data-stt="'+w+'" data-i="'+i+'" style="border-color:'+stColor(c)+';color:'+stColor(c)+'">'+stOpts(c)+'</select>';}
+function memoCell(w,row,i){return '<input class="memo" data-memo="'+w+'" data-i="'+i+'" value="'+esc(row.memo||'')+'" placeholder="메모">';}
+function renderLists(){renderSubs();}
+function renderSubs(){
+  var box=$('#subsTable');if(!box)return;var html='';
+  if(SUBTAB==='class'){
+    html='<table><thead><tr><th>상태</th><th>지점</th><th>클래스</th><th>용량</th><th>날짜</th><th>시간</th><th>인원</th><th>이름</th><th>연락처</th><th>메모</th><th>접수</th><th></th></tr></thead><tbody>'+
+      (apps.length?apps.map(function(a,i){return '<tr><td>'+stCell('apps',a,i)+'</td><td>'+esc(a.branch)+'</td><td>'+esc(a.class)+'</td><td>'+esc(a.size)+'</td><td>'+esc(a.date)+'</td><td>'+esc(a.time)+'</td><td>'+esc(a.people)+'</td><td>'+esc(a.name)+'</td><td>'+esc(a.phone)+'</td><td>'+memoCell('apps',a,i)+'</td><td class="mono">'+fmt(a.ts)+'</td><td><button class="del" data-del="apps" data-i="'+i+'">삭제</button></td></tr>';}).join(''):'<tr><td colspan="12" class="empty">신청 내역이 없습니다.</td></tr>')+'</tbody></table>';
+  } else if(SUBTAB==='group'){
+    html='<table><thead><tr><th>상태</th><th>유형</th><th>용량</th><th>지점</th><th>회사/단체</th><th>담당자</th><th>연락처</th><th>내용</th><th>메모</th><th>접수</th><th></th></tr></thead><tbody>'+
+      (group.length?group.map(function(g,i){return '<tr><td>'+stCell('group',g,i)+'</td><td>'+esc(g.type)+'</td><td>'+esc(g.volume||'-')+'</td><td>'+esc(g.branch)+'</td><td>'+esc(g.company)+'</td><td>'+esc(g.name)+'</td><td>'+esc(g.phone)+'</td><td>'+esc(g.msg||'')+'</td><td>'+memoCell('group',g,i)+'</td><td class="mono">'+fmt(g.ts)+'</td><td><button class="del" data-del="group" data-i="'+i+'">삭제</button></td></tr>';}).join(''):'<tr><td colspan="11" class="empty">문의 내역이 없습니다.</td></tr>')+'</tbody></table>';
+  } else {
+    var all=apps.map(function(a,i){return {w:'apps',i:i,kind:'클래스',name:a.name,phone:a.phone,detail:a.class,row:a};}).concat(group.map(function(g,i){return {w:'group',i:i,kind:'단체·기업',name:g.name,phone:g.phone,detail:g.type,row:g};})).sort(function(x,y){return (y.row.ts||0)-(x.row.ts||0);});
+    html='<table><thead><tr><th>상태</th><th>구분</th><th>이름/담당</th><th>연락처</th><th>내용</th><th>메모</th><th>접수</th><th></th></tr></thead><tbody>'+
+      (all.length?all.map(function(o){return '<tr><td>'+stCell(o.w,o.row,o.i)+'</td><td>'+o.kind+'</td><td>'+esc(o.name||'')+'</td><td>'+esc(o.phone||'')+'</td><td>'+esc(o.detail||'')+'</td><td>'+memoCell(o.w,o.row,o.i)+'</td><td class="mono">'+fmt(o.row.ts)+'</td><td><button class="del" data-del="'+o.w+'" data-i="'+o.i+'">삭제</button></td></tr>';}).join(''):'<tr><td colspan="8" class="empty">접수된 내역이 없습니다.</td></tr>')+'</tbody></table>';
+  }
+  box.innerHTML=html;
 }
-document.addEventListener('click',e=>{const b=e.target.closest('[data-del]');if(!b)return;const w=b.dataset.del,i=+b.dataset.i;if(!confirm('삭제할까요?'))return;
-  if(w==='apps'){apps.splice(i,1);localStorage.setItem('uuhee_apps',JSON.stringify(apps));}else{group.splice(i,1);localStorage.setItem('uuhee_group',JSON.stringify(group));}renderLists();renderOverview();});
+$$('#subTabs .subtab').forEach(function(t){t.addEventListener('click',function(){$$('#subTabs .subtab').forEach(function(x){x.classList.remove('active');});t.classList.add('active');SUBTAB=t.dataset.st;renderSubs();});});
+document.addEventListener('change',function(e){var t=e.target;
+  if(t.dataset.stt!=null){var w=t.dataset.stt,i=+t.dataset.i,val=+t.value;var arr=(w==='apps')?apps:group;if(arr[i]){arr[i].status=val;var id=arr[i].id,tbl=(w==='apps')?'applications':'inquiries';if(window.__sb&&id)window.__sb.from(tbl).update({status:val}).eq('id',id).then(function(r){if(r.error)console.warn('status',r.error);});try{localStorage.setItem(w==='apps'?'uuhee_apps':'uuhee_group',JSON.stringify(arr));}catch(_){}renderSubs();renderOverview();}}
+  else if(t.dataset.memo!=null){var w2=t.dataset.memo,i2=+t.dataset.i,v2=t.value;var arr2=(w2==='apps')?apps:group;if(arr2[i2]){arr2[i2].memo=v2;var id2=arr2[i2].id,tbl2=(w2==='apps')?'applications':'inquiries';if(window.__sb&&id2)window.__sb.from(tbl2).update({memo:v2}).eq('id',id2).then(function(r){if(r.error)console.warn('memo',r.error);});try{localStorage.setItem(w2==='apps'?'uuhee_apps':'uuhee_group',JSON.stringify(arr2));}catch(_){}}}
+});
+document.addEventListener('click',e=>{const b=e.target.closest('[data-del]');if(!b)return;const w=b.dataset.del,i=+b.dataset.i;if(!confirm('삭제할까요?'))return;var arr=(w==='apps')?apps:group;var id=arr[i]&&arr[i].id,tbl=(w==='apps')?'applications':'inquiries';if(window.__sb&&id)window.__sb.from(tbl).delete().eq('id',id).then(function(r){if(r.error)console.warn('del',r.error);});arr.splice(i,1);localStorage.setItem(w==='apps'?'uuhee_apps':'uuhee_group',JSON.stringify(arr));renderSubs();renderOverview();});
 function toCSV(rows){return rows.map(r=>r.map(c=>'"'+String(c==null?'':c).replace(/"/g,'""')+'"').join(',')).join('\r\n');}
 function download(name,text){const b=new Blob(['﻿'+text],{type:'text/csv;charset=utf-8'});const u=URL.createObjectURL(b);const a=document.createElement('a');a.href=u;a.download=name;a.click();URL.revokeObjectURL(u);}
 $('#csvApps').addEventListener('click',()=>download('uuhee_class_apps.csv',toCSV([['지점','클래스','용량','날짜','시간','인원','이름','연락처','이메일','접수'],...apps.map(a=>[a.branch,a.class,a.size,a.date,a.time,a.people,a.name,a.phone,a.email,fmt(a.ts)])])));
@@ -604,8 +633,8 @@ function refreshSubmissionsFromCloud(){
   var s=function(v){return v==null?'':String(v);};
   Promise.all([window.__sb.from('applications').select('*').order('id'),window.__sb.from('inquiries').select('*').order('id')]).then(function(r){
     if(r[0].error||r[1].error){console.warn('subs load',r[0].error||r[1].error);return;}
-    apps=(r[0].data||[]).map(function(a){return {branch:s(a.branch),class:s(a.cls),size:s(a.size),date:s(a.sdate),time:s(a.stime),people:(a.people==null?'':String(a.people)),name:s(a.name),phone:s(a.phone),email:s(a.email),msg:s(a.msg),estimate:a.estimate,qty:a.qty,ts:a.created_at?Date.parse(a.created_at):Date.now()};});
-    group=(r[1].data||[]).map(function(g){return {type:s(g.itype),volume:s(g.volume),branch:s(g.branch),company:s(g.company),name:s(g.name),phone:s(g.phone),email:s(g.email),size:s(g.isize),msg:s(g.msg),ts:g.created_at?Date.parse(g.created_at):Date.now()};});
+    apps=(r[0].data||[]).map(function(a){return {id:a.id,status:(a.status||1),memo:s(a.memo),branch:s(a.branch),class:s(a.cls),size:s(a.size),date:s(a.sdate),time:s(a.stime),people:(a.people==null?'':String(a.people)),name:s(a.name),phone:s(a.phone),email:s(a.email),msg:s(a.msg),estimate:a.estimate,qty:a.qty,ts:a.created_at?Date.parse(a.created_at):Date.now()};});
+    group=(r[1].data||[]).map(function(g){return {id:g.id,status:(g.status||1),memo:s(g.memo),type:s(g.itype),volume:s(g.volume),branch:s(g.branch),company:s(g.company),name:s(g.name),phone:s(g.phone),email:s(g.email),size:s(g.isize),msg:s(g.msg),ts:g.created_at?Date.parse(g.created_at):Date.now()};});
     try{localStorage.setItem('uuhee_apps',JSON.stringify(apps));localStorage.setItem('uuhee_group',JSON.stringify(group));}catch(e){}
     renderLists();renderOverview();
   }).catch(function(e){console.warn('subs refresh',e);});
