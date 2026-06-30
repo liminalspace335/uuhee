@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>유유히 · ADMIN CONSOLE</title>
+<style>
+:root{--bg:#ecebe7;--paper:#fbfaf7;--ink:#26241f;--ink-soft:#7a766c;--line:#e2ddd2;--dark:#26241f;--gold:#c2a974;--brass:#a98c5b;--ok:#3a7d5b;--warn:#b04545}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:"Helvetica Neue",Helvetica,Arial,"Apple SD Gothic Neo","Noto Sans KR",sans-serif;background:var(--bg);color:var(--ink);font-size:14px;line-height:1.5}
+.mono{font-variant-numeric:tabular-nums;letter-spacing:.02em}
+button{font:inherit;cursor:pointer}
+input,select,textarea{font:inherit;font-size:13px;border:1px solid var(--line);background:#fff;border-radius:3px;padding:8px 10px;width:100%;color:var(--ink)}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--gold)}
+.gate{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:100}
+.gate .card{background:var(--paper);border:1px solid var(--line);padding:40px 36px;width:340px;text-align:center}
+.gate h1{font-size:20px;letter-spacing:.04em;margin-bottom:6px}
+.gate p{font-size:13px;color:var(--ink-soft);margin-bottom:22px}
+.gate input{margin-bottom:12px;text-align:center}
+.gate button{width:100%;background:var(--dark);color:#fff;border:0;padding:12px;border-radius:3px}
+.gate .hint{margin-top:14px;font-size:11px;color:var(--ink-soft)}
+.layout{display:flex;min-height:100vh}
+.side{width:230px;background:var(--dark);color:#cfcabd;position:sticky;top:0;height:100vh;display:flex;flex-direction:column;flex-shrink:0}
+.side .brand{padding:26px 24px 22px;border-bottom:1px solid rgba(255,255,255,.08)}
+.side .brand .t{font-size:16px;letter-spacing:.18em;color:#fff;font-weight:700}
+.side .brand .s{font-size:10px;letter-spacing:.24em;color:#8f897c;margin-top:4px}
+.side nav{flex:1;padding:14px 0}
+.side nav a{display:block;padding:13px 24px;color:#cfcabd;font-size:13px;border-left:2px solid transparent;cursor:pointer}
+.side nav a:hover{background:rgba(255,255,255,.04);color:#fff}
+.side nav a.active{background:rgba(255,255,255,.06);color:#fff;border-left-color:var(--gold)}
+.side .foot{padding:18px 24px;border-top:1px solid rgba(255,255,255,.08);font-size:12px;display:flex;flex-direction:column;gap:10px}
+.side .foot a{color:#8f897c;cursor:pointer}.side .foot a:hover{color:#fff}
+.main{flex:1;min-width:0}
+.topbar{display:flex;justify-content:space-between;align-items:center;padding:20px 32px;border-bottom:1px solid var(--line);background:var(--paper)}
+.topbar h2{font-size:18px}.topbar .co{font-size:11px;color:var(--ink-soft)}
+.content{padding:26px 32px 70px}
+.panel{display:none}.panel.active{display:block}
+.stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:28px}
+.stat{background:var(--paper);border:1px solid var(--line);padding:18px 20px;border-radius:4px}
+.stat .l{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-soft)}
+.stat .v{font-size:28px;font-weight:700;margin-top:8px}
+.box{background:var(--paper);border:1px solid var(--line);border-radius:4px;padding:22px 24px;margin-bottom:22px}
+.box h3{font-size:15px;margin-bottom:4px}
+.box .desc{font-size:12px;color:var(--ink-soft);margin-bottom:16px;line-height:1.5}
+.row-tools{display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;align-items:center}
+.row-tools .sp{flex:1}
+.btn{background:var(--dark);color:#fff;border:0;padding:9px 16px;border-radius:3px;font-size:13px}
+.btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}
+.btn.gold{background:var(--gold);color:#3a2c11}
+.saved{color:var(--ok);font-size:12px;display:none}
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+th,td{text-align:left;padding:8px 7px;border-bottom:1px solid var(--line);vertical-align:middle}
+th{font-size:10.5px;letter-spacing:.04em;text-transform:uppercase;color:var(--ink-soft);font-weight:500}
+td input,td select{padding:7px 8px;font-size:12px}
+td .del{color:var(--warn);background:none;border:0;font-size:12px;text-decoration:underline;white-space:nowrap}
+.empty{color:var(--ink-soft);font-size:13px;padding:22px 0;text-align:center}
+.tg{border:1px solid var(--line);background:#fff;border-radius:999px;padding:5px 12px;font-size:11px;color:var(--ink-soft);white-space:nowrap}
+.tg.on{background:var(--ok);border-color:var(--ok);color:#fff}
+.up-row{display:flex;gap:5px}.up-row input{flex:1}
+.upbtn{border:1px solid var(--line);background:#fff;border-radius:3px;padding:0 9px;display:flex;align-items:center;font-size:12px}
+.tbl-wrap{overflow-x:auto}
+.langtabs,.subtabs{display:flex;gap:6px;margin-bottom:18px;flex-wrap:wrap}
+.langtab,.subtab{border:1px solid var(--line);background:#fff;border-radius:999px;padding:7px 15px;font-size:13px;color:var(--ink-soft)}
+.langtab.active,.subtab.active{background:var(--dark);color:#fff;border-color:var(--dark)}
+.subpanel{display:none}.subpanel.active{display:block}
+.fgrid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.field{margin-bottom:14px}
+.field label{display:block;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-soft);margin-bottom:6px}
+.thumb{width:54px;height:40px;border:1px solid var(--line);border-radius:3px;background:#efeada center/cover no-repeat;display:inline-block;vertical-align:middle;margin-right:8px}
+@media(max-width:900px){.layout{flex-direction:column}.side{width:100%;height:auto;position:static;flex-direction:row;flex-wrap:wrap}.side nav{display:flex;flex-wrap:wrap;padding:0}.side .brand,.side .foot{width:100%}.stat-grid{grid-template-columns:repeat(2,1fr)}.fgrid{grid-template-columns:1fr}}
+
+.cal{display:grid;grid-template-columns:repeat(7,1fr);border:1px solid var(--line);border-radius:4px;overflow:hidden;background:#fff}
+.cal .h{font-size:11px;color:var(--ink-soft);text-align:center;padding:8px 0;background:#f3f1ec;border-bottom:1px solid var(--line)}
+.cal .d{min-height:72px;border-right:1px solid var(--line);border-bottom:1px solid var(--line);padding:6px 7px;cursor:pointer;font-size:12px}
+.cal .d:hover{background:#f6f4ef}
+.cal .d.sel{outline:2px solid var(--gold);outline-offset:-2px}
+.cal .d.off{background:#fafafa;cursor:default}
+.cal .d .n{font-weight:600}
+.cal .d .tag{font-size:10px;color:var(--ok);margin-top:6px}
+.cal .d .tag.hol{color:var(--warn)}
+.cal-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.cal-top .mo{font-size:15px;font-weight:600}
+.sched-grid{display:grid;grid-template-columns:1.3fr 1fr;gap:22px;align-items:start}
+@media(max-width:1000px){.sched-grid{grid-template-columns:1fr}}
+.cal .d{user-select:none}
+.cal .d.psel{outline:2px solid var(--gold);outline-offset:-2px;background:#f5edda}
+.cal .d.today .n{background:var(--brass);color:#fff;border-radius:999px;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center}
+.paste-bar{display:flex;align-items:center;gap:8px;background:#f5edda;border:1px solid var(--gold);border-radius:6px;padding:9px 12px;font-size:13px;margin:0 0 14px}
+.lg-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px 18px}
+.lg-f{display:flex;flex-direction:column;gap:5px;font-size:12px;color:var(--ink-soft)}
+.lg-f input{width:100%}
+@media(max-width:760px){.lg-grid{grid-template-columns:1fr}}
+.pf-block{border:1px solid var(--line);border-radius:6px;padding:12px 14px;margin:0 0 12px}
+.pf-head{font-size:12px;color:var(--ink);margin-bottom:8px}
+.pf-table{width:100%}
+.gv-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px}.gv-cell{aspect-ratio:4/3;border:1px solid var(--line);border-radius:3px;background:#efeada center/cover no-repeat}
+</style>
+</head>
+<body>
+
+<div class="gate" id="gate" style="display:none">
+  <div class="card"><h1>유유히 · Admin</h1><p>유유히 홈페이지 관리 콘솔입니다.</p>
+    <input type="password" id="pw" placeholder="비밀번호 입력" /><button id="loginBtn">로그인</button>
+    <div class="hint">초안 비밀번호: uuhee</div></div>
+</div>
+
+<div class="layout" id="app" style="display:none">
+  <aside class="side">
+    <div class="brand"><div class="t">유유히</div><div class="s">ADMIN CONSOLE</div></div>
+    <nav id="nav">
+      <a data-p="overview" class="active">소개</a>
+      <a data-p="list">신청관리</a>
+      <a data-p="schedule">클래스설정</a>
+      <a data-p="settings">환경설정</a>
+    </nav>
+    <div class="foot"><a href="index.html">← 사이트로</a><a id="logout">로그아웃</a></div>
+  </aside>
+  <div class="main">
+    <div class="topbar"><h2 id="ptitle">소개</h2><span class="co mono">UUHEE ATELIER · Hongdae &amp; Seongsu</span></div>
+    <div class="content">
+
+      <div class="panel active" id="panel-overview">
+        <div class="stat-grid">
+          <div class="stat"><div class="l">전체 접수</div><div class="v" id="st-all">0</div></div>
+          <div class="stat"><div class="l">클래스 신청</div><div class="v" id="st-apps">0</div></div>
+          <div class="stat"><div class="l">단체·기업 문의</div><div class="v" id="st-group">0</div></div>
+          <div class="stat"><div class="l">오늘 접수</div><div class="v" id="st-today">0</div></div>
+        </div>
+        <div class="box"><h3>최근 접수</h3><div class="desc">최근 신청·문의 10건입니다.</div>
+          <table><thead><tr><th>유형</th><th>내용</th><th>이름</th><th>연락처</th><th>접수</th></tr></thead><tbody id="recentBody"></tbody></table></div>
+      </div>
+
+      <div class="panel" id="panel-list">
+        <div class="box"><div class="row-tools"><h3 style="flex:1">클래스 신청</h3><button class="btn ghost" id="csvApps">CSV 내보내기</button></div>
+          <div class="tbl-wrap"><table><thead><tr><th>지점</th><th>클래스</th><th>용량</th><th>날짜</th><th>시간</th><th>인원</th><th>이름</th><th>연락처</th><th>접수</th><th></th></tr></thead><tbody id="appsBody"></tbody></table></div></div>
+        <div class="box"><div class="row-tools"><h3 style="flex:1">단체·기업 문의</h3><button class="btn ghost" id="csvGroup">CSV 내보내기</button></div>
+          <div class="tbl-wrap"><table><thead><tr><th>유형</th><th>용량</th><th>지점</th><th>회사/단체</th><th>담당자</th><th>연락처</th><th>내용</th><th>접수</th><th></th></tr></thead><tbody id="groupBody"></tbody></table></div></div>
+      </div>
+
+      <div class="panel" id="panel-schedule">
+        <div class="box">
+          <div class="row-tools"><h3 style="flex:1">클래스 설정 (날짜별 운영)</h3>
+            <label style="font-size:12px;color:var(--ink-soft)">지점</label>
+            <select id="schedBranch" style="width:auto;min-width:160px"></select></div>
+          <div class="desc">달력에서 날짜를 클릭해 그 날 운영할 클래스·시간·정원을 설정합니다. 클래스가 설정되지 않은 날은 비어 있으며, '기본값 적용'을 누르면 '신청관리 기본값'이 들어옵니다. '이 날짜 복사' 후 다른 날짜(드래그로 여러 날)를 선택해 붙여넣을 수 있습니다.</div>
+          <div id="schedPasteBar" style="display:none"></div>
+          <div class="sched-grid">
+            <div>
+              <div class="cal-top"><button class="btn ghost" id="schedPrev">‹</button><span class="mo" id="schedMo"></span><button class="btn ghost" id="schedNext">›</button><button class="btn ghost" id="schedToday" style="margin-left:8px">오늘</button></div>
+              <div class="cal" id="schedCal"></div>
+            </div>
+            <div id="schedEditor"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel" id="panel-settings">
+        <div class="subtabs">
+          <button class="subtab active" data-s="branch">지점설정</button>
+          <button class="subtab" data-s="classes">클래스 설정</button>
+          <button class="subtab" data-s="details">상세설정</button>
+          <button class="subtab" data-s="slots">신청관리 기본값</button>
+          <button class="subtab" data-s="space">공간</button>
+          <button class="subtab" data-s="gallery">갤러리</button>
+          <button class="subtab" data-s="legal">사업자 정보</button>
+        </div>
+
+        <div class="subpanel active" id="sub-branch">
+          <div class="box"><div class="row-tools"><h3 style="flex:1">지점 설정</h3></div>
+            <div class="desc">지점명·연락처·위치·운영시간과 지점별 소셜(인스타그램·페이스북·링크트리) 링크를 등록합니다. 첫 번째 지점이 홍대, 두 번째가 성수로 사이트에 적용됩니다.</div>
+            <div class="tbl-wrap" id="tbl-branches"></div></div>
+          <div class="box"><div class="row-tools"><h3 style="flex:1">사이트 정보</h3><span class="saved" id="siteSaved">저장됨 ✓</span><button class="btn gold" id="saveSite">저장</button></div>
+            <div class="desc">랜딩 푸터·히어로에 표시되는 브랜드명/연도와 대표 이미지입니다.</div>
+            <div class="fgrid"><div class="field"><label>브랜드명</label><input data-site="brand" /></div><div class="field"><label>EST 연도</label><input data-site="est" /></div></div>
+            <div class="field"><label>© 저작권 연도</label><input data-site="copyYear" /></div>
+            <div class="fgrid">
+              <div class="field"><label>히어로 배경 이미지</label><div class="up-row"><input data-site="heroImg" placeholder="URL 또는 업로드"><label class="upbtn">⬆<input type="file" accept="image/*" data-siteup="heroImg" hidden></label></div></div>
+              <div class="field"><label>소개 대표 이미지</label><div class="up-row"><input data-site="conceptImg" placeholder="URL 또는 업로드"><label class="upbtn">⬆<input type="file" accept="image/*" data-siteup="conceptImg" hidden></label></div></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="subpanel" id="sub-classes">
+          <div class="box"><h3>클래스 설정 (지점별)</h3><div class="desc">지점별 클래스 이름·설명·상태·문의전용 여부를 등록합니다.</div><div class="tbl-wrap" id="tbl-classes"></div></div>
+        </div>
+
+        <div class="subpanel" id="sub-details">
+          <div class="box"><h3>상세 설정 (용량 · 가격 · 할인 · 상세설명)</h3><div class="desc">지점·클래스·용량별 가격(₩)·할인·상세설명을 등록합니다.</div><div class="tbl-wrap" id="tbl-details"></div></div>
+        </div>
+
+        <div class="subpanel" id="sub-slots">
+          <div class="box"><h3>신청관리 기본값 (지점별 · 하루치)</h3><div class="desc">지점별 기본 운영 시간대와 정원을 등록합니다.</div><div class="tbl-wrap" id="tbl-slots"></div></div>
+        </div>
+
+        <div class="subpanel" id="sub-legal">
+          <div class="box"><h3>사업자 정보 (푸터 · 법적 표기)</h3><div class="desc">전자상거래법에 따라 사이트 하단에 표기되는 사업자 정보입니다. 상호·대표자·사업자등록번호·통신판매업신고번호·주소·연락처는 필수 항목입니다.</div><div id="legalForm"></div></div>
+        </div>
+
+        <div class="subpanel" id="sub-space">
+          <div class="box"><h3>공간 — 폴더 관리</h3><div class="desc">공간 섹션에 쓸 폴더를 만듭니다. 폴더명을 '홍대' 또는 '성수'로 하면 해당 지점 슬라이드에 반영됩니다.</div><div id="spaceFolders"></div></div>
+          <div class="box"><h3>공간 — 사진 업로드</h3><div class="desc">위 폴더별로 사진을 추가해 업로드합니다.<br><b>권장 사이즈</b> · 가로형 4:3, 1600×1200px · JPG/PNG · 2MB 이하</div><div id="spaceUploader"></div></div>
+        </div>
+
+        <div class="subpanel" id="sub-gallery">
+          <div class="box"><h3>갤러리 — 폴더 관리</h3><div class="desc">갤러리 섹션에 쓸 폴더를 만듭니다.</div><div id="galFolders"></div></div>
+          <div class="box"><h3>갤러리 — 사진 업로드</h3><div class="desc">위 폴더별로 사진을 추가해 업로드합니다.<br><b>권장 사이즈</b> · 가로형 4:3, 1600×1200px · JPG/PNG · 2MB 이하</div><div id="galUploader"></div></div>
+          <div class="box"><h3>협업·언론 로고</h3><div class="desc">단체·기업 섹션의 '함께한 곳' 로고 띠에 표시됩니다.<br><b>권장 사이즈</b> · 가로형, 배경 투명 PNG, 높이 80px (예: 240×80px) · 1MB 이하</div><div class="tbl-wrap" id="tbl-partners"></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+/* ===== Supabase 연동 (정규화/컬럼 테이블) ===== */
+window.UUHEE_SB={url:'https://ybfwnmgnledlumppfjbh.supabase.co',key:'sb_publishable_GNOsPyq2DHBY7gIYGs_hLQ_eeauXxG7'};
+(function(){
+  var c=window.UUHEE_SB; if(!c.url||!c.key||!window.supabase){return;}
+  var sb=window.supabase.createClient(c.url,c.key); window.__sb=sb;
+  var s=function(v){return v==null?'':String(v);};
+  var N=function(v){if(v===''||v==null)return null;var n=Number(v);return isNaN(n)?null:n;};
+  function pullSettings(){
+    return Promise.all([
+      sb.from('site').select('*').limit(1), sb.from('legal').select('*').limit(1),
+      sb.from('branches').select('*').order('ord'), sb.from('classes').select('*').order('ord'),
+      sb.from('details').select('*').order('id'), sb.from('slots').select('*').order('id'),
+      sb.from('partners').select('*').order('ord'), sb.from('photos').select('*').order('ord'),
+      sb.from('photo_folders').select('*').order('ord'), sb.from('schedule').select('*').order('id'),
+      sb.from('holidays').select('*').order('id')
+    ]).then(function(r){
+      var site=(r[0].data||[])[0], legal=(r[1].data||[])[0];
+      var br=r[2].data||[],cl=r[3].data||[],de=r[4].data||[],sl=r[5].data||[],pa=r[6].data||[],ph=r[7].data||[],pf=r[8].data||[],sc=r[9].data||[],ho=r[10].data||[];
+      if(!site&&!legal&&!br.length&&!cl.length&&!de.length&&!sl.length&&!pa.length&&!ph.length&&!pf.length&&!sc.length&&!ho.length)return null;
+      var S={};
+      if(site)S.site={brand:s(site.brand),est:s(site.est),copyYear:s(site.copy_year),heroImg:s(site.hero_img),conceptImg:s(site.concept_img)};
+      if(legal)S.legal={company:s(legal.company),ceo:s(legal.ceo),bizno:s(legal.bizno),mailorder:s(legal.mailorder),privacy:s(legal.privacy),addr:s(legal.addr),tel:s(legal.tel),email:s(legal.email),kakao:s(legal.kakao),hosting:s(legal.hosting),termsUrl:s(legal.terms_url),privacyUrl:s(legal.privacy_url),refundUrl:s(legal.refund_url)};
+      S.branches=br.map(function(b){return {name:s(b.name),phone:s(b.phone),addr:s(b.addr),map:s(b.map),hours:s(b.hours),ig:s(b.ig),fb:s(b.fb),lt:s(b.lt)};});
+      S.classes=cl.map(function(x){return {order:x.ord,tag:s(x.tag),name:s(x.name),desc:s(x.descr),active:!!x.active,inquiryOnly:!!x.inquiry_only,branches:x.branches||[]};});
+      S.details=de.map(function(d){return {branch:s(d.branch),cls:s(d.cls),size:s(d.size),price:(d.price==null?'':String(d.price)),discountType:s(d.discount_type),discountVal:(d.discount_val==null?'':String(d.discount_val)),desc:s(d.descr)};});
+      S.slots=sl.map(function(x){return {branch:s(x.branch),cls:s(x.cls),time:s(x.stime),cap:(x.cap==null?'':String(x.cap))};});
+      S.partners=pa.map(function(p){return {name:s(p.name),logo:s(p.logo),cover:!!p.cover,order:p.ord,link:s(p.link)};});
+      S.photos=ph.map(function(p){return {img:s(p.img),category:s(p.category),folder:s(p.folder),title:s(p.title),desc:s(p.descr),cover:!!p.cover,order:p.ord,link:s(p.link)};});
+      S.photoFolders=pf.map(function(f){return {category:s(f.category),name:s(f.name),order:f.ord};});
+      var sd={};sc.forEach(function(x){var k=s(x.branch)+'|'+s(x.sdate);(sd[k]=sd[k]||[]).push({cls:s(x.cls),time:s(x.stime),cap:(x.cap==null?'':String(x.cap))});});S.schedule=sd;
+      S.holidays=ho.map(function(h){return s(h.branch)+'|'+s(h.sdate);});
+      return S;
+    });
+  }
+  function pullSubs(){
+    return Promise.all([sb.from('applications').select('*').order('id'),sb.from('inquiries').select('*').order('id')]).then(function(r){
+      var apps=(r[0].data||[]).map(function(a){return {branch:s(a.branch),class:s(a.cls),size:s(a.size),date:s(a.sdate),time:s(a.stime),people:(a.people==null?'':String(a.people)),name:s(a.name),phone:s(a.phone),email:s(a.email),msg:s(a.msg),estimate:a.estimate,qty:a.qty,ts:a.created_at?Date.parse(a.created_at):Date.now()};});
+      var grp=(r[1].data||[]).map(function(g){return {type:s(g.itype),volume:s(g.volume),branch:s(g.branch),company:s(g.company),name:s(g.name),phone:s(g.phone),email:s(g.email),size:s(g.isize),msg:s(g.msg),ts:g.created_at?Date.parse(g.created_at):Date.now()};});
+      return {apps:apps,grp:grp};
+    });
+  }
+  function repl(t,rows){return sb.from(t).delete().gte('id',0).then(function(){return rows.length?sb.from(t).insert(rows):{};});}
+  function pushSettings(S){
+    var st=S.site||{},lg=S.legal||{};var jobs=[];
+    jobs.push(sb.from('site').upsert({id:'uuhee',brand:s(st.brand),est:s(st.est),copy_year:s(st.copyYear),hero_img:s(st.heroImg),concept_img:s(st.conceptImg)}));
+    jobs.push(sb.from('legal').upsert({id:'uuhee',company:s(lg.company),ceo:s(lg.ceo),bizno:s(lg.bizno),mailorder:s(lg.mailorder),privacy:s(lg.privacy),addr:s(lg.addr),tel:s(lg.tel),email:s(lg.email),kakao:s(lg.kakao),hosting:s(lg.hosting),terms_url:s(lg.termsUrl),privacy_url:s(lg.privacyUrl),refund_url:s(lg.refundUrl)}));
+    jobs.push(repl('branches',(S.branches||[]).map(function(b,i){return {ord:i,name:s(b.name),phone:s(b.phone),addr:s(b.addr),map:s(b.map),hours:s(b.hours),ig:s(b.ig),fb:s(b.fb),lt:s(b.lt)};})));
+    jobs.push(repl('classes',(S.classes||[]).map(function(x,i){return {ord:(x.order!=null?x.order:i),tag:s(x.tag),name:s(x.name),descr:s(x.desc),active:!!x.active,inquiry_only:!!x.inquiryOnly,branches:(x.branches||[])};})));
+    jobs.push(repl('details',(S.details||[]).map(function(d){return {branch:s(d.branch),cls:s(d.cls),size:s(d.size),price:N(d.price),discount_type:s(d.discountType),discount_val:N(d.discountVal),descr:s(d.desc)};})));
+    jobs.push(repl('slots',(S.slots||[]).map(function(x){return {branch:s(x.branch),cls:s(x.cls),stime:s(x.time),cap:N(x.cap)};})));
+    jobs.push(repl('partners',(S.partners||[]).map(function(p,i){return {ord:(p.order!=null?p.order:i),name:s(p.name),logo:s(p.logo),cover:!!p.cover,link:s(p.link)};})));
+    jobs.push(repl('photos',(S.photos||[]).map(function(p,i){return {ord:(p.order!=null?p.order:i),img:s(p.img),category:s(p.category),folder:s(p.folder),title:s(p.title),descr:s(p.desc),cover:!!p.cover,link:s(p.link)};})));
+    jobs.push(repl('photo_folders',(S.photoFolders||[]).map(function(f,i){return {ord:(f.order!=null?f.order:i),category:s(f.category),name:s(f.name)};})));
+    var sr=[];Object.keys(S.schedule||{}).forEach(function(k){var p=k.split('|');(S.schedule[k]||[]).forEach(function(rr){sr.push({branch:p[0],sdate:p[1],cls:s(rr.cls),stime:s(rr.time),cap:N(rr.cap)});});});jobs.push(repl('schedule',sr));
+    jobs.push(repl('holidays',(S.holidays||[]).map(function(h){var p=String(h).split('|');return {branch:p[0],sdate:p[1]};})));
+    return Promise.all(jobs);
+  }
+  window.__cloud={
+    pushSettings:pushSettings,
+    insertApplication:function(rec){return sb.from('applications').insert({branch:s(rec.branch),cls:s(rec.class),size:s(rec.size),sdate:s(rec.date),stime:s(rec.time),people:N(rec.people),name:s(rec.name),phone:s(rec.phone),email:s(rec.email),msg:s(rec.msg),estimate:N(rec.estimate),qty:rec.qty||null});},
+    insertInquiry:function(rec){return sb.from('inquiries').insert({itype:s(rec.type),volume:s(rec.volume),branch:s(rec.branch),company:s(rec.company),name:s(rec.name),phone:s(rec.phone),email:s(rec.email),isize:s(rec.size),msg:s(rec.msg)});}
+  };
+  var isAdmin=/admin\.html$/i.test(location.pathname);
+  var tasks=[ pullSettings().then(function(S){if(!S)return false;var j=JSON.stringify(S);if(j!==(localStorage.getItem('uuhee_settings')||'')){localStorage.setItem('uuhee_settings',j);return true;}return false;}) ];
+  if(isAdmin){tasks.push(pullSubs().then(function(o){var a=JSON.stringify(o.apps),g=JSON.stringify(o.grp),ch=false;if(a!==(localStorage.getItem('uuhee_apps')||'')){localStorage.setItem('uuhee_apps',a);ch=true;}if(g!==(localStorage.getItem('uuhee_group')||'')){localStorage.setItem('uuhee_group',g);ch=true;}return ch;}));}
+  Promise.all(tasks).then(function(res){if(res.indexOf(true)>=0){var n=+(sessionStorage.getItem('uuhee_rl')||0);if(n<2){sessionStorage.setItem('uuhee_rl',String(n+1));location.reload();}}else sessionStorage.removeItem('uuhee_rl');}).catch(function(e){console.warn('cloud hydrate fail',e);});
+})();
+</script>
+<script>
+const PW='uuhee';
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+const Jarr=k=>{try{const v=JSON.parse(localStorage.getItem(k)||'[]');return Array.isArray(v)?v:[];}catch(e){return [];}};
+const esc=s=>(s==null?'':String(s)).replace(/[<>&"]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c]));
+const fmt=ts=>{if(!ts)return'-';const d=new Date(ts);return (d.getMonth()+1)+'/'+d.getDate()+' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');};
+const flash=el=>{if(!el)return;el.style.display='inline';setTimeout(()=>el.style.display='none',1700);};
+
+const DEF={
+  branches:[
+    {name:'유유히 홍대',phone:'',addr:'서울 마포구 양화로18안길 36 지하1층',map:'https://map.naver.com/p/search/담금주공방 유유히 홍대',hours:'매일 13:00 – 19:00',ig:'https://www.instagram.com/_uuhee_',fb:'',lt:''},
+    {name:'유유히 성수',phone:'',addr:'서울 성동구 서울숲9길 5 101호',map:'https://map.naver.com/p/search/담금주공방 유유히 성수',hours:'매일 13:00 – 19:00',ig:'https://www.instagram.com/_uuhee_seongsu',fb:'',lt:''}
+  ],
+  site:{brand:'유유히',est:'2024',copyYear:'2026',heroImg:'',conceptImg:''},
+  classes:[
+    {branches:['유유히 홍대','유유히 성수'],order:1,tag:'Signature',name:'담금주 500ml 클래스',desc:'기본 클래스. 재료와 베이스주를 골라 500ml 한 병 완성.',active:true,inquiryOnly:false},
+    {branches:['유유히 홍대','유유히 성수'],order:2,tag:'Premium',name:'담금주 1L 클래스',desc:'프리미엄 · 선물용. 재료 추가 가능.',active:true,inquiryOnly:false},
+    {branches:['유유히 홍대','유유히 성수'],order:3,tag:'Couple · Group',name:'커플·단체 클래스',desc:'2인 이상 함께하는 클래스.',active:true,inquiryOnly:false},
+    {branches:['유유히 홍대','유유히 성수'],order:4,tag:'Corporate',name:'기업 협업',desc:'브랜드 콜라보·기업 선물용 담금주 제작과 임직원 워크숍.',active:true,inquiryOnly:true},
+    {branches:['유유히 홍대','유유히 성수'],order:5,tag:'Group',name:'단체 클래스',desc:'모임·동호회·워크숍 등 단체 인원 맞춤.',active:true,inquiryOnly:true},
+    {branches:['유유히 홍대','유유히 성수'],order:6,tag:'On-site',name:'출강 · 외부 클래스',desc:'원하는 장소로 찾아가 진행하는 출강 클래스.',active:true,inquiryOnly:true},
+    {branches:['유유히 홍대','유유히 성수'],order:7,tag:'Special',name:'특강',desc:'시즌·테마 특별 클래스와 심화 과정.',active:false,inquiryOnly:true}
+  ],
+  details:[
+    {branch:'유유히 홍대',cls:'담금주 500ml 클래스',size:'500ml',price:'',discountType:'없음',discountVal:'',desc:''},
+    {branch:'유유히 홍대',cls:'담금주 1L 클래스',size:'1L',price:'',discountType:'없음',discountVal:'',desc:''}
+  ],
+  slots:[
+    {branch:'유유히 홍대',cls:'담금주 500ml 클래스',time:'13:00',cap:'6'},
+    {branch:'유유히 성수',cls:'담금주 500ml 클래스',time:'13:00',cap:'6'}
+  ],
+  galleryFolders:[{order:1,name:'전체'},{order:2,name:'완성'},{order:3,name:'현장'}],
+  gallery:[],
+  partners:[],
+  spaceFolders:[{order:1,name:'홍대'},{order:2,name:'성수'}],
+  space:[],
+  photos:[],
+  photoFolders:[],
+  legal:{company:'유유히 (UUHEE)',ceo:'박유유',bizno:'123-45-67890',mailorder:'2024-서울마포-1234',privacy:'박유유',addr:'서울 마포구 양화로18안길 36 지하1층',tel:'010-1234-5678',email:'hello@uuhee.kr',kakao:'@유유히',hosting:'',termsUrl:'',privacyUrl:'',refundUrl:''},
+  schedule:{},
+  holidays:[]
+};
+let S;try{S=JSON.parse(localStorage.getItem('uuhee_settings')||'{}');}catch(e){S={};}
+Object.keys(DEF).forEach(k=>{if(S[k]==null)S[k]=JSON.parse(JSON.stringify(DEF[k]));});
+if(!S.photos)S.photos=[];
+if(!S.photos.length){(S.space||[]).forEach(function(p){if(p.img)S.photos.push({img:p.img,category:'공간',folder:p.branch||'',title:p.title||'',desc:p.desc||'',cover:false,order:p.order||0,link:p.link||''});});(S.gallery||[]).forEach(function(g){if(g.img)S.photos.push({img:g.img,category:'클래스',folder:g.folder||'',title:g.title||'',desc:g.desc||'',cover:g.cover||false,order:g.order||0,link:g.link||''});});}
+if(!S.photoFolders||!S.photoFolders.length){S.photoFolders=[];var _sf={};(S.photos||[]).forEach(function(p){var k=(p.category||'공간')+'|'+(p.folder||'');if(p.folder&&!_sf[k]){_sf[k]=1;S.photoFolders.push({category:p.category||'공간',name:p.folder,order:S.photoFolders.length+1});}});if(!S.photoFolders.length)S.photoFolders=[{category:'공간',name:'홍대',order:1},{category:'공간',name:'성수',order:2},{category:'갤러리',name:'갤러리',order:3}];}
+(function(){var nc=function(c){return c==='공간'?'공간':'갤러리';};(S.photoFolders||[]).forEach(function(f){f.category=nc(f.category);});(S.photos||[]).forEach(function(p){p.category=nc(p.category);});})();
+if(S.photos&&S.photos.length){if((S.space&&S.space.length)||(S.gallery&&S.gallery.length)){S.space=[];S.gallery=[];try{localStorage.setItem('uuhee_settings',JSON.stringify(S));}catch(e){}}}
+function save(){var j=JSON.stringify(S);localStorage.setItem('uuhee_settings',j);if(window.__cloud){try{window.__cloud.pushSettings(S).catch(function(e){console.warn('cloud save',e);});}catch(e){}}}
+const branchNames=()=>S.branches.map(b=>b.name).filter(Boolean);
+
+function unlock(){$('#gate').style.display='none';$('#app').style.display='flex';renderAll();}
+$('#loginBtn').addEventListener('click',()=>{if($('#pw').value===PW){sessionStorage.setItem('uuhee_admin','1');unlock();}else alert('비밀번호가 올바르지 않습니다.');});
+$('#pw').addEventListener('keydown',e=>{if(e.key==='Enter')$('#loginBtn').click();});
+$('#logout').addEventListener('click',()=>{sessionStorage.removeItem('uuhee_admin');location.reload();});
+$$('#nav a').forEach(a=>a.addEventListener('click',()=>{$$('#nav a').forEach(x=>x.classList.remove('active'));a.classList.add('active');
+  const p=a.dataset.p;$$('.panel').forEach(x=>x.classList.remove('active'));$('#panel-'+p).classList.add('active');$('#ptitle').textContent=a.textContent;}));
+$$('#panel-settings>.subtabs .subtab').forEach(t=>t.addEventListener('click',()=>{$$('#panel-settings>.subtabs .subtab').forEach(x=>x.classList.remove('active'));t.classList.add('active');
+  $$('.subpanel').forEach(x=>x.classList.remove('active'));$('#sub-'+t.dataset.s).classList.add('active');if(t.dataset.s==='space'||t.dataset.s==='gallery'){renderFoldersAll();renderUploadersAll();}if(t.dataset.s==='legal')renderLegalForm();}));
+
+let apps=Jarr('uuhee_apps'), group=Jarr('uuhee_group');
+function renderOverview(){
+  $('#st-all').textContent=apps.length+group.length;$('#st-apps').textContent=apps.length;$('#st-group').textContent=group.length;
+  const today=new Date().toDateString();$('#st-today').textContent=[...apps,...group].filter(x=>x.ts&&new Date(x.ts).toDateString()===today).length;
+  const rec=[...apps.map(a=>({...a,_t:'클래스'})),...group.map(g=>({...g,_t:'단체문의'}))].sort((a,b)=>(b.ts||0)-(a.ts||0)).slice(0,10);
+  $('#recentBody').innerHTML=rec.length?rec.map(r=>`<tr><td>${r._t}</td><td>${esc(r.class||r.type||'')}</td><td>${esc(r.name||'')}</td><td>${esc(r.phone||'')}</td><td class="mono">${fmt(r.ts)}</td></tr>`).join(''):'<tr><td colspan="5" class="empty">접수된 내역이 없습니다.</td></tr>';
+}
+function renderLists(){
+  $('#appsBody').innerHTML=apps.length?apps.map((a,i)=>`<tr><td>${esc(a.branch)}</td><td>${esc(a.class)}</td><td>${esc(a.size)}</td><td>${esc(a.date)}</td><td>${esc(a.time)}</td><td>${esc(a.people)}</td><td>${esc(a.name)}</td><td>${esc(a.phone)}</td><td class="mono">${fmt(a.ts)}</td><td><button class="del" data-del="apps" data-i="${i}">삭제</button></td></tr>`).join(''):'<tr><td colspan="10" class="empty">신청 내역이 없습니다.</td></tr>';
+  $('#groupBody').innerHTML=group.length?group.map((g,i)=>`<tr><td>${esc(g.type)}</td><td>${esc(g.volume||'-')}</td><td>${esc(g.branch)}</td><td>${esc(g.company)}</td><td>${esc(g.name)}</td><td>${esc(g.phone)}</td><td>${esc(g.msg||'')}</td><td class="mono">${fmt(g.ts)}</td><td><button class="del" data-del="group" data-i="${i}">삭제</button></td></tr>`).join(''):'<tr><td colspan="9" class="empty">문의 내역이 없습니다.</td></tr>';
+}
+document.addEventListener('click',e=>{const b=e.target.closest('[data-del]');if(!b)return;const w=b.dataset.del,i=+b.dataset.i;if(!confirm('삭제할까요?'))return;
+  if(w==='apps'){apps.splice(i,1);localStorage.setItem('uuhee_apps',JSON.stringify(apps));}else{group.splice(i,1);localStorage.setItem('uuhee_group',JSON.stringify(group));}renderLists();renderOverview();});
+function toCSV(rows){return rows.map(r=>r.map(c=>'"'+String(c==null?'':c).replace(/"/g,'""')+'"').join(',')).join('\r\n');}
+function download(name,text){const b=new Blob(['﻿'+text],{type:'text/csv;charset=utf-8'});const u=URL.createObjectURL(b);const a=document.createElement('a');a.href=u;a.download=name;a.click();URL.revokeObjectURL(u);}
+$('#csvApps').addEventListener('click',()=>download('uuhee_class_apps.csv',toCSV([['지점','클래스','용량','날짜','시간','인원','이름','연락처','이메일','접수'],...apps.map(a=>[a.branch,a.class,a.size,a.date,a.time,a.people,a.name,a.phone,a.email,fmt(a.ts)])])));
+$('#csvGroup').addEventListener('click',()=>download('uuhee_group.csv',toCSV([['유형','용량','지점','회사단체','담당자','연락처','이메일','내용','접수'],...group.map(g=>[g.type,g.volume,g.branch,g.company,g.name,g.phone,g.email,g.msg,fmt(g.ts)])])));
+
+/* 사이트 정보 (단일 필드) */
+function renderSite(){$$('[data-site]').forEach(i=>{i.value=(S.site[i.dataset.site]||'');});}
+document.addEventListener('input',e=>{const t=e.target;if(t.dataset.site!=null)S.site[t.dataset.site]=t.value;});
+document.addEventListener('change',e=>{const t=e.target;if(t.dataset.siteup!=null){const f=t.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{S.site[t.dataset.siteup]=r.result;renderSite();};r.readAsDataURL(f);}});
+$('#saveSite').addEventListener('click',()=>{try{save();flash($('#siteSaved'));}catch(e){alert('저장 실패: 이미지 용량이 큽니다.');}});
+
+/* 공통 표 엔진 */
+function makeTable(sel,key,cols,blank,addLabel){
+  const mount=$(sel);
+  function cell(c,v,i){
+    v=v==null?'':v;
+    if(c.type==='multi'){var mopts=(typeof c.options==='function'?c.options():c.options);var arr=Array.isArray(v)?v:(v?String(v).split(',').map(function(s){return s.trim();}):[]);
+      return mopts.map(function(o){return '<label style="display:inline-flex;align-items:center;gap:4px;margin:2px 10px 2px 0;font-size:12px;white-space:nowrap"><input type="checkbox" data-mi="'+i+'" data-c="'+c.k+'" value="'+esc(o)+'" '+(arr.indexOf(o)>-1?'checked':'')+' style="width:auto">'+esc(o)+'</label>';}).join('');}
+    if(c.type==='select'){const opts=(typeof c.options==='function'?c.options():c.options);return `<select data-i="${i}" data-c="${c.k}">`+['',...opts].map(o=>`<option ${String(o)===String(v)?'selected':''}>${esc(o)}</option>`).join('')+'</select>';}
+    if(c.type==='time')return '<input type="time" data-i="'+i+'" data-c="'+c.k+'" value="'+esc(v)+'">';
+    if(c.type==='toggle')return `<button class="tg ${v?'on':''}" data-tg="${i}" data-c="${c.k}">${v?(c.on||'활성'):(c.off||'끔')}</button>`;
+    if(c.type==='check')return `<input type="checkbox" data-ck="${i}" data-c="${c.k}" ${v?'checked':''} style="width:auto">`;
+    if(c.type==='image')return `<span class="thumb" style="${v?`background-image:url('${String(v).replace(/'/g,"%27")}')`:''}"></span><span class="up-row" style="display:inline-flex;width:calc(100% - 64px)"><input data-i="${i}" data-c="${c.k}" value="${esc(String(v)).slice(0,160)}" placeholder="URL 또는 업로드"><label class="upbtn">⬆<input type="file" accept="image/*" data-up="${i}" data-c="${c.k}" hidden></label></span>`;
+    return `<input ${c.type==='num'?'type="number"':''} data-i="${i}" data-c="${c.k}" value="${esc(v)}" placeholder="${esc(c.l)}"${c.w?` style="min-width:${c.w}"`:''}>`;
+  }
+  function render(){
+    const rows=S[key];
+    mount.innerHTML='<table><thead><tr>'+cols.map(c=>`<th>${c.l}</th>`).join('')+'<th></th></tr></thead><tbody>'+
+      (rows.length?rows.map((r,i)=>'<tr>'+cols.map(c=>`<td>${cell(c,r[c.k],i)}</td>`).join('')+`<td><button class="del" data-rm="${i}">삭제</button></td></tr>`).join('')
+        :`<tr><td colspan="${cols.length+1}" class="empty">항목이 없습니다.</td></tr>`)+
+      '</tbody></table><div class="row-tools" style="margin-top:14px"><button class="btn ghost" data-add>+ '+(addLabel||'추가')+'</button><span class="sp"></span><span class="saved">저장됨 ✓</span><button class="btn gold" data-save>저장</button></div>';
+  }
+  if(!mount._wired){mount._wired=1;
+    mount.addEventListener('input',e=>{const t=e.target;if(t.dataset.c!=null&&t.dataset.i!=null&&t.type!=='file')S[key][+t.dataset.i][t.dataset.c]=t.value;});
+    mount.addEventListener('change',e=>{const t=e.target;
+      if(t.dataset.up!=null){const f=t.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{S[key][+t.dataset.up][t.dataset.c]=r.result;render();};r.readAsDataURL(f);}
+      else if(t.dataset.ck!=null)S[key][+t.dataset.ck][t.dataset.c]=t.checked;
+      else if(t.dataset.mi!=null){var ri=+t.dataset.mi,ck=t.dataset.c;var arr=S[key][ri][ck];if(!Array.isArray(arr))arr=arr?String(arr).split(',').map(function(s){return s.trim();}):[];var ix=arr.indexOf(t.value);if(t.checked){if(ix<0)arr.push(t.value);}else if(ix>-1)arr.splice(ix,1);S[key][ri][ck]=arr;}});
+    mount.addEventListener('click',e=>{const t=e.target;
+      if(t.dataset.add!=null){S[key].push(blank());render();}
+      else if(t.dataset.rm!=null){S[key].splice(+t.dataset.rm,1);render();}
+      else if(t.dataset.tg!=null){S[key][+t.dataset.tg][t.dataset.c]=!S[key][+t.dataset.tg][t.dataset.c];render();}
+      else if(t.dataset.save!=null){try{save();flash(mount.querySelector('.saved'));}catch(err){alert('저장 실패: 이미지 용량이 큽니다. 더 작게 줄여 올려주세요.');}}});
+  }
+  render();return {render};
+}
+
+const galFolderNames=()=>S.galleryFolders.map(f=>f.name).filter(Boolean);
+const classNames=()=>S.classes.map(c=>c.name).filter(Boolean);
+const spaceFolderNames=()=>S.spaceFolders.map(f=>f.name).filter(Boolean);
+let T={};
+function buildTables(){
+  T.branches=makeTable('#tbl-branches','branches',[
+    {k:'name',l:'지점명'},{k:'phone',l:'연락처'},{k:'addr',l:'주소'},{k:'map',l:'네이버 지도 링크'},{k:'hours',l:'운영시간'},
+    {k:'ig',l:'Instagram'},{k:'fb',l:'Facebook'},{k:'lt',l:'Linktree'}],
+    ()=>({name:'',phone:'',addr:'',map:'',hours:'',ig:'',fb:'',lt:''}),'지점 추가');
+  T.classes=makeTable('#tbl-classes','classes',[
+    {k:'branches',l:'지점(복수선택)',type:'multi',options:branchNames},{k:'order',l:'순서',type:'num'},{k:'tag',l:'라벨(EN)'},{k:'name',l:'이름'},{k:'desc',l:'클래스 설명'},
+    {k:'active',l:'상태',type:'toggle',on:'활성',off:'중지'},{k:'inquiryOnly',l:'문의전용',type:'toggle',on:'문의',off:'일반'}],
+    ()=>({branches:branchNames(),order:S.classes.length+1,tag:'',name:'',desc:'',active:true,inquiryOnly:false}),'클래스 추가');
+  T.details=makeTable('#tbl-details','details',[
+    {k:'branch',l:'지점',type:'select',options:branchNames},{k:'cls',l:'클래스',type:'select',options:classNames},{k:'size',l:'용량'},
+    {k:'price',l:'₩ 가격',type:'num'},{k:'discountType',l:'할인유형',type:'select',options:['없음','% 할인','정액 할인']},{k:'discountVal',l:'할인값',type:'num'},{k:'desc',l:'상세설명'}],
+    ()=>({branch:branchNames()[0]||'',cls:'',size:'',price:'',discountType:'없음',discountVal:'',desc:''}),'항목 추가');
+  T.slots=makeTable('#tbl-slots','slots',[
+    {k:'branch',l:'지점',type:'select',options:branchNames},{k:'cls',l:'클래스',type:'select',options:classNames},{k:'time',l:'시간',type:'time'},{k:'cap',l:'정원',type:'num'}],
+    ()=>({branch:branchNames()[0]||'',cls:'',time:'',cap:''}),'시간대 추가');
+  T.partners=makeTable('#tbl-partners','partners',[
+    {k:'name',l:'이름'},{k:'logo',l:'로고',type:'image'},{k:'cover',l:'대표',type:'check'},{k:'order',l:'순서',type:'num'},{k:'link',l:'링크'}],
+    ()=>({name:'',logo:'',cover:false,order:S.partners.length+1,link:''}),'로고 추가');
+  renderFoldersAll();renderUploadersAll();
+}
+function renderFoldersAll(){renderFolderMgr('공간','spaceFolders');renderFolderMgr('갤러리','galFolders');}
+function renderUploadersAll(){renderUploader('공간','spaceUploader');renderUploader('갤러리','galUploader');}
+function renderFolderMgr(cat,mountId){
+  var box=document.getElementById(mountId);if(!box)return;
+  if(!box._wired){box._wired=1;
+    box.addEventListener('input',function(e){var t=e.target;if(t.dataset.ff!=null&&t.dataset.fc){S.photoFolders[+t.dataset.ff][t.dataset.fc]=t.value;}});
+    box.addEventListener('click',function(e){var t=e.target;
+      if(t.dataset.fadd!=null){S.photoFolders.push({category:t.dataset.fadd,name:'',order:(S.photoFolders.length+1)});renderFoldersAll();renderUploadersAll();}
+      else if(t.dataset.frm!=null){S.photoFolders.splice(+t.dataset.frm,1);renderFoldersAll();renderUploadersAll();}
+      else if(t.dataset.fsave!=null){try{save();flash(box.querySelector('.saved'));renderUploadersAll();}catch(err){alert('저장 실패: 용량이 큽니다.');}}});
+  }
+  var items=[];(S.photoFolders||[]).forEach(function(f,gi){if((f.category||'')===cat)items.push({f:f,gi:gi});});
+  var html='<table><thead><tr><th>순서</th><th>폴더명</th><th></th></tr></thead><tbody>';
+  if(!items.length)html+='<tr><td colspan="3" class="empty">폴더가 없습니다. 아래 + 버튼으로 추가하세요.</td></tr>';
+  items.forEach(function(o){var f=o.f,gi=o.gi;html+='<tr><td><input type="number" data-ff="'+gi+'" data-fc="order" value="'+esc(f.order||'')+'" style="width:70px"></td><td><input data-ff="'+gi+'" data-fc="name" value="'+esc(f.name||'')+'"></td><td><button class="del" data-frm="'+gi+'">삭제</button></td></tr>';});
+  html+='</tbody></table><div class="row-tools" style="margin-top:10px"><button class="btn ghost" data-fadd="'+esc(cat)+'">+ 폴더 추가</button><span class="sp"></span><span class="saved">저장됨 ✓</span><button class="btn gold" data-fsave="1">저장</button></div>';
+  box.innerHTML=html;
+}
+function renderUploader(cat,boxId){
+  var box=document.getElementById(boxId);if(!box)return;
+  if(!box._wired){box._wired=1;
+    box.addEventListener('input',function(e){var t=e.target;if(t.dataset.pi!=null&&t.dataset.pc&&t.type!=='file'){S.photos[+t.dataset.pi][t.dataset.pc]=t.value;}});
+    box.addEventListener('change',function(e){var t=e.target;
+      if(t.dataset.pup!=null){var f=t.files[0];if(!f)return;var r=new FileReader();r.onload=function(){S.photos[+t.dataset.pup].img=r.result;renderUploadersAll();};r.readAsDataURL(f);}
+      else if(t.dataset.pck!=null){S.photos[+t.dataset.pck].cover=t.checked;}});
+    box.addEventListener('click',function(e){var t=e.target;
+      if(t.dataset.padd!=null){var parts=t.dataset.padd.split('||');S.photos.push({img:'',category:parts[0]||'갤러리',folder:parts[1]||'',title:'',desc:'',cover:false,order:S.photos.length+1,link:''});renderUploadersAll();}
+      else if(t.dataset.prm!=null){S.photos.splice(+t.dataset.prm,1);renderUploadersAll();}
+      else if(t.dataset.psave!=null){try{save();flash(box.querySelector('.saved'));}catch(err){alert('저장 실패: 이미지 용량이 큽니다. 더 작게 줄여 올려주세요.');}}});
+  }
+  var folders=(S.photoFolders||[]).filter(function(f){return (f.category||'')===cat&&f.name;}).slice().sort(function(a,b){return (a.order||0)-(b.order||0);});
+  if(!folders.length){box.innerHTML='<div class="empty">먼저 위에서 폴더를 만들어 주세요.</div>';return;}
+  var html='';
+  folders.forEach(function(f){
+    var ps=[];(S.photos||[]).forEach(function(p,gi){if((p.category||'')===cat&&(p.folder||'')===f.name)ps.push({p:p,gi:gi});});
+    html+='<div class="pf-block"><div class="pf-head">▸ '+esc(f.name)+' <span style="color:var(--ink-soft);font-weight:400">· '+ps.length+'장</span></div>';
+    html+='<table class="pf-table"><thead><tr><th>이미지</th><th>제목</th><th>설명</th><th>대표</th><th>순서</th><th>링크</th><th></th></tr></thead><tbody>';
+    if(!ps.length)html+='<tr><td colspan="7" class="empty">사진이 없습니다. 아래 + 버튼으로 추가하세요.</td></tr>';
+    ps.forEach(function(o){var p=o.p,gi=o.gi;
+      html+='<tr><td><span class="thumb" style="'+(p.img?"background-image:url('"+String(p.img).replace(/\'/g,'%27')+"')":'')+'"></span><span class="up-row" style="display:inline-flex;width:calc(100% - 64px)"><input data-pi="'+gi+'" data-pc="img" value="'+esc(String(p.img||'').slice(0,160))+'" placeholder="URL 또는 업로드"><label class="upbtn">⬆<input type="file" accept="image/*" data-pup="'+gi+'" hidden></label></span></td>'
+        +'<td><input data-pi="'+gi+'" data-pc="title" value="'+esc(p.title||'')+'"></td>'
+        +'<td><input data-pi="'+gi+'" data-pc="desc" value="'+esc(p.desc||'')+'"></td>'
+        +'<td><input type="checkbox" data-pck="'+gi+'" '+(p.cover?'checked':'')+' style="width:auto"></td>'
+        +'<td><input type="number" data-pi="'+gi+'" data-pc="order" value="'+esc(p.order||'')+'" style="width:68px"></td>'
+        +'<td><input data-pi="'+gi+'" data-pc="link" value="'+esc(p.link||'')+'"></td>'
+        +'<td><button class="del" data-prm="'+gi+'">삭제</button></td></tr>';
+    });
+    html+='</tbody></table><div class="row-tools" style="margin:8px 0 0"><button class="btn ghost" data-padd="'+esc(cat)+'||'+esc(f.name)+'">+ 사진 추가</button></div></div>';
+  });
+  html+='<div class="row-tools" style="margin-top:16px"><span class="saved">저장됨 ✓</span><button class="btn gold" data-psave>저장</button></div>';
+  box.innerHTML=html;
+}
+function renderLegalForm(){
+  var box=$('#legalForm');if(!box)return;
+  if(!S.legal)S.legal={};var lg=S.legal;
+  var fields=[['company','상호(회사명) *'],['ceo','대표자 *'],['bizno','사업자등록번호 *'],['mailorder','통신판매업신고번호 *'],['privacy','개인정보보호책임자'],['addr','사업장 주소 *'],['tel','대표 전화 *'],['email','이메일 *'],['kakao','고객센터(카카오톡 채널)'],['hosting','호스팅 제공자'],['termsUrl','이용약관 링크(URL)'],['privacyUrl','개인정보처리방침 링크(URL)'],['refundUrl','취소·환불 안내 링크(URL)']];
+  box.innerHTML='<div class="lg-grid">'+fields.map(function(f){return '<label class="lg-f"><span>'+esc(f[1])+'</span><input data-lg="'+f[0]+'" value="'+esc(lg[f[0]]||'')+'"></label>';}).join('')+'</div><div class="row-tools" style="margin-top:16px"><span class="saved">저장됨 ✓</span><button class="btn gold" id="legalSave">저장</button></div>';
+  if(!box._wired){box._wired=1;
+    box.addEventListener('input',function(e){var t=e.target;if(t.dataset.lg){if(!S.legal)S.legal={};S.legal[t.dataset.lg]=t.value;}});
+    box.addEventListener('click',function(e){if(e.target.id==='legalSave'){try{save();flash(box.querySelector('.saved'));}catch(err){alert('저장 실패: 용량이 큽니다.');}}});
+  }
+}
+/* ===== 클래스설정 (날짜별 운영) ===== */
+let schedBranch='', schedMonth=new Date(), schedDate='', schedRows=[];
+let schedInit=false, schedClip=null, pasteMode=false, selDates=[], dragging=false, didDrag=false;
+function ymd(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+function defSlots(b){return (S.slots||[]).filter(function(s){return s.branch===b;}).map(function(s){return {cls:s.cls,time:s.time,cap:s.cap};});}
+function renderSchedule(){
+  var names=branchNames();if(!schedBranch||names.indexOf(schedBranch)<0)schedBranch=names[0]||'';
+  var sel=$('#schedBranch');if(sel)sel.innerHTML=names.map(function(n){return '<option '+(n===schedBranch?'selected':'')+'>'+esc(n)+'</option>';}).join('');
+  if(!schedInit){schedInit=true;var _t=new Date();schedMonth=new Date(_t.getFullYear(),_t.getMonth(),1);schedDate=ymd(_t);var _k=schedBranch+'|'+schedDate;schedRows=(S.schedule&&S.schedule[_k])?S.schedule[_k].map(function(r){return Object.assign({},r);}):[];}
+  renderCal();renderSchedEditor();renderPasteBar();
+}
+function renderCal(){
+  var cal=$('#schedCal');if(!cal)return;
+  var y=schedMonth.getFullYear(),m=schedMonth.getMonth();
+  $('#schedMo').textContent=y+'. '+String(m+1).padStart(2,'0');
+  var start=new Date(y,m,1).getDay(),days=new Date(y,m+1,0).getDate();
+  var c='';['일','월','화','수','목','금','토'].forEach(function(h){c+='<div class="h">'+h+'</div>';});
+  for(var i=0;i<start;i++)c+='<div class="d off"></div>';
+  var _today=ymd(new Date());
+  for(var dd=1;dd<=days;dd++){var ds=ymd(new Date(y,m,dd)),key=schedBranch+'|'+ds;
+    var hol=(S.holidays||[]).indexOf(key)>-1,ov=S.schedule&&S.schedule[key];
+    var tag=hol?'<div class="tag hol">휴무</div>':(ov?'<div class="tag">●설정 '+ov.length+'</div>':'');
+    var pc=(pasteMode&&selDates.indexOf(ds)>-1)?' psel':'';var tc=(ds===_today)?' today':'';
+    c+='<div class="d '+(ds===schedDate?'sel':'')+pc+tc+'" data-d="'+ds+'"><div class="n">'+dd+'</div>'+tag+'</div>';}
+  cal.innerHTML=c;
+}
+function selectSchedDate(ds){schedDate=ds;var key=schedBranch+'|'+ds;
+  schedRows=(S.schedule&&S.schedule[key])?S.schedule[key].map(function(r){return Object.assign({},r);}):[];
+  renderCal();renderSchedEditor();}
+function renderSchedEditor(){
+  var ed=$('#schedEditor');if(!ed)return;
+  if(!schedDate){ed.innerHTML='<div class="empty">왼쪽 달력에서 날짜를 선택해 주세요.</div>';return;}
+  var key=schedBranch+'|'+schedDate,hol=(S.holidays||[]).indexOf(key)>-1,opts=classNames();
+  ed.innerHTML='<div style="font-size:14px;font-weight:600;margin-bottom:4px">'+esc(schedBranch)+' · '+schedDate+'</div>'
+    +'<div class="desc">'+(hol?'휴무일로 지정된 날짜입니다.':'이 날짜의 클래스·시간·정원을 설정하세요.')+'</div>'
+    +'<table><thead><tr><th>클래스</th><th>시간</th><th>정원</th><th></th></tr></thead><tbody>'
+    +(schedRows.length?schedRows.map(function(r,i){return '<tr><td><select data-sc="cls" data-i="'+i+'">'+['',].concat(opts).map(function(o){return '<option '+(o===r.cls?'selected':'')+'>'+esc(o)+'</option>';}).join('')+'</select></td>'
+      +'<td><input type="time" data-sc="time" data-i="'+i+'" value="'+esc(r.time||'')+'"></td>'
+      +'<td><input type="number" data-sc="cap" data-i="'+i+'" value="'+esc(r.cap||'')+'"></td>'
+      +'<td><button class="del" data-srm="'+i+'">삭제</button></td></tr>';}).join(''):'<tr><td colspan="4" class="empty">시간대가 없습니다.</td></tr>')
+    +'</tbody></table>'
+    +'<div class="row-tools" style="margin-top:14px;gap:8px"><button class="btn ghost" id="schedAdd">+ 시간대 추가</button><button class="btn ghost" id="schedDefault">기본값 적용</button><button class="btn ghost" id="schedCopy">이 날짜 복사</button><span class="sp"></span><button class="btn ghost" id="schedHol">'+(hol?'휴무 해제':'휴무일 지정')+'</button><button class="btn ghost" id="schedClear">개별설정 해제</button><button class="btn gold" id="schedSave">이 날짜 저장</button></div>';
+}
+function renderPasteBar(){
+  var bar=$('#schedPasteBar');if(!bar)return;
+  if(!pasteMode){bar.style.display='none';bar.innerHTML='';return;}
+  bar.style.display='';
+  bar.innerHTML='<div class="paste-bar">📋 복사됨 — 붙여넣을 날짜를 클릭하거나 드래그로 여러 날 선택 · <b>'+(selDates.length?selDates.length+'일 선택됨':'날짜 미선택')+'</b><span class="sp"></span><button class="btn gold" id="schedPaste">붙여넣기</button><button class="btn ghost" id="schedPasteCancel">취소</button></div>';
+}
+var schedWired=false;
+function buildSchedule(){
+  if(schedWired)return;var p=$('#panel-schedule');if(!p)return;schedWired=true;
+  $('#schedBranch').addEventListener('change',function(e){schedBranch=e.target.value;schedDate='';renderCal();renderSchedEditor();});
+  $('#schedPrev').addEventListener('click',function(){schedMonth=new Date(schedMonth.getFullYear(),schedMonth.getMonth()-1,1);renderCal();});
+  $('#schedNext').addEventListener('click',function(){schedMonth=new Date(schedMonth.getFullYear(),schedMonth.getMonth()+1,1);renderCal();});
+  $('#schedToday').addEventListener('click',function(){var t=new Date();schedMonth=new Date(t.getFullYear(),t.getMonth(),1);if(pasteMode){selDates=[ymd(t)];renderCal();renderPasteBar();}else selectSchedDate(ymd(t));});
+  p.addEventListener('click',function(e){
+    var day=e.target.closest('.d[data-d]');if(day){if(pasteMode){if(didDrag){didDrag=false;return;}selDates=[day.dataset.d];renderCal();renderPasteBar();}else selectSchedDate(day.dataset.d);return;}
+    if(e.target.id==='schedCopy'){schedClip=(schedRows||[]).map(function(r){return Object.assign({},r);});pasteMode=true;selDates=[];renderCal();renderPasteBar();return;}
+    if(e.target.id==='schedPasteCancel'){pasteMode=false;selDates=[];dragging=false;renderCal();renderPasteBar();return;}
+    if(e.target.id==='schedPaste'){if(!schedClip){pasteMode=false;renderPasteBar();return;}var targets=selDates.length?selDates.slice():(schedDate?[schedDate]:[]);if(!targets.length){alert('붙여넣을 날짜를 선택하세요.');return;}if(!S.schedule)S.schedule={};targets.forEach(function(ds){S.schedule[schedBranch+'|'+ds]=schedClip.map(function(r){return Object.assign({},r);});var hk=schedBranch+'|'+ds,hi=(S.holidays||[]).indexOf(hk);if(hi>-1)S.holidays.splice(hi,1);});save();pasteMode=false;selDates=[];dragging=false;renderCal();renderPasteBar();renderSchedEditor();alert(targets.length+'개 날짜에 붙여넣었습니다.');return;}
+    var rm=e.target.closest('[data-srm]');if(rm){schedRows.splice(+rm.dataset.srm,1);renderSchedEditor();return;}
+    if(e.target.id==='schedAdd'){schedRows.push({cls:(classNames()[0]||''),time:'',cap:''});renderSchedEditor();return;}
+    if(e.target.id==='schedDefault'){schedRows=defSlots(schedBranch);renderSchedEditor();return;}
+    if(e.target.id==='schedSave'){if(!S.schedule)S.schedule={};S.schedule[schedBranch+'|'+schedDate]=schedRows.map(function(r){return Object.assign({},r);});save();renderCal();alert('저장되었습니다.');return;}
+    if(e.target.id==='schedHol'){var k=schedBranch+'|'+schedDate;if(!S.holidays)S.holidays=[];var ix=S.holidays.indexOf(k);if(ix>-1)S.holidays.splice(ix,1);else S.holidays.push(k);save();renderCal();renderSchedEditor();return;}
+    if(e.target.id==='schedClear'){var k2=schedBranch+'|'+schedDate;if(S.schedule)delete S.schedule[k2];schedRows=defSlots(schedBranch);save();renderCal();renderSchedEditor();return;}
+  });
+  p.addEventListener('input',function(e){var t=e.target;if(t.dataset.sc!=null)schedRows[+t.dataset.i][t.dataset.sc]=t.value;});
+  p.addEventListener('mousedown',function(e){if(!pasteMode)return;var day=e.target.closest('.d[data-d]');if(!day)return;e.preventDefault();dragging=true;didDrag=false;selDates=[day.dataset.d];renderCal();renderPasteBar();});
+  p.addEventListener('mouseover',function(e){if(!pasteMode||!dragging)return;var day=e.target.closest('.d[data-d]');if(!day)return;if(selDates.indexOf(day.dataset.d)<0){selDates.push(day.dataset.d);didDrag=true;renderCal();renderPasteBar();}});
+  document.addEventListener('mouseup',function(){if(dragging)dragging=false;});
+}
+
+function renderAll(){renderOverview();renderLists();renderSite();buildTables();buildSchedule();renderSchedule();}
+
+/* 모든 정의 이후 자동 진입 (로그인 게이트 임시 비활성화) */
+unlock();
+</script>
+</body>
+</html>
