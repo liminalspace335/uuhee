@@ -91,6 +91,16 @@ td .del{color:var(--warn);background:none;border:0;font-size:12px;text-decoratio
 .lg-f{display:flex;flex-direction:column;gap:5px;font-size:12px;color:var(--ink-soft)}
 .lg-f input{width:100%}
 @media(max-width:760px){.lg-grid{grid-template-columns:1fr}}
+.sub-cards{display:grid;grid-template-columns:repeat(8,1fr);gap:8px;margin:8px 0 14px}
+.scard{border:1px solid var(--line);border-radius:6px;padding:9px 11px;background:#fff}
+.scard .l{font-size:11px;color:var(--ink-soft)}.scard .v{font-size:19px;font-weight:700;margin-top:2px}
+.sub-toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 12px}
+.sub-toolbar input,.sub-toolbar select{font:inherit;font-size:13px;border:1px solid var(--line);border-radius:4px;padding:8px 10px;color:var(--ink);background:#fff}
+.sub-toolbar #subSearch{min-width:220px}
+.btn-sm{padding:5px 12px;font-size:12px}
+.muted{color:var(--ink-soft);font-size:12px}
+.subck{width:auto!important}
+@media(max-width:980px){.sub-cards{grid-template-columns:repeat(4,1fr)}}
 .amodal-ov{position:fixed;inset:0;background:rgba(20,18,16,.5);z-index:200;display:flex;align-items:center;justify-content:center;padding:20px}
 .amodal{background:#fff;border-radius:8px;max-width:560px;width:100%;max-height:88vh;overflow:auto;box-shadow:0 20px 60px rgba(0,0,0,.3)}
 .amodal-h{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--line);font-size:15px}
@@ -147,11 +157,22 @@ td .del{color:var(--warn);background:none;border:0;font-size:12px;text-decoratio
 
       <div class="panel" id="panel-list">
         <div class="box"><div class="row-tools"><h3 style="flex:1">신청·문의 관리</h3><button class="btn ghost" id="csvApps">클래스 CSV</button><button class="btn ghost" id="csvGroup">문의 CSV</button></div>
-          <div class="desc">상태와 메모를 직접 수정할 수 있습니다. 상태 코드 — 1 신청 · 2 대기 · 3 확정 · 4 완료 · 5 취소 · 6 환불요청 · 7 환불완료</div>
           <div class="subtabs" id="subTabs">
             <button class="subtab active" data-st="all">전체</button>
             <button class="subtab" data-st="class">클래스</button>
             <button class="subtab" data-st="group">단체·기업</button>
+          </div>
+          <div id="subCards" class="sub-cards"></div>
+          <div class="sub-toolbar">
+            <input id="subSearch" placeholder="이름 또는 전화번호 검색...">
+            <select id="subFStatus"><option value="0">전체 상태</option><option value="1">신청</option><option value="2">대기</option><option value="3">확정</option><option value="4">완료</option><option value="5">취소</option><option value="6">환불요청</option><option value="7">환불완료</option></select>
+            <select id="subFBranch"><option value="">전체 지점</option></select>
+            <span style="flex:1"></span>
+            <select id="bulkStatus"><option value="1">신청</option><option value="2">대기</option><option value="3">확정</option><option value="4">완료</option><option value="5">취소</option><option value="6">환불요청</option><option value="7">환불완료</option></select>
+            <button class="btn ghost" id="bulkApply">상태변경</button>
+            <button class="btn ghost" id="subAdd">+ 추가</button>
+            <button class="del" id="bulkDel">삭제</button>
+            <span class="muted" id="subCount" style="margin-left:6px"></span>
           </div>
           <div class="tbl-wrap" id="subsTable"></div>
           <div class="amodal-ov" id="subEdit" style="display:none">
@@ -393,51 +414,78 @@ var SUBTAB='all';
 var STLAB={1:'신청',2:'대기',3:'확정',4:'완료',5:'취소',6:'환불요청',7:'환불완료'};
 function stColor(c){return {1:'#8a8a82',2:'#c98a2e',3:'#3c7d4f',4:'#4a4a44',5:'#c0392b',6:'#d35400',7:'#2e6da4'}[+c]||'#8a8a82';}
 function stOpts(cur){var o='';for(var k=1;k<=7;k++){o+='<option value="'+k+'"'+(+cur===k?' selected':'')+'>'+k+'. '+STLAB[k]+'</option>';}return o;}
-function stBadge(c){c=c||1;return '<span class="stbadge" style="color:'+stColor(c)+';border-color:'+stColor(c)+'">'+c+'. '+STLAB[c]+'</span>';}
+function stBadge(c){c=c||1;return '<span class="stbadge" style="color:'+stColor(c)+';border-color:'+stColor(c)+'">'+STLAB[c]+'</span>';}
+function won(v){return (v===''||v==null||isNaN(+v))?'-':('\u20a9'+Number(v).toLocaleString());}
 function contentText(w,r){return w==='apps'?(r.class||''):(r.type||'');}
 function detailText(w,r){if(w==='apps')return [r.branch,r.size,(r.date&&r.time)?(r.date+' '+r.time):(r.date||r.time||''),(r.people?r.people+'명':'')].filter(Boolean).join(' · ');return [r.branch,r.company,r.volume,r.msg].filter(Boolean).join(' · ');}
 function renderLists(){renderSubs();}
-function rowsFor(){
+function baseRows(){
   if(SUBTAB==='class')return apps.map(function(a,i){return {w:'apps',i:i,row:a};});
   if(SUBTAB==='group')return group.map(function(g,i){return {w:'group',i:i,row:g};});
   return apps.map(function(a,i){return {w:'apps',i:i,row:a};}).concat(group.map(function(g,i){return {w:'group',i:i,row:g};})).sort(function(x,y){return (y.row.ts||0)-(x.row.ts||0);});
 }
+function curStatus(){return +(($('#subFStatus')||{}).value||0)||0;}
+function curBranch(){return ($('#subFBranch')||{}).value||'';}
+function curSearch(){return ((($('#subSearch')||{}).value)||'').trim().toLowerCase();}
+function populateBranchFilter(){var sel=$('#subFBranch');if(!sel)return;var cur=sel.value;var names=(typeof branchNames==='function')?branchNames():[];sel.innerHTML='<option value="">전체 지점</option>'+names.map(function(n){return '<option'+(n===cur?' selected':'')+'>'+esc(n)+'</option>';}).join('');}
+function renderCards(base){var c={};for(var k=0;k<=7;k++)c[k]=0;base.forEach(function(o){c[0]++;c[(o.row.status||1)]++;});
+  var defs=[['전체',0],['신청',1],['대기',2],['확정',3],['완료',4],['취소',5],['환불요청',6],['환불완료',7]];
+  if($('#subCards'))$('#subCards').innerHTML=defs.map(function(d){return '<div class="scard"><div class="l">'+d[0]+'</div><div class="v">'+c[d[1]]+'</div></div>';}).join('');
+}
 function renderSubs(){
-  var box=$('#subsTable');if(!box)return;var list=rowsFor();
-  var head='<table class="subs"><thead><tr><th>상태</th><th>구분</th><th>이름</th><th>연락처</th><th>내용</th><th>상세</th><th>메모</th><th>접수</th></tr></thead><tbody>';
-  var body=list.length?list.map(function(o){var r=o.row,w=o.w;return '<tr class="subrow" data-edit="'+w+'" data-i="'+o.i+'"><td>'+stBadge(r.status)+'</td><td>'+(w==='apps'?'클래스':'단체·기업')+'</td><td>'+esc(r.name||'')+'</td><td>'+esc(r.phone||'')+'</td><td>'+esc(contentText(w,r))+'</td><td class="cdetail">'+esc(detailText(w,r))+'</td><td class="cmemo">'+esc(r.memo||'')+'</td><td class="mono">'+fmt(r.ts)+'</td></tr>';}).join(''):'<tr><td colspan="8" class="empty">접수된 내역이 없습니다.</td></tr>';
-  box.innerHTML=head+body+'</tbody></table>';
+  var box=$('#subsTable');if(!box)return;populateBranchFilter();
+  var base=baseRows();renderCards(base);
+  var st=curStatus(),br=curBranch(),q=curSearch();
+  var list=base.filter(function(o){var r=o.row;if(st&&(r.status||1)!==st)return false;if(br&&(r.branch||'')!==br)return false;if(q){if((((r.name||'')+' '+(r.phone||'')).toLowerCase()).indexOf(q)<0)return false;}return true;});
+  if($('#subCount'))$('#subCount').textContent='총 '+list.length+'건';
+  var head,rowf;
+  if(SUBTAB==='group'){
+    head='<th>유형</th><th>지점</th><th>회사/단체</th><th>담당자</th><th>연락처</th><th>용량</th><th>내용</th>';
+    rowf=function(r){return '<td>'+esc(r.type||'')+'</td><td>'+esc(r.branch||'')+'</td><td>'+esc(r.company||'')+'</td><td>'+esc(r.name||'')+'</td><td>'+esc(r.phone||'')+'</td><td>'+esc(r.volume||'-')+'</td><td class="cdetail">'+esc(r.msg||'')+'</td>';};
+  } else if(SUBTAB==='class'){
+    head='<th>희망일</th><th>시간</th><th>이름</th><th>연락처</th><th>지점</th><th>클래스</th><th>용량</th><th>인원</th><th>결제금액</th>';
+    rowf=function(r){return '<td>'+esc(r.date||'')+'</td><td>'+esc(r.time||'')+'</td><td>'+esc(r.name||'')+'</td><td>'+esc(r.phone||'')+'</td><td>'+esc(r.branch||'')+'</td><td>'+esc(r.class||'')+'</td><td>'+esc(r.size||'')+'</td><td>'+esc(r.people||'')+'</td><td class="mono">'+won(r.estimate)+'</td>';};
+  } else {
+    head='<th>구분</th><th>이름</th><th>연락처</th><th>내용</th><th>상세</th>';
+    rowf=function(r,w){return '<td>'+(w==='apps'?'클래스':'단체·기업')+'</td><td>'+esc(r.name||'')+'</td><td>'+esc(r.phone||'')+'</td><td>'+esc(contentText(w,r))+'</td><td class="cdetail">'+esc(detailText(w,r))+'</td>';};
+  }
+  var body=list.length?list.map(function(o){var r=o.row;return '<tr><td><input type="checkbox" class="subck" data-w="'+o.w+'" data-i="'+o.i+'"></td>'+rowf(r,o.w)+'<td class="cmemo">'+esc(r.memo||'')+'</td><td class="mono">'+fmt(r.ts)+'</td><td>'+stBadge(r.status)+'</td><td><button class="btn ghost btn-sm" data-edit="'+o.w+'" data-i="'+o.i+'">상세</button></td></tr>';}).join(''):'<tr><td colspan="20" class="empty">접수된 내역이 없습니다.</td></tr>';
+  box.innerHTML='<table class="subs"><thead><tr><th><input type="checkbox" id="subAll"></th>'+head+'<th>메모</th><th>신청일시</th><th>상태</th><th>작업</th></tr></thead><tbody>'+body+'</tbody></table>';
 }
 $$('#subTabs .subtab').forEach(function(t){t.addEventListener('click',function(){$$('#subTabs .subtab').forEach(function(x){x.classList.remove('active');});t.classList.add('active');SUBTAB=t.dataset.st;renderSubs();});});
-var EW=null,EI=null;
+['subSearch'].forEach(function(id){var el=$('#'+id);if(el)el.addEventListener('input',renderSubs);});
+['subFStatus','subFBranch'].forEach(function(id){var el=$('#'+id);if(el)el.addEventListener('change',renderSubs);});
+document.addEventListener('change',function(e){if(e.target.id==='subAll'){$$('#subsTable .subck').forEach(function(c){c.checked=e.target.checked;});}});
+function checkedPicks(){return $$('#subsTable .subck:checked').map(function(c){return {w:c.dataset.w,i:+c.dataset.i};});}
+$('#bulkApply')&&$('#bulkApply').addEventListener('click',function(){var picks=checkedPicks();if(!picks.length){alert('선택된 항목이 없습니다.');return;}var val=+$('#bulkStatus').value||1;picks.forEach(function(p){var arr=p.w==='apps'?apps:group;var r=arr[p.i];if(r){r.status=val;var id=r.id,tbl=p.w==='apps'?'applications':'inquiries';if(window.__sb&&id)window.__sb.from(tbl).update({status:val}).eq('id',id).then(function(rr){if(rr.error)console.warn(rr.error);});}});try{localStorage.setItem('uuhee_apps',JSON.stringify(apps));localStorage.setItem('uuhee_group',JSON.stringify(group));}catch(_){}renderSubs();renderOverview();});
+$('#bulkDel')&&$('#bulkDel').addEventListener('click',function(){var picks=checkedPicks();if(!picks.length){alert('선택된 항목이 없습니다.');return;}if(!confirm(picks.length+'건 삭제할까요?'))return;var aid=[],gid=[];picks.forEach(function(p){var arr=p.w==='apps'?apps:group;var r=arr[p.i];if(r&&r.id)(p.w==='apps'?aid:gid).push(r.id);});if(window.__sb){if(aid.length)window.__sb.from('applications').delete().in('id',aid);if(gid.length)window.__sb.from('inquiries').delete().in('id',gid);}apps=apps.filter(function(a){return aid.indexOf(a.id)<0;});group=group.filter(function(g){return gid.indexOf(g.id)<0;});try{localStorage.setItem('uuhee_apps',JSON.stringify(apps));localStorage.setItem('uuhee_group',JSON.stringify(group));}catch(_){}renderSubs();renderOverview();});
+$('#subAdd')&&$('#subAdd').addEventListener('click',function(){openSubEditNew(SUBTAB==='group'?'group':'apps');});
+$('#csvApps')&&$('#csvApps').addEventListener('click',function(){download('uuhee_class_apps.csv',toCSV([['지점','클래스','용량','날짜','시간','인원','이름','연락처','이메일','결제금액','상태','메모','접수'],].concat(apps.map(function(a){return [a.branch,a.class,a.size,a.date,a.time,a.people,a.name,a.phone,a.email,a.estimate,STLAB[a.status||1],a.memo,fmt(a.ts)];}))));});
+$('#csvGroup')&&$('#csvGroup').addEventListener('click',function(){download('uuhee_group.csv',toCSV([['유형','용량','지점','회사단체','담당자','연락처','이메일','내용','상태','메모','접수'],].concat(group.map(function(g){return [g.type,g.volume,g.branch,g.company,g.name,g.phone,g.email,g.msg,STLAB[g.status||1],g.memo,fmt(g.ts)];}))));});
+var EW=null,EI=null,ENEW=null;
 function seField(label,key,val,type){val=val==null?'':val;if(type==='ta')return '<label class="se-f se-full"><span>'+label+'</span><textarea data-fk="'+key+'" rows="2">'+esc(val)+'</textarea></label>';if(type==='st')return '<label class="se-f"><span>'+label+'</span><select data-fk="status">'+stOpts(val||1)+'</select></label>';return '<label class="se-f"><span>'+label+'</span><input data-fk="'+key+'" value="'+esc(val)+'"></label>';}
-function openSubEdit(w,i){EW=w;EI=i;var r=(w==='apps')?apps[i]:group[i];if(!r)return;var h=seField('상태','status',r.status||1,'st');
-  if(w==='apps'){h+=seField('지점','branch',r.branch);h+=seField('클래스','class',r.class);h+=seField('용량','size',r.size);h+=seField('날짜','date',r.date);h+=seField('시간','time',r.time);h+=seField('인원','people',r.people);h+=seField('이름','name',r.name);h+=seField('연락처','phone',r.phone);h+=seField('이메일','email',r.email);}
+function buildSeBody(w,r){var h=seField('상태','status',r.status||1,'st');
+  if(w==='apps'){h+=seField('지점','branch',r.branch);h+=seField('클래스','class',r.class);h+=seField('용량','size',r.size);h+=seField('날짜','date',r.date);h+=seField('시간','time',r.time);h+=seField('인원','people',r.people);h+=seField('결제금액','estimate',r.estimate);h+=seField('이름','name',r.name);h+=seField('연락처','phone',r.phone);h+=seField('이메일','email',r.email);}
   else{h+=seField('유형','type',r.type);h+=seField('신청 용량','volume',r.volume);h+=seField('지점','branch',r.branch);h+=seField('회사/단체','company',r.company);h+=seField('담당자','name',r.name);h+=seField('연락처','phone',r.phone);h+=seField('이메일','email',r.email);h+=seField('문의 내용','msg',r.msg,'ta');}
-  h+=seField('메모','memo',r.memo,'ta');
-  $('#seBody').innerHTML=h;$('#seTitle').textContent=(w==='apps'?'클래스 신청':'단체·기업 문의')+' 수정';$('#subEdit').style.display='flex';
+  h+=seField('메모','memo',r.memo,'ta');return h;}
+function openSubEdit(w,i){EW=w;EI=i;ENEW=null;var r=(w==='apps')?apps[i]:group[i];if(!r)return;$('#seBody').innerHTML=buildSeBody(w,r);$('#seTitle').textContent=(w==='apps'?'클래스 신청':'단체·기업 문의')+' 수정';$('#seDelete').style.display='';$('#subEdit').style.display='flex';}
+function openSubEditNew(w){EW=w;EI=-1;ENEW={status:1};if(w==='apps')ENEW.people='1';$('#seBody').innerHTML=buildSeBody(w,ENEW);$('#seTitle').textContent=(w==='apps'?'클래스 신청':'단체·기업 문의')+' 추가';$('#seDelete').style.display='none';$('#subEdit').style.display='flex';}
+function closeSubEdit(){$('#subEdit').style.display='none';EW=null;EI=null;ENEW=null;}
+function collectSe(r){$$('#seBody [data-fk]').forEach(function(el){var k=el.getAttribute('data-fk');var v=el.value;if(k==='status')v=+v||1;r[k]=v;});}
+function payloadOf(w,r){if(w==='apps')return {status:r.status,branch:r.branch,cls:r.class,size:r.size,sdate:r.date,stime:r.time,people:(r.people===''||r.people==null?null:parseInt(r.people,10)),name:r.name,phone:r.phone,email:r.email,estimate:(r.estimate===''||r.estimate==null||isNaN(+r.estimate)?null:Number(r.estimate)),memo:r.memo};return {status:r.status,itype:r.type,volume:r.volume,branch:r.branch,company:r.company,name:r.name,phone:r.phone,email:r.email,msg:r.msg,memo:r.memo};}
+function saveSubEdit(){if(EW==null)return;var w=EW,tbl=(w==='apps')?'applications':'inquiries';
+  if(EI===-1){var nr=ENEW||{status:1};collectSe(nr);nr.status=nr.status||1;var pl=payloadOf(w,nr);if(window.__sb){window.__sb.from(tbl).insert(pl).then(function(res){if(res.error){alert('추가 실패: '+res.error.message);return;}refreshSubmissionsFromCloud();}).catch(function(e){alert('추가 실패: '+(e.message||e));});}else{nr.ts=Date.now();(w==='apps'?apps:group).push(nr);try{localStorage.setItem(w==='apps'?'uuhee_apps':'uuhee_group',JSON.stringify(w==='apps'?apps:group));}catch(_){}renderSubs();renderOverview();}closeSubEdit();return;}
+  var r=(w==='apps')?apps[EI]:group[EI];if(!r){closeSubEdit();return;}collectSe(r);var id=r.id,pl2=payloadOf(w,r);if(window.__sb&&id)window.__sb.from(tbl).update(pl2).eq('id',id).then(function(res){if(res.error)alert('저장 실패: '+res.error.message);});try{localStorage.setItem(w==='apps'?'uuhee_apps':'uuhee_group',JSON.stringify(w==='apps'?apps:group));}catch(_){}renderSubs();renderOverview();closeSubEdit();
 }
-function closeSubEdit(){$('#subEdit').style.display='none';EW=null;EI=null;}
-function saveSubEdit(){if(EW==null)return;var w=EW,i=EI,r=(w==='apps')?apps[i]:group[i];if(!r){closeSubEdit();return;}
-  $$('#seBody [data-fk]').forEach(function(el){var k=el.getAttribute('data-fk');var v=el.value;if(k==='status')v=+v||1;r[k]=v;});
-  var id=r.id,tbl=(w==='apps')?'applications':'inquiries',payload;
-  if(w==='apps')payload={status:r.status,branch:r.branch,cls:r.class,size:r.size,sdate:r.date,stime:r.time,people:(r.people===''||r.people==null?null:parseInt(r.people,10)),name:r.name,phone:r.phone,email:r.email,memo:r.memo};
-  else payload={status:r.status,itype:r.type,volume:r.volume,branch:r.branch,company:r.company,name:r.name,phone:r.phone,email:r.email,msg:r.msg,memo:r.memo};
-  if(window.__sb&&id)window.__sb.from(tbl).update(payload).eq('id',id).then(function(res){if(res.error)alert('저장 실패: '+res.error.message);});
-  try{localStorage.setItem(w==='apps'?'uuhee_apps':'uuhee_group',JSON.stringify(w==='apps'?apps:group));}catch(_){}
-  renderSubs();renderOverview();closeSubEdit();
-}
-function delSubEdit(){if(EW==null)return;if(!confirm('이 건을 삭제할까요?'))return;var w=EW,i=EI,arr=(w==='apps')?apps:group;var id=arr[i]&&arr[i].id,tbl=(w==='apps')?'applications':'inquiries';if(window.__sb&&id)window.__sb.from(tbl).delete().eq('id',id).then(function(r){if(r.error)console.warn(r.error);});arr.splice(i,1);localStorage.setItem(w==='apps'?'uuhee_apps':'uuhee_group',JSON.stringify(arr));renderSubs();renderOverview();closeSubEdit();}
-document.addEventListener('click',function(e){if(e.target.closest('#subEdit'))return;var tr=e.target.closest('.subrow');if(tr)openSubEdit(tr.getAttribute('data-edit'),+tr.getAttribute('data-i'));});
-$('#seClose').addEventListener('click',closeSubEdit);
-$('#seSave').addEventListener('click',saveSubEdit);
-$('#seDelete').addEventListener('click',delSubEdit);
-$('#subEdit').addEventListener('click',function(e){if(e.target.id==='subEdit')closeSubEdit();});
-document.addEventListener('keydown',function(e){if(e.key==='Escape'&&$('#subEdit').style.display==='flex')closeSubEdit();});
+function delSubEdit(){if(EW==null||EI===-1)return;if(!confirm('이 건을 삭제할까요?'))return;var w=EW,arr=(w==='apps')?apps:group;var id=arr[EI]&&arr[EI].id,tbl=(w==='apps')?'applications':'inquiries';if(window.__sb&&id)window.__sb.from(tbl).delete().eq('id',id).then(function(r){if(r.error)console.warn(r.error);});arr.splice(EI,1);localStorage.setItem(w==='apps'?'uuhee_apps':'uuhee_group',JSON.stringify(arr));renderSubs();renderOverview();closeSubEdit();}
+document.addEventListener('click',function(e){var b=e.target.closest('[data-edit]');if(b){openSubEdit(b.getAttribute('data-edit'),+b.getAttribute('data-i'));}});
+$('#seClose')&&$('#seClose').addEventListener('click',closeSubEdit);
+$('#seSave')&&$('#seSave').addEventListener('click',saveSubEdit);
+$('#seDelete')&&$('#seDelete').addEventListener('click',delSubEdit);
+$('#subEdit')&&$('#subEdit').addEventListener('click',function(e){if(e.target.id==='subEdit')closeSubEdit();});
+document.addEventListener('keydown',function(e){if(e.key==='Escape'&&$('#subEdit')&&$('#subEdit').style.display==='flex')closeSubEdit();});
 function toCSV(rows){return rows.map(r=>r.map(c=>'"'+String(c==null?'':c).replace(/"/g,'""')+'"').join(',')).join('\r\n');}
 function download(name,text){const b=new Blob(['﻿'+text],{type:'text/csv;charset=utf-8'});const u=URL.createObjectURL(b);const a=document.createElement('a');a.href=u;a.download=name;a.click();URL.revokeObjectURL(u);}
-$('#csvApps').addEventListener('click',()=>download('uuhee_class_apps.csv',toCSV([['지점','클래스','용량','날짜','시간','인원','이름','연락처','이메일','접수'],...apps.map(a=>[a.branch,a.class,a.size,a.date,a.time,a.people,a.name,a.phone,a.email,fmt(a.ts)])])));
-$('#csvGroup').addEventListener('click',()=>download('uuhee_group.csv',toCSV([['유형','용량','지점','회사단체','담당자','연락처','이메일','내용','접수'],...group.map(g=>[g.type,g.volume,g.branch,g.company,g.name,g.phone,g.email,g.msg,fmt(g.ts)])])));
 
 /* 사이트 정보 (단일 필드) */
 function renderSite(){$$('[data-site]').forEach(i=>{i.value=(S.site[i.dataset.site]||'');});}
