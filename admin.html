@@ -268,6 +268,7 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--gold)}
 
         <div class="subpanel" id="sub-legal">
           <div class="box"><h3>사업자 정보 (푸터 · 법적 표기)</h3><div class="desc">전자상거래법에 따라 사이트 하단에 표기되는 사업자 정보입니다. 상호·대표자·사업자등록번호·통신판매업신고번호·주소·연락처는 필수 항목입니다.</div><div id="legalForm"></div></div>
+          <div class="box"><h3>결제 설정</h3><div class="desc">계좌이체(무통장입금) 계좌와 네이버페이(포트원) 연동 키를 등록합니다. 포트원 Store ID·채널 키는 결제창을 여는 공개키입니다. (가맹 심사 후 발급)</div><div id="payForm"></div></div>
         </div>
 
         <div class="subpanel" id="sub-space">
@@ -307,7 +308,7 @@ window.UUHEE_SB={url:'https://ybfwnmgnledlumppfjbh.supabase.co',key:'sb_publisha
       var br=r[2].data||[],cl=r[3].data||[],de=r[4].data||[],sl=r[5].data||[],pa=r[6].data||[],ph=r[7].data||[],pf=r[8].data||[],sc=r[9].data||[],ho=r[10].data||[];
       if(!site&&!legal&&!br.length&&!cl.length&&!de.length&&!sl.length&&!pa.length&&!ph.length&&!pf.length&&!sc.length&&!ho.length)return null;
       var S={};
-      if(site)S.site={brand:s(site.brand),est:s(site.est),copyYear:s(site.copy_year),heroImg:s(site.hero_img),conceptImg:s(site.concept_img)};if(site)S.conceptMedia=Array.isArray(site.concept_media)?site.concept_media:[];
+      if(site)S.site={brand:s(site.brand),est:s(site.est),copyYear:s(site.copy_year),heroImg:s(site.hero_img),conceptImg:s(site.concept_img)};if(site)S.conceptMedia=Array.isArray(site.concept_media)?site.concept_media:[];if(site)S.pay=site.pay||{};
       if(legal)S.legal={company:s(legal.company),ceo:s(legal.ceo),bizno:s(legal.bizno),mailorder:s(legal.mailorder),privacy:s(legal.privacy),addr:s(legal.addr),tel:s(legal.tel),email:s(legal.email),kakao:s(legal.kakao),hosting:s(legal.hosting),termsUrl:s(legal.terms_url),privacyUrl:s(legal.privacy_url),refundUrl:s(legal.refund_url)};
       S.branches=br.map(function(b){return {name:s(b.name),phone:s(b.phone),addr:s(b.addr),map:s(b.map),hours:s(b.hours),ig:s(b.ig),fb:s(b.fb),lt:s(b.lt)};});
       S.classes=cl.map(function(x){return {order:x.ord,tag:s(x.tag),name:s(x.name),desc:s(x.descr),active:!!x.active,inquiryOnly:!!x.inquiry_only,branches:x.branches||[]};});
@@ -331,7 +332,7 @@ window.UUHEE_SB={url:'https://ybfwnmgnledlumppfjbh.supabase.co',key:'sb_publisha
   function repl(t,rows){return sb.from(t).select('id').then(function(r){var oldIds=(r.data||[]).map(function(x){return x.id;});var ins=rows.length?sb.from(t).insert(rows):Promise.resolve({error:null});return Promise.resolve(ins).then(function(res){if(res&&res.error)throw res.error;if(oldIds.length)return sb.from(t).delete().in('id',oldIds);return res;});});}
   function pushSettings(S){
     var st=S.site||{},lg=S.legal||{};var jobs=[];
-    jobs.push(sb.from('site').upsert({id:'uuhee',brand:s(st.brand),est:s(st.est),copy_year:s(st.copyYear),hero_img:s(st.heroImg),concept_img:s(st.conceptImg),concept_media:(S.conceptMedia||[])}));
+    jobs.push(sb.from('site').upsert({id:'uuhee',brand:s(st.brand),est:s(st.est),copy_year:s(st.copyYear),hero_img:s(st.heroImg),concept_img:s(st.conceptImg),concept_media:(S.conceptMedia||[]),pay:(S.pay||{})}));
     jobs.push(sb.from('legal').upsert({id:'uuhee',company:s(lg.company),ceo:s(lg.ceo),bizno:s(lg.bizno),mailorder:s(lg.mailorder),privacy:s(lg.privacy),addr:s(lg.addr),tel:s(lg.tel),email:s(lg.email),kakao:s(lg.kakao),hosting:s(lg.hosting),terms_url:s(lg.termsUrl),privacy_url:s(lg.privacyUrl),refund_url:s(lg.refundUrl)}));
     jobs.push(repl('branches',(S.branches||[]).map(function(b,i){return {ord:i,name:s(b.name),phone:s(b.phone),addr:s(b.addr),map:s(b.map),hours:s(b.hours),ig:s(b.ig),fb:s(b.fb),lt:s(b.lt)};})));
     jobs.push(repl('classes',(S.classes||[]).map(function(x,i){return {ord:(x.order!=null?x.order:i),tag:s(x.tag),name:s(x.name),descr:s(x.desc),active:!!x.active,inquiry_only:!!x.inquiryOnly,branches:(x.branches||[])};})));
@@ -427,7 +428,7 @@ $('#logout').addEventListener('click',()=>{sessionStorage.removeItem('uuhee_admi
 $$('#nav a').forEach(a=>a.addEventListener('click',()=>{$$('#nav a').forEach(x=>x.classList.remove('active'));a.classList.add('active');
   const p=a.dataset.p;$$('.panel').forEach(x=>x.classList.remove('active'));$('#panel-'+p).classList.add('active');$('#ptitle').textContent=a.textContent;}));
 $$('#panel-settings>.subtabs .subtab').forEach(t=>t.addEventListener('click',()=>{$$('#panel-settings>.subtabs .subtab').forEach(x=>x.classList.remove('active'));t.classList.add('active');
-  $$('.subpanel').forEach(x=>x.classList.remove('active'));$('#sub-'+t.dataset.s).classList.add('active');if(t.dataset.s==='space'||t.dataset.s==='gallery'){renderFoldersAll();renderUploadersAll();}if(t.dataset.s==='legal')renderLegalForm();}));
+  $$('.subpanel').forEach(x=>x.classList.remove('active'));$('#sub-'+t.dataset.s).classList.add('active');if(t.dataset.s==='space'||t.dataset.s==='gallery'){renderFoldersAll();renderUploadersAll();}if(t.dataset.s==='legal'){renderLegalForm();renderPayForm();}}));
 
 let apps=Jarr('uuhee_apps'), group=Jarr('uuhee_group');
 function renderOverview(){
@@ -585,7 +586,7 @@ function buildTables(){
   T.partners=makeTable('#tbl-partners','partners',[
     {k:'name',l:'이름'},{k:'logo',l:'로고',type:'image'},{k:'cover',l:'대표',type:'check'},{k:'order',l:'순서',type:'num'},{k:'link',l:'링크'}],
     ()=>({name:'',logo:'',cover:false,order:S.partners.length+1,link:''}),'로고 추가');
-  renderFoldersAll();renderUploadersAll();renderConceptMedia();
+  renderFoldersAll();renderUploadersAll();renderConceptMedia();renderLegalForm();renderPayForm();
 }
 function renderFoldersAll(){renderFolderMgr('공간','spaceFolders');renderFolderMgr('갤러리','galFolders');}
 function renderUploadersAll(){renderUploader('공간','spaceUploader');renderUploader('갤러리','galUploader');}
@@ -657,6 +658,12 @@ function renderConceptMedia(){
   S.conceptMedia.forEach(function(src,i){var v=isVid(src);html+='<div class="up-row" style="margin-bottom:8px"><span class="thumb" style="'+((src&&!v)?("background-image:url('"+String(src).replace(/'/g,'%27')+"')"):'')+'">'+((src&&v)?'▶':'')+'</span><input data-cm="'+i+'" value="'+esc(src||'')+'" placeholder="URL 또는 업로드"><label class="upbtn">⬆<input type="file" accept="image/*,video/*" data-cmup="'+i+'" hidden></label><button class="del" data-cmmu="'+i+'" title="위로" style="margin-left:6px">▲</button><button class="del" data-cmmd="'+i+'" title="아래로">▼</button><button class="del" data-cmrm="'+i+'">삭제</button></div>';});
   html+='<div class="row-tools" style="margin-top:8px"><button class="btn ghost" data-cmadd="1"'+(S.conceptMedia.length>=5?' disabled':'')+'>+ 영상 추가 ('+S.conceptMedia.length+'/5)</button><span class="sp"></span><span class="saved">저장됨 ✓</span><button class="btn gold" data-cmsave="1">저장</button></div>';
   box.innerHTML=html;
+}
+function renderPayForm(){
+  var box=document.getElementById('payForm');if(!box)return;if(!S.pay)S.pay={};var p=S.pay;
+  var fields=[['bank','은행'],['account','계좌번호'],['holder','예금주'],['portoneStore','포트원 Store ID (네이버페이)'],['portoneChannel','포트원 채널 키 (네이버페이)']];
+  box.innerHTML='<div class="lg-grid">'+fields.map(function(f){return '<label class="lg-f"><span>'+esc(f[1])+'</span><input data-pay="'+f[0]+'" value="'+esc(p[f[0]]||'')+'"></label>';}).join('')+'</div><div class="row-tools" style="margin-top:16px"><span class="saved">저장됨 ✓</span><button class="btn gold" id="paySave">저장</button></div>';
+  if(!box._wired){box._wired=1;box.addEventListener('input',function(e){var t=e.target;if(t.dataset.pay){if(!S.pay)S.pay={};S.pay[t.dataset.pay]=t.value;}});box.addEventListener('click',function(e){if(e.target.id==='paySave'){try{save();flash(box.querySelector('.saved'));}catch(err){alert('저장 실패');}}});}
 }
 function renderLegalForm(){
   var box=$('#legalForm');if(!box)return;
