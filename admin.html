@@ -94,8 +94,11 @@ td .del{color:var(--warn);background:none;border:0;font-size:12px;text-decoratio
 .sub-cards{display:grid;grid-template-columns:repeat(8,1fr);gap:8px;margin:8px 0 14px}
 .scard{border:1px solid var(--line);border-radius:6px;padding:9px 11px;background:#fff}
 .scard .l{font-size:11px;color:var(--ink-soft)}.scard .v{font-size:19px;font-weight:700;margin-top:2px}
-.sub-toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 12px}
-.sub-toolbar input,.sub-toolbar select{font:inherit;font-size:13px;border:1px solid var(--line);border-radius:4px;padding:8px 10px;color:var(--ink);background:#fff}
+.sub-toolbar{display:flex;align-items:center;gap:8px;flex-wrap:nowrap;overflow-x:auto;margin:0 0 12px}
+.sub-toolbar #subSearch{flex:1;min-width:150px}
+.sub-toolbar .btn,.sub-toolbar .del{white-space:nowrap;padding:7px 12px;font-size:12px}
+.sub-toolbar #subCount{white-space:nowrap}
+.sub-toolbar input,.sub-toolbar select{font:inherit;font-size:12px;border:1px solid var(--line);border-radius:4px;padding:7px 9px;color:var(--ink);background:#fff;white-space:nowrap}
 .sub-toolbar #subSearch{min-width:220px}
 .btn-sm{padding:5px 12px;font-size:12px}
 .muted{color:var(--ink-soft);font-size:12px}
@@ -119,6 +122,18 @@ td .del{color:var(--warn);background:none;border:0;font-size:12px;text-decoratio
 .pf-head{font-size:12px;color:var(--ink);margin-bottom:8px}
 .pf-table{width:100%}
 .gv-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px}.gv-cell{aspect-ratio:4/3;border:1px solid var(--line);border-radius:3px;background:#efeada center/cover no-repeat}
+/* ===== 컨셉 통일: 셀렉트 화살표 · 포커스 · 버튼 ===== */
+select{appearance:none;-webkit-appearance:none;-moz-appearance:none;background-color:#fff;background-image:url("data:image/svg+xml;utf8,%3Csvg xmlns=\x27http://www.w3.org/2000/svg\x27 width=\x2712\x27 height=\x2712\x27 viewBox=\x270 0 24 24\x27 fill=\x27none\x27 stroke=\x27%23a98c5b\x27 stroke-width=\x272\x27 stroke-linecap=\x27round\x27 stroke-linejoin=\x27round\x27%3E%3Cpath d=\x27M6 9l6 6 6-6\x27/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 9px center;padding-right:26px;cursor:pointer}
+td select{padding-right:24px}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--gold)}
+.btn{cursor:pointer;transition:background .15s,color .15s,border-color .15s,opacity .15s}
+.btn.ghost{border:1px solid var(--brass)}
+.btn.ghost:hover{color:var(--brass);border-color:var(--brass)}
+.btn.gold:hover{background:var(--brass);color:#fff}
+.btn:not(.ghost):not(.gold):hover{opacity:.9}
+.subtab{cursor:pointer;transition:border-color .15s,color .15s,background .15s}
+.subtab:hover{border-color:var(--brass);color:var(--ink)}
+.tg{cursor:pointer}
 </style>
 </head>
 <body>
@@ -168,7 +183,6 @@ td .del{color:var(--warn);background:none;border:0;font-size:12px;text-decoratio
             <select id="subFStatus"><option value="0">전체 상태</option><option value="1">신청</option><option value="2">대기</option><option value="3">확정</option><option value="4">완료</option><option value="5">취소</option><option value="6">환불요청</option><option value="7">환불완료</option></select>
             <select id="subFBranch"><option value="">전체 지점</option></select>
             <span style="flex:1"></span>
-            <select id="bulkStatus"><option value="1">신청</option><option value="2">대기</option><option value="3">확정</option><option value="4">완료</option><option value="5">취소</option><option value="6">환불요청</option><option value="7">환불완료</option></select>
             <button class="btn ghost" id="bulkApply">상태변경</button>
             <button class="btn ghost" id="subAdd">+ 추가</button>
             <button class="del" id="bulkDel">삭제</button>
@@ -180,6 +194,18 @@ td .del{color:var(--warn);background:none;border:0;font-size:12px;text-decoratio
               <div class="amodal-h"><b id="seTitle">수정</b><button type="button" id="seClose" class="amodal-x">×</button></div>
               <div class="amodal-b" id="seBody"></div>
               <div class="amodal-f"><button type="button" class="del" id="seDelete">삭제</button><span style="flex:1"></span><button type="button" class="btn gold" id="seSave">저장</button></div>
+            </div>
+          </div>
+          <div class="amodal-ov" id="bulkModal" style="display:none">
+            <div class="amodal" style="max-width:420px">
+              <div class="amodal-h"><b>상태 일괄 변경</b><button type="button" id="bkClose" class="amodal-x">×</button></div>
+              <div class="amodal-b" style="grid-template-columns:1fr">
+                <label class="se-f"><span>변경 전 상태 (from)</span><select id="bkFrom"><option value="1">신청</option><option value="2">대기</option><option value="3">확정</option><option value="4">완료</option><option value="5">취소</option><option value="6">환불요청</option><option value="7">환불완료</option></select></label>
+                <label class="se-f"><span>변경 후 상태 (to)</span><select id="bkTo"><option value="1">신청</option><option value="2">대기</option><option value="3">확정</option><option value="4">완료</option><option value="5">취소</option><option value="6">환불요청</option><option value="7">환불완료</option></select></label>
+                <label class="se-f" style="flex-direction:row;align-items:center;gap:8px"><input type="checkbox" id="bkIgnore" style="width:auto"><span>기존 상태 무시 (선택한 모든 항목을 '변경 후 상태'로 변경)</span></label>
+                <div class="muted" id="bkInfo"></div>
+              </div>
+              <div class="amodal-f"><span style="flex:1"></span><button type="button" class="btn ghost" id="bkCancel">취소</button><button type="button" class="btn gold" id="bkApply">적용</button></div>
             </div>
           </div>
         </div>
@@ -457,7 +483,14 @@ $$('#subTabs .subtab').forEach(function(t){t.addEventListener('click',function()
 ['subFStatus','subFBranch'].forEach(function(id){var el=$('#'+id);if(el)el.addEventListener('change',renderSubs);});
 document.addEventListener('change',function(e){if(e.target.id==='subAll'){$$('#subsTable .subck').forEach(function(c){c.checked=e.target.checked;});}});
 function checkedPicks(){return $$('#subsTable .subck:checked').map(function(c){return {w:c.dataset.w,i:+c.dataset.i};});}
-$('#bulkApply')&&$('#bulkApply').addEventListener('click',function(){var picks=checkedPicks();if(!picks.length){alert('선택된 항목이 없습니다.');return;}var val=+$('#bulkStatus').value||1;picks.forEach(function(p){var arr=p.w==='apps'?apps:group;var r=arr[p.i];if(r){r.status=val;var id=r.id,tbl=p.w==='apps'?'applications':'inquiries';if(window.__sb&&id)window.__sb.from(tbl).update({status:val}).eq('id',id).then(function(rr){if(rr.error)console.warn(rr.error);});}});try{localStorage.setItem('uuhee_apps',JSON.stringify(apps));localStorage.setItem('uuhee_group',JSON.stringify(group));}catch(_){}renderSubs();renderOverview();});
+function checkedRecs(){return $$('#subsTable .subck:checked').map(function(c){var w=c.dataset.w,i=+c.dataset.i;var rec=(w==='apps')?apps[i]:group[i];return {w:w,rec:rec};}).filter(function(x){return x.rec;});}
+function bkInfo(){var picks=window.__bkPicks||[];var from=+$('#bkFrom').value,ig=$('#bkIgnore').checked;var n=ig?picks.length:picks.filter(function(p){return (p.rec.status||1)===from;}).length;if($('#bkInfo'))$('#bkInfo').textContent='선택 '+picks.length+'건 중 '+n+'건이 변경됩니다.';}
+$('#bulkApply')&&$('#bulkApply').addEventListener('click',function(){var picks=checkedRecs();if(!picks.length){alert('선택된 항목이 없습니다.');return;}window.__bkPicks=picks;$('#bkIgnore').checked=false;bkInfo();$('#bulkModal').style.display='flex';});
+['bkFrom','bkTo','bkIgnore'].forEach(function(id){var el=$('#'+id);if(el)el.addEventListener('change',bkInfo);});
+$('#bkClose')&&$('#bkClose').addEventListener('click',function(){$('#bulkModal').style.display='none';});
+$('#bkCancel')&&$('#bkCancel').addEventListener('click',function(){$('#bulkModal').style.display='none';});
+$('#bulkModal')&&$('#bulkModal').addEventListener('click',function(e){if(e.target.id==='bulkModal')$('#bulkModal').style.display='none';});
+$('#bkApply')&&$('#bkApply').addEventListener('click',function(){var picks=window.__bkPicks||[];var from=+$('#bkFrom').value,to=+$('#bkTo').value,ig=$('#bkIgnore').checked;var aid=[],gid=[];picks.forEach(function(p){if(ig||(p.rec.status||1)===from){p.rec.status=to;if(p.rec.id)(p.w==='apps'?aid:gid).push(p.rec.id);}});if(window.__sb){if(aid.length)window.__sb.from('applications').update({status:to}).in('id',aid).then(function(r){if(r.error)console.warn(r.error);});if(gid.length)window.__sb.from('inquiries').update({status:to}).in('id',gid).then(function(r){if(r.error)console.warn(r.error);});}try{localStorage.setItem('uuhee_apps',JSON.stringify(apps));localStorage.setItem('uuhee_group',JSON.stringify(group));}catch(_){}renderSubs();renderOverview();$('#bulkModal').style.display='none';});
 $('#bulkDel')&&$('#bulkDel').addEventListener('click',function(){var picks=checkedPicks();if(!picks.length){alert('선택된 항목이 없습니다.');return;}if(!confirm(picks.length+'건 삭제할까요?'))return;var aid=[],gid=[];picks.forEach(function(p){var arr=p.w==='apps'?apps:group;var r=arr[p.i];if(r&&r.id)(p.w==='apps'?aid:gid).push(r.id);});if(window.__sb){if(aid.length)window.__sb.from('applications').delete().in('id',aid);if(gid.length)window.__sb.from('inquiries').delete().in('id',gid);}apps=apps.filter(function(a){return aid.indexOf(a.id)<0;});group=group.filter(function(g){return gid.indexOf(g.id)<0;});try{localStorage.setItem('uuhee_apps',JSON.stringify(apps));localStorage.setItem('uuhee_group',JSON.stringify(group));}catch(_){}renderSubs();renderOverview();});
 $('#subAdd')&&$('#subAdd').addEventListener('click',function(){openSubEditNew(SUBTAB==='group'?'group':'apps');});
 $('#csvApps')&&$('#csvApps').addEventListener('click',function(){download('uuhee_class_apps.csv',toCSV([['지점','클래스','용량','날짜','시간','인원','이름','연락처','이메일','결제금액','상태','메모','접수'],].concat(apps.map(function(a){return [a.branch,a.class,a.size,a.date,a.time,a.people,a.name,a.phone,a.email,a.estimate,STLAB[a.status||1],a.memo,fmt(a.ts)];}))));});
