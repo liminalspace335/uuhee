@@ -173,15 +173,17 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--gold)}
       <div class="panel" id="panel-list">
         <div class="box"><div class="row-tools"><h3 style="flex:1">신청·문의 관리</h3><button class="btn ghost" id="csvApps">클래스 CSV</button><button class="btn ghost" id="csvGroup">문의 CSV</button></div>
           <div class="subtabs" id="subTabs">
-            <button class="subtab active" data-st="all">전체</button>
-            <button class="subtab" data-st="class">클래스</button>
+            <button class="subtab active" data-st="class">클래스</button>
             <button class="subtab" data-st="group">단체·기업</button>
+            <button class="subtab" data-st="all">전체</button>
           </div>
           <div id="subCards" class="sub-cards"></div>
           <div class="sub-toolbar">
             <input id="subSearch" placeholder="이름 또는 전화번호 검색...">
             <select id="subFStatus"><option value="0">전체 상태</option><option value="1">신청</option><option value="2">대기</option><option value="3">확정</option><option value="4">완료</option><option value="5">취소</option><option value="6">환불요청</option><option value="7">환불완료</option></select>
             <select id="subFBranch"><option value="">전체 지점</option></select>
+            <input type="date" id="subFDate">
+            <button class="btn ghost" id="subDateAll">전체날짜</button>
             <span style="flex:1"></span>
             <button class="btn ghost" id="bulkApply">상태변경</button>
             <button class="btn ghost" id="subAdd">+ 추가</button>
@@ -437,7 +439,7 @@ function renderOverview(){
   const rec=[...apps.map(a=>({...a,_t:'클래스'})),...group.map(g=>({...g,_t:'단체문의'}))].sort((a,b)=>(b.ts||0)-(a.ts||0)).slice(0,10);
   $('#recentBody').innerHTML=rec.length?rec.map(r=>`<tr><td>${r._t}</td><td>${esc(r.class||r.type||'')}</td><td>${esc(r.name||'')}</td><td>${esc(r.phone||'')}</td><td class="mono">${fmt(r.ts)}</td></tr>`).join(''):'<tr><td colspan="5" class="empty">접수된 내역이 없습니다.</td></tr>';
 }
-var SUBTAB='all';
+var SUBTAB='class';
 var STLAB={1:'신청',2:'대기',3:'확정',4:'완료',5:'취소',6:'환불요청',7:'환불완료'};
 function stColor(c){return {1:'#8a8a82',2:'#c98a2e',3:'#3c7d4f',4:'#4a4a44',5:'#c0392b',6:'#d35400',7:'#2e6da4'}[+c]||'#8a8a82';}
 function stOpts(cur){var o='';for(var k=1;k<=7;k++){o+='<option value="'+k+'"'+(+cur===k?' selected':'')+'>'+k+'. '+STLAB[k]+'</option>';}return o;}
@@ -454,6 +456,8 @@ function baseRows(){
 function curStatus(){return +(($('#subFStatus')||{}).value||0)||0;}
 function curBranch(){return ($('#subFBranch')||{}).value||'';}
 function curSearch(){return ((($('#subSearch')||{}).value)||'').trim().toLowerCase();}
+function curDate(){return (($('#subFDate')||{}).value)||'';}
+function dateOk(o,d){if(!d)return true;var r=o.row;if(o.w==='apps')return (r.date||'')===d;return r.ts?ymd(new Date(r.ts))===d:false;}
 function populateBranchFilter(){var sel=$('#subFBranch');if(!sel)return;var cur=sel.value;var names=(typeof branchNames==='function')?branchNames():[];sel.innerHTML='<option value="">전체 지점</option>'+names.map(function(n){return '<option'+(n===cur?' selected':'')+'>'+esc(n)+'</option>';}).join('');}
 function renderCards(base){var c={};for(var k=0;k<=7;k++)c[k]=0;base.forEach(function(o){c[0]++;c[(o.row.status||1)]++;});
   var defs=[['전체',0],['신청',1],['대기',2],['확정',3],['완료',4],['취소',5],['환불요청',6],['환불완료',7]];
@@ -461,9 +465,10 @@ function renderCards(base){var c={};for(var k=0;k<=7;k++)c[k]=0;base.forEach(fun
 }
 function renderSubs(){
   var box=$('#subsTable');if(!box)return;populateBranchFilter();
-  var base=baseRows();renderCards(base);
-  var st=curStatus(),br=curBranch(),q=curSearch();
-  var list=base.filter(function(o){var r=o.row;if(st&&(r.status||1)!==st)return false;if(br&&(r.branch||'')!==br)return false;if(q){if((((r.name||'')+' '+(r.phone||'')).toLowerCase()).indexOf(q)<0)return false;}return true;});
+  var base=baseRows();var st=curStatus(),br=curBranch(),q=curSearch(),d=curDate();
+  var scoped=base.filter(function(o){var r=o.row;if(br&&(r.branch||'')!==br)return false;if(q){if((((r.name||'')+' '+(r.phone||'')).toLowerCase()).indexOf(q)<0)return false;}if(!dateOk(o,d))return false;return true;});
+  renderCards(scoped);
+  var list=scoped.filter(function(o){var r=o.row;if(st&&(r.status||1)!==st)return false;return true;});
   if($('#subCount'))$('#subCount').textContent='총 '+list.length+'건';
   var head,rowf;
   if(SUBTAB==='group'){
@@ -481,7 +486,9 @@ function renderSubs(){
 }
 $$('#subTabs .subtab').forEach(function(t){t.addEventListener('click',function(){$$('#subTabs .subtab').forEach(function(x){x.classList.remove('active');});t.classList.add('active');SUBTAB=t.dataset.st;renderSubs();});});
 ['subSearch'].forEach(function(id){var el=$('#'+id);if(el)el.addEventListener('input',renderSubs);});
-['subFStatus','subFBranch'].forEach(function(id){var el=$('#'+id);if(el)el.addEventListener('change',renderSubs);});
+['subFStatus','subFBranch','subFDate'].forEach(function(id){var el=$('#'+id);if(el)el.addEventListener('change',renderSubs);});
+(function(){var el=$('#subFDate');if(el&&!el.value)el.value=ymd(new Date());})();
+$('#subDateAll')&&$('#subDateAll').addEventListener('click',function(){var el=$('#subFDate');if(el)el.value='';renderSubs();});
 document.addEventListener('change',function(e){if(e.target.id==='subAll'){$$('#subsTable .subck').forEach(function(c){c.checked=e.target.checked;});}});
 function checkedPicks(){return $$('#subsTable .subck:checked').map(function(c){return {w:c.dataset.w,i:+c.dataset.i};});}
 function checkedRecs(){return $$('#subsTable .subck:checked').map(function(c){var w=c.dataset.w,i=+c.dataset.i;var rec=(w==='apps')?apps[i]:group[i];return {w:w,rec:rec};}).filter(function(x){return x.rec;});}
