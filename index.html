@@ -151,7 +151,9 @@ section{padding:110px 0}
 /* GALLERY */
 #gallery{background:var(--bg)}
 .gallery-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:18px;margin-top:16px}
-.sns-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-top:20px}
+.sns-branch{margin-top:24px}
+.sns-bh{font-size:16px;font-weight:700;font-family:"Nanum Myeongjo",serif;margin-bottom:14px;letter-spacing:.02em}
+.sns-cards{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
 .sns-card{display:flex;align-items:center;gap:14px;border:1px solid var(--line);border-radius:8px;padding:16px 18px;background:var(--paper);color:var(--ink);transition:border-color .2s,transform .2s}
 .sns-card:hover{border-color:var(--brass);transform:translateY(-2px)}
 .sns-ic{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:#f3f0ea;color:var(--brass);flex:0 0 auto;font-size:17px}
@@ -161,8 +163,8 @@ section{padding:110px 0}
 .sns-t span{font-size:12px;color:var(--ink-soft)}
 .sns-arrow{color:var(--brass);font-size:14px}
 .sns-empty{color:var(--ink-soft);font-size:14px;padding:20px 0}
-@media(max-width:980px){.sns-grid{grid-template-columns:repeat(2,1fr)}}
-@media(max-width:560px){.sns-grid{grid-template-columns:1fr}}
+@media(max-width:980px){.sns-cards{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:560px){.sns-cards{grid-template-columns:1fr}}
 .gitem{position:relative;overflow:hidden;border:1px solid var(--line);aspect-ratio:3/2;background:linear-gradient(135deg,#f3f2ee,#e6e5e0);display:flex;align-items:center;justify-content:center}
 .gitem span{font-size:11px;letter-spacing:.1em;color:#9a8d75}
 
@@ -623,7 +625,7 @@ select:not(.mfield select):not(.inq-card select){appearance:none;-webkit-appeara
       <h2>SNS · 채널</h2>
       <p class="coord mono">05 — SNS</p>
     </div>
-    <div class="sns-grid" id="snsGrid"></div>
+    <div id="snsGrid"></div>
   </div>
 </section>
 
@@ -1130,12 +1132,13 @@ window.UUHEE_SB={url:'https://ybfwnmgnledlumppfjbh.supabase.co',key:'sb_publisha
       show(0);})();
     (function(){var grid=document.getElementById('snsGrid');if(!grid)return;
       var icon=function(k){if(k==='ig')return '<svg class="ic" width="20" height="20"><use href="#ic-instagram"/></svg>';if(k==='fb')return '<svg class="ic" width="20" height="20"><use href="#ic-facebook"/></svg>';if(k==='lt')return '<svg class="ic" width="20" height="20"><use href="#ic-linktree"/></svg>';return '\u25ce';};
-      var cards=[];
+      var html='',any=false;
       (S.branches||[]).forEach(function(b){if(!b||!b.name)return;
         var links=[];if(b.ig)links.push(['ig','Instagram',b.ig]);if(b.fb)links.push(['fb','Facebook',b.fb]);if(b.lt)links.push(['lt','Linktree',b.lt]);if(b.map)links.push(['map','네이버 플레이스',b.map]);
-        links.forEach(function(l){cards.push('<a class="sns-card" href="'+E(l[2])+'" target="_blank" rel="noopener"><span class="sns-ic">'+icon(l[0])+'</span><span class="sns-t"><b>'+E(b.name)+'</b><span>'+E(l[1])+'</span></span><span class="sns-arrow">\u2197</span></a>');});
+        if(!links.length)return;any=true;
+        html+='<div class="sns-branch"><div class="sns-bh">'+E(b.name)+'</div><div class="sns-cards">'+links.map(function(l){return '<a class="sns-card" href="'+E(l[2])+'" target="_blank" rel="noopener"><span class="sns-ic">'+icon(l[0])+'</span><span class="sns-t"><b>'+E(l[1])+'</b></span><span class="sns-arrow">\u2197</span></a>';}).join('')+'</div></div>';
       });
-      grid.innerHTML=cards.length?cards.join(''):'<div class="sns-empty">등록된 SNS 링크가 없습니다. 환경설정 → 지점설정에서 인스타그램·페이스북·링크트리·네이버 지도 링크를 입력하면 표시됩니다.</div>';
+      grid.innerHTML=any?html:'<div class="sns-empty">등록된 SNS 링크가 없습니다. 환경설정 → 지점설정에서 인스타그램·페이스북·링크트리·네이버 지도 링크를 입력하면 표시됩니다.</div>';
     })();
     var cg=document.querySelector('#classes .class-grid');
     if(cg&&prog.length){cg.innerHTML=prog.map(function(c){return '<div class="card" data-open-apply data-aclass="'+E(c.name)+'"><span class="tag">'+E(c.tag||'CLASS')+'</span><h3>'+E(c.name)+'</h3><p class="desc">'+E(c.desc||'')+'</p><div class="row"><span></span><span class="price">'+priceOf(c.name)+'</span></div></div>';}).join('');}
