@@ -1167,8 +1167,7 @@ window.UUHEE_SB={url:'https://ybfwnmgnledlumppfjbh.supabase.co',key:'sb_publisha
       var grid=document.querySelector('#view-gallery .gallery-grid'),chips=document.getElementById('galChips'),moreBtn=document.getElementById('galMore');
       if(!grid)return;
       var folders=[];
-      (S.photoFolders||[]).filter(function(f){return (f.category||'')==='갤러리'&&f.name;}).sort(function(a,b){return (a.order||0)-(b.order||0);}).forEach(function(f){if(gal.some(function(p){return (p.folder||'기타')===f.name;})&&folders.indexOf(f.name)<0)folders.push(f.name);});
-      gal.forEach(function(p){var f=p.folder||'기타';if(folders.indexOf(f)<0)folders.push(f);});
+      (S.photoFolders||[]).filter(function(f){return (f.category||'')==='갤러리'&&f.name;}).sort(function(a,b){return (a.order||0)-(b.order||0);}).forEach(function(f){if(gal.some(function(p){return (p.folder||'')===f.name;})&&folders.indexOf(f.name)<0)folders.push(f.name);});
       var sel='전체',shown=4;
       var filt=function(){return sel==='전체'?gal:gal.filter(function(p){return (p.folder||'기타')===sel;});};
       var renderChips=function(){if(!chips)return;var arr=[{name:'전체',cover:(gal[0]||{}).img}].concat(folders.map(function(f){var cv=gal.filter(function(p){return (p.folder||'기타')===f;})[0]||{};return {name:f,cover:cv.img};}));chips.innerHTML=arr.map(function(c){var bg=(c.cover&&!isVid(c.cover))?("background-image:url('"+String(c.cover).replace(/'/g,'%27')+"')"):'';return '<button type="button" class="gchip'+(c.name===sel?' active':'')+'" data-f="'+E(c.name)+'"><span class="gchip-img" style="'+bg+'">'+((c.cover&&isVid(c.cover))?'▶':'')+'</span><span class="gchip-n">'+E(c.name)+'</span></button>';}).join('');};
