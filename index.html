@@ -681,35 +681,14 @@ select:not(.mfield select):not(.inq-card select){appearance:none;-webkit-appeara
   <div class="wrap">
     <p class="eyebrow">Space · 공간</p>
     <h1>공간</h1>
-    <p class="lead">골목 안 아늑한 작업실, 유유히의 두 공간을 소개합니다. 사진을 클릭하면 크게 볼 수 있어요.</p>
+    <p class="lead">골목 안 아늑한 작업실, 유유히의 공간을 소개합니다. 사진을 클릭하면 크게 볼 수 있어요.</p>
   </div>
 </section>
 
-<section style="background:var(--paper)">
-  <div class="wrap">
-    <div class="sec-head"><h2>유유히 홍대</h2><p class="coord mono">서울 마포구 양화로18안길 36 지하1층</p></div>
-    <div class="space-photos" data-branch="홍대" style="grid-template-columns:repeat(3,1fr)">
-      <button class="sph" type="button" data-cap="유유히 홍대 · 입구">홍대 입구</button>
-      <button class="sph" type="button" data-cap="유유히 홍대 · 작업대">홍대 작업대</button>
-      <button class="sph" type="button" data-cap="유유히 홍대 · 진열장">홍대 진열장</button>
-      <button class="sph" type="button" data-cap="유유히 홍대 · 재료 코너">홍대 재료 코너</button>
-      <button class="sph" type="button" data-cap="유유히 홍대 · 좌석">홍대 좌석</button>
-      <button class="sph" type="button" data-cap="유유히 홍대 · 디테일">홍대 디테일</button>
-    </div>
-  </div>
-</section>
+<div id="spaceSections"></div>
 
 <section style="background:var(--bg)">
   <div class="wrap">
-    <div class="sec-head"><h2>유유히 성수</h2><p class="coord mono">서울 성동구 서울숲9길 5 101호</p></div>
-    <div class="space-photos" data-branch="성수" style="grid-template-columns:repeat(3,1fr)">
-      <button class="sph" type="button" data-cap="유유히 성수 · 입구">성수 입구</button>
-      <button class="sph" type="button" data-cap="유유히 성수 · 작업대">성수 작업대</button>
-      <button class="sph" type="button" data-cap="유유히 성수 · 진열장">성수 진열장</button>
-      <button class="sph" type="button" data-cap="유유히 성수 · 재료 코너">성수 재료 코너</button>
-      <button class="sph" type="button" data-cap="유유히 성수 · 좌석">성수 좌석</button>
-      <button class="sph" type="button" data-cap="유유히 성수 · 디테일">성수 디테일</button>
-    </div>
     <div class="more-wrap"><a class="btn" href="#" data-open-apply>클래스 신청하기</a></div>
   </div>
 </section>
@@ -849,7 +828,7 @@ window.UUHEE_SB={url:'https://ybfwnmgnledlumppfjbh.supabase.co',key:'sb_publisha
       S.conceptMedia=cm.map(function(m){return s(m.url);});
       if(site)S.pay={bank:s(site.pay_bank),account:s(site.pay_account),holder:s(site.pay_holder),portoneStore:s(site.pay_portone_store),portoneChannel:s(site.pay_portone_channel)};
       if(legal)S.legal={company:s(legal.company),ceo:s(legal.ceo),bizno:s(legal.bizno),mailorder:s(legal.mailorder),privacy:s(legal.privacy),addr:s(legal.addr),tel:s(legal.tel),email:s(legal.email),kakao:s(legal.kakao),hosting:s(legal.hosting),termsUrl:s(legal.terms_url),privacyUrl:s(legal.privacy_url),refundUrl:s(legal.refund_url)};
-      S.branches=br.map(function(b){return {name:s(b.name),nameEn:s(b.name_en),phone:s(b.phone),addr:s(b.addr),addrEn:s(b.addr_en),map:s(b.map),hours:s(b.hours),ig:s(b.ig),fb:s(b.fb),lt:s(b.lt)};});
+      S.branches=br.map(function(b){return {name:s(b.name),nameEn:s(b.name_en),phone:s(b.phone),addr:s(b.addr),addrEn:s(b.addr_en),map:s(b.map),hours:s(b.hours),ig:s(b.ig),fb:s(b.fb),lt:s(b.lt),spaceDesc:s(b.space_desc)};});
       S.classes=cl.map(function(x){var brs=cb.filter(function(b){return b.class_id===x.id;}).map(function(b){return s(b.branch_name);});return {order:x.ord,tag:s(x.tag),name:s(x.name),nameEn:s(x.name_en),desc:s(x.descr),descEn:s(x.desc_en),active:!!x.active,inquiryOnly:!!x.inquiry_only,branches:brs};});
       S.details=de.map(function(d){return {branch:s(d.branch),cls:s(d.cls),size:s(d.size),price:(d.price==null?'':String(d.price)),discountType:s(d.discount_type),discountVal:(d.discount_val==null?'':String(d.discount_val)),desc:s(d.descr),descEn:s(d.desc_en)};});
       S.slots=sl.map(function(x){return {branch:s(x.branch),cls:s(x.cls),time:s(x.stime),cap:(x.cap==null?'':String(x.cap))};});
@@ -893,7 +872,7 @@ window.UUHEE_SB={url:'https://ybfwnmgnledlumppfjbh.supabase.co',key:'sb_publisha
     var st=S.site||{},lg=S.legal||{},pay=S.pay||{};var jobs=[];
     jobs.push(sb.from('site').upsert({id:'uuhee',brand:s(st.brand),est:s(st.est),copy_year:s(st.copyYear),hero_img:s(st.heroImg),concept_img:s(st.conceptImg),pay_bank:s(pay.bank),pay_account:s(pay.account),pay_holder:s(pay.holder),pay_portone_store:s(pay.portoneStore),pay_portone_channel:s(pay.portoneChannel)}));
     jobs.push(sb.from('legal').upsert({id:'uuhee',company:s(lg.company),ceo:s(lg.ceo),bizno:s(lg.bizno),mailorder:s(lg.mailorder),privacy:s(lg.privacy),addr:s(lg.addr),tel:s(lg.tel),email:s(lg.email),kakao:s(lg.kakao),hosting:s(lg.hosting),terms_url:s(lg.termsUrl),privacy_url:s(lg.privacyUrl),refund_url:s(lg.refundUrl)}));
-    jobs.push(repl('branches',(S.branches||[]).map(function(b,i){return {ord:i,name:s(b.name),name_en:s(b.nameEn),phone:s(b.phone),addr:s(b.addr),addr_en:s(b.addrEn),map:s(b.map),hours:s(b.hours),ig:s(b.ig),fb:s(b.fb),lt:s(b.lt)};})));
+    jobs.push(repl('branches',(S.branches||[]).map(function(b,i){return {ord:i,name:s(b.name),name_en:s(b.nameEn),phone:s(b.phone),addr:s(b.addr),addr_en:s(b.addrEn),map:s(b.map),hours:s(b.hours),ig:s(b.ig),fb:s(b.fb),lt:s(b.lt),space_desc:s(b.spaceDesc)};})));
     jobs.push(replClasses(S.classes||[]));
     jobs.push(repl('details',(S.details||[]).map(function(d){return {branch:s(d.branch),cls:s(d.cls),size:s(d.size),price:N(d.price),discount_type:s(d.discountType),discount_val:N(d.discountVal),descr:s(d.desc),desc_en:s(d.descEn)};})));
     jobs.push(repl('slots',(S.slots||[]).map(function(x){return {branch:s(x.branch),cls:s(x.cls),stime:s(x.time),cap:N(x.cap)};})));
@@ -1126,13 +1105,22 @@ window.UUHEE_SB={url:'https://ybfwnmgnledlumppfjbh.supabase.co',key:'sb_publisha
     if(!S.photos||!S.photos.length){var _mp=[];(S.space||[]).forEach(function(p){if(p.img)_mp.push({img:p.img,category:'공간',folder:p.branch||'',title:p.title||'',desc:p.desc||'',order:p.order||0});});(S.gallery||[]).forEach(function(g){if(g.img)_mp.push({img:g.img,category:'갤러리',folder:g.folder||'',title:g.title||'',desc:g.desc||'',cover:g.cover,order:g.order||0});});S.photos=_mp;}
     (S.photos||[]).forEach(function(p){p.category=(p.category==='공간')?'공간':'갤러리';});
     const space=(S.photos||[]).filter(p=>p.img&&(p.category||'')==='공간').sort((a,b)=>(a.order||0)-(b.order||0));
-    const byB=n=>space.filter(p=>String(p.folder||'').indexOf(n)>=0);
+    const spBranches=(S.branches||[]).filter(b=>b&&b.name);
+    const byBranch=name=>space.filter(p=>(p.folder||'')===name);
+    const spEsc=s=>(s==null?'':String(s)).replace(/[<>&"]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c]));
     const fillShow=(box,list)=>{if(!box||!list.length)return;box.innerHTML=list.map((p,k)=>'<div class="slide '+(k===0?'active':'')+'" data-cap="'+(p.title||'').replace(/"/g,'')+'"><img src="'+p.img+'"></div>').join('');};
     const shows=document.querySelectorAll('#view-home .space-two .slideshow');
-    fillShow(shows[0],byB('홍대'));fillShow(shows[1],byB('성수'));
-    const fillSph=(grid,list)=>{if(!grid||!list.length)return;grid.innerHTML=list.map(p=>'<button class="sph" type="button" data-cap="'+(p.title||'').replace(/"/g,'')+'"><img src="'+p.img+'"></button>').join('');};
-    const sp=document.querySelectorAll('#view-space .space-photos');
-    fillSph(sp[0],byB('홍대'));fillSph(sp[1],byB('성수'));
+    spBranches.slice(0,2).forEach((b,i)=>fillShow(shows[i],byBranch(b.name)));
+    const spaceMount=document.getElementById('spaceSections');
+    if(spaceMount){
+      spaceMount.innerHTML=spBranches.length?spBranches.map((b,i)=>{
+        const ps=byBranch(b.name);
+        const photosHtml=ps.map(p=>'<button class="sph" type="button" data-cap="'+spEsc(p.title||b.name)+'"><img src="'+p.img+'"></button>').join('');
+        return '<section style="background:'+(i%2?'var(--bg)':'var(--paper)')+'"><div class="wrap"><div class="sec-head"><h2>'+spEsc(b.name)+'</h2><p class="coord mono">'+spEsc(b.addr||'')+'</p></div>'
+          +(b.spaceDesc?'<p class="lead" style="margin:-14px 0 26px">'+spEsc(b.spaceDesc)+'</p>':'')
+          +'<div class="space-photos" data-branch="'+spEsc(b.name)+'" style="grid-template-columns:repeat(3,1fr)">'+photosHtml+'</div></div></section>';
+      }).join(''):'';
+    }
     const partners=(S.partners||[]).filter(p=>p.logo).sort((a,b)=>(a.order||0)-(b.order||0));
     if(partners.length){const tracks=document.querySelectorAll('#group .logo-track');
       let rep=[];while(rep.length<10)rep=rep.concat(partners);
