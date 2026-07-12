@@ -252,7 +252,7 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--gold)}
             <div class="fgrid">
               <div class="field"><label>히어로 배경 이미지</label><div class="up-row"><input data-site="heroImg" placeholder="URL 또는 업로드"><label class="upbtn">⬆<input type="file" accept="image/*" data-siteup="heroImg" hidden></label></div></div>
             </div>
-            <div class="field"><label>소개 미디어 (이미지/영상 · 최대 5개 · 순환 · 순서 변경)</label><div class="desc">영상을 등록하면 소개 섹션에서 음소거 자동재생되고, 끝나면 다음 영상으로 넘어갑니다(1개면 반복). 클릭 시 확대·소리 재생. 비우면 위의 대표 이미지가 표시됩니다.</div><div id="conceptMediaBox"></div></div>
+            <div class="field"><label>소개 미디어 (이미지/영상 · 최대 5개 · 순환 · 순서 변경)</label><div class="desc">영상을 등록하면 소개 섹션에서 음소거 자동재생되고, 끝나면 다음 영상으로 넘어갑니다(1개면 반복). 클릭 시 확대·소리 재생. 비우면 위의 대표 이미지가 표시됩니다.<br><b>영상 용량</b> · 30MB 이하만 업로드 가능 · 초과 시 휴대폰에서 압축 후 다시 올려주세요.</div><div id="conceptMediaBox"></div></div>
           </div>
         </div>
 
@@ -279,7 +279,7 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--gold)}
 
         <div class="subpanel" id="sub-gallery">
           <div class="box"><h3>갤러리 — 폴더 관리</h3><div class="desc">갤러리 섹션에 쓸 폴더를 만듭니다.</div><div id="galFolders"></div></div>
-          <div class="box"><h3>갤러리 — 사진 업로드</h3><div class="desc">위 폴더별로 사진을 추가해 업로드합니다.<br><b>권장 사이즈</b> · 가로형 4:3, 1600×1200px · JPG/PNG · 2MB 이하</div><div id="galUploader"></div></div>
+          <div class="box"><h3>갤러리 — 사진 업로드</h3><div class="desc">위 폴더별로 사진/영상을 추가해 업로드합니다.<br><b>권장 사이즈</b> · 가로형 4:3, 1600×1200px · JPG/PNG · 2MB 이하 (자동으로 최적화되어 업로드됩니다)<br><b>영상</b> · 30MB 이하만 업로드 가능</div><div id="galUploader"></div></div>
           <div class="box"><h3>협업·언론 로고</h3><div class="desc">단체·기업 섹션의 '함께한 곳' 로고 띠에 표시됩니다.<br><b>권장 사이즈</b> · 가로형, 배경 투명 PNG, 높이 80px (예: 240×80px) · 1MB 이하</div><div class="tbl-wrap" id="tbl-partners"></div></div>
         </div>
       </div>
@@ -371,9 +371,39 @@ window.UUHEE_SB={url:'https://ybfwnmgnledlumppfjbh.supabase.co',key:'sb_publisha
     jobs.push(repl('holidays',(S.holidays||[]).map(function(h){var p=String(h).split('|');return {branch:p[0],sdate:p[1]};})));
     return Promise.all(jobs);
   }
+  function compressImage(file,maxDim,quality){
+    return new Promise(function(resolve){
+      if(!file||!file.type||file.type.indexOf('image/')!==0||file.type==='image/svg+xml'||file.type==='image/gif'){resolve(file);return;}
+      var url=URL.createObjectURL(file);
+      var img=new Image();
+      img.onload=function(){
+        URL.revokeObjectURL(url);
+        var w=img.naturalWidth,h=img.naturalHeight;
+        if(!w||!h){resolve(file);return;}
+        var scale=Math.min(1,maxDim/Math.max(w,h));
+        var tw=Math.max(1,Math.round(w*scale)),th=Math.max(1,Math.round(h*scale));
+        var canvas=document.createElement('canvas');canvas.width=tw;canvas.height=th;
+        var ctx=canvas.getContext('2d');
+        if(!ctx){resolve(file);return;}
+        ctx.drawImage(img,0,0,tw,th);
+        canvas.toBlob(function(blob){
+          if(!blob||blob.size>=file.size){resolve(file);return;}
+          var base=(file.name||'image').replace(/\.[a-zA-Z0-9]+$/,'');
+          resolve(new File([blob],base+'.jpg',{type:'image/jpeg'}));
+        },'image/jpeg',quality);
+      };
+      img.onerror=function(){URL.revokeObjectURL(url);resolve(file);};
+      img.src=url;
+    });
+  }
   window.__cloud={
     pushSettings:pushSettings,
-    uploadFile:function(file){if(!file)return Promise.reject(new Error('no file'));var ext=((file.name||'').split('.').pop()||'bin').toLowerCase().replace(/[^a-z0-9]/g,'')||'bin';var path=Date.now()+'_'+Math.random().toString(36).slice(2,8)+'.'+ext;return sb.storage.from('media').upload(path,file,{cacheControl:'3600',upsert:false}).then(function(r){if(r.error)throw r.error;return sb.storage.from('media').getPublicUrl(path).data.publicUrl;});},
+    uploadFile:function(file){if(!file)return Promise.reject(new Error('no file'));
+      if(file.type&&file.type.indexOf('video/')===0){
+        var maxVideoMB=30;
+        if(file.size>maxVideoMB*1024*1024){return Promise.reject(new Error('영상 용량이 '+(file.size/1024/1024).toFixed(1)+'MB로 너무 큽니다. '+maxVideoMB+'MB 이하로 압축한 뒤 다시 올려주세요. (휴대폰 사진 앱의 "비디오 압축/트림" 기능이나 무료 압축 앱을 이용하시면 됩니다)'));}
+      }
+      return compressImage(file,1920,0.82).then(function(f){var ext=((f.name||'').split('.').pop()||'bin').toLowerCase().replace(/[^a-z0-9]/g,'')||'bin';var path=Date.now()+'_'+Math.random().toString(36).slice(2,8)+'.'+ext;return sb.storage.from('media').upload(path,f,{cacheControl:'3600',upsert:false}).then(function(r){if(r.error)throw r.error;return sb.storage.from('media').getPublicUrl(path).data.publicUrl;});});},
     insertApplication:function(rec){var payload={branch:s(rec.branch),cls:s(rec.class),size:s(rec.size),sdate:s(rec.date),stime:s(rec.time),people:N(rec.people),name:s(rec.name),phone:s(rec.phone),email:s(rec.email),msg:s(rec.msg),estimate:N(rec.estimate)};return sb.from('applications').insert(payload).select('id').single().then(function(res){if(res.error)throw res.error;var qty=rec.qty||{},keys=Object.keys(qty);if(!keys.length)return res;var items=keys.map(function(k){return {application_id:res.data.id,size:k,qty:N(qty[k])||0};});return sb.from('application_items').insert(items).then(function(r2){if(r2&&r2.error)console.warn(r2.error);return res;});});},
     insertInquiry:function(rec){return sb.from('inquiries').insert({itype:s(rec.type),volume:s(rec.volume),branch:s(rec.branch),company:s(rec.company),name:s(rec.name),phone:s(rec.phone),email:s(rec.email),isize:s(rec.size),msg:s(rec.msg)});}
   };

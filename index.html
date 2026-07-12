@@ -884,9 +884,35 @@ window.UUHEE_SB={url:'https://ybfwnmgnledlumppfjbh.supabase.co',key:'sb_publisha
     jobs.push(repl('holidays',(S.holidays||[]).map(function(h){var p=String(h).split('|');return {branch:p[0],sdate:p[1]};})));
     return Promise.all(jobs);
   }
+  function resizeImage(file,maxDim,quality){
+    return new Promise(function(resolve){
+      if(!/^image\//i.test(file.type)||/gif/i.test(file.type)){resolve(file);return;}
+      var url=URL.createObjectURL(file);
+      var img=new Image();
+      img.onload=function(){
+        URL.revokeObjectURL(url);
+        var w=img.naturalWidth,h=img.naturalHeight;
+        if(!w||!h||(w<=maxDim&&h<=maxDim)){resolve(file);return;}
+        var scale=Math.min(maxDim/w,maxDim/h);
+        var cw=Math.max(1,Math.round(w*scale)),ch=Math.max(1,Math.round(h*scale));
+        var canvas=document.createElement('canvas');canvas.width=cw;canvas.height=ch;
+        var ctx=canvas.getContext('2d');ctx.drawImage(img,0,0,cw,ch);
+        canvas.toBlob(function(blob){resolve(blob||file);},'image/jpeg',quality||0.82);
+      };
+      img.onerror=function(){URL.revokeObjectURL(url);resolve(file);};
+      img.src=url;
+    });
+  }
   window.__cloud={
     pushSettings:pushSettings,
-    uploadFile:function(file){if(!file)return Promise.reject(new Error('no file'));var ext=((file.name||'').split('.').pop()||'bin').toLowerCase().replace(/[^a-z0-9]/g,'')||'bin';var path=Date.now()+'_'+Math.random().toString(36).slice(2,8)+'.'+ext;return sb.storage.from('media').upload(path,file,{cacheControl:'3600',upsert:false}).then(function(r){if(r.error)throw r.error;return sb.storage.from('media').getPublicUrl(path).data.publicUrl;});},
+    uploadFile:function(file){if(!file)return Promise.reject(new Error('no file'));
+      return resizeImage(file,1600,0.82).then(function(f){
+        var isImg=/^image\//i.test(file.type)&&!/gif/i.test(file.type)&&f!==file;
+        var ext=isImg?'jpg':(((file.name||'').split('.').pop()||'bin').toLowerCase().replace(/[^a-z0-9]/g,'')||'bin');
+        var path=Date.now()+'_'+Math.random().toString(36).slice(2,8)+'.'+ext;
+        return sb.storage.from('media').upload(path,f,{cacheControl:'3600',upsert:false}).then(function(r){if(r.error)throw r.error;return sb.storage.from('media').getPublicUrl(path).data.publicUrl;});
+      });
+    },
     insertApplication:function(rec){var payload={status:(rec.status||1),pay_method:s(rec.payMethod),branch:s(rec.branch),cls:s(rec.class),size:s(rec.size),sdate:s(rec.date),stime:s(rec.time),people:N(rec.people),name:s(rec.name),phone:s(rec.phone),email:s(rec.email),msg:s(rec.msg),estimate:N(rec.estimate)};return sb.from('applications').insert(payload).select('id').single().then(function(res){if(res.error)throw res.error;var qty=rec.qty||{},keys=Object.keys(qty);if(!keys.length)return res;var items=keys.map(function(k){return {application_id:res.data.id,size:k,qty:N(qty[k])||0};});return sb.from('application_items').insert(items).then(function(r2){if(r2&&r2.error)console.warn(r2.error);return res;});});},
     insertInquiry:function(rec){return sb.from('inquiries').insert({status:1,itype:s(rec.type),volume:s(rec.volume),branch:s(rec.branch),company:s(rec.company),name:s(rec.name),phone:s(rec.phone),email:s(rec.email),isize:s(rec.size),msg:s(rec.msg)});}
   };
@@ -1108,14 +1134,14 @@ window.UUHEE_SB={url:'https://ybfwnmgnledlumppfjbh.supabase.co',key:'sb_publisha
     const spBranches=(S.branches||[]).filter(b=>b&&b.name);
     const byBranch=name=>space.filter(p=>(p.folder||'')===name);
     const spEsc=s=>(s==null?'':String(s)).replace(/[<>&"]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c]));
-    const fillShow=(box,list)=>{if(!box||!list.length)return;box.innerHTML=list.map((p,k)=>'<div class="slide '+(k===0?'active':'')+'" data-cap="'+(p.title||'').replace(/"/g,'')+'"><img src="'+p.img+'"></div>').join('');};
+    const fillShow=(box,list)=>{if(!box||!list.length)return;box.innerHTML=list.map((p,k)=>'<div class="slide '+(k===0?'active':'')+'" data-cap="'+(p.title||'').replace(/"/g,'')+'"><img loading="lazy" decoding="async" src="'+p.img+'"></div>').join('');};
     const shows=document.querySelectorAll('#view-home .space-two .slideshow');
     spBranches.slice(0,2).forEach((b,i)=>fillShow(shows[i],byBranch(b.name)));
     const spaceMount=document.getElementById('spaceSections');
     if(spaceMount){
       spaceMount.innerHTML=spBranches.length?spBranches.map((b,i)=>{
         const ps=byBranch(b.name);
-        const photosHtml=ps.map(p=>'<button class="sph" type="button" data-cap="'+spEsc(p.title||b.name)+'"><img src="'+p.img+'"></button>').join('');
+        const photosHtml=ps.map(p=>'<button class="sph" type="button" data-cap="'+spEsc(p.title||b.name)+'"><img loading="lazy" decoding="async" src="'+p.img+'"></button>').join('');
         return '<section style="background:'+(i%2?'var(--bg)':'var(--paper)')+'"><div class="wrap"><div class="sec-head"><h2>'+spEsc(b.name)+'</h2><p class="coord mono">'+spEsc(b.addr||'')+'</p></div>'
           +(b.spaceDesc?'<p class="lead" style="margin:-14px 0 26px">'+spEsc(b.spaceDesc)+'</p>':'')
           +'<div class="space-photos" data-branch="'+spEsc(b.name)+'" style="grid-template-columns:repeat(3,1fr)">'+photosHtml+'</div></div></section>';
@@ -1124,13 +1150,13 @@ window.UUHEE_SB={url:'https://ybfwnmgnledlumppfjbh.supabase.co',key:'sb_publisha
     const partners=(S.partners||[]).filter(p=>p.logo).sort((a,b)=>(a.order||0)-(b.order||0));
     if(partners.length){const tracks=document.querySelectorAll('#group .logo-track');
       let rep=[];while(rep.length<10)rep=rep.concat(partners);
-      const items=rep.map(p=>'<span class="logo-item"><img src="'+p.logo+'" alt="'+(p.name||'').replace(/"/g,'')+'"></span>').join('');
+      const items=rep.map(p=>'<span class="logo-item"><img loading="lazy" decoding="async" src="'+p.logo+'" alt="'+(p.name||'').replace(/"/g,'')+'"></span>').join('');
       tracks.forEach(t=>t.innerHTML=items+items);}
     var E=function(s){return (s==null?'':String(s)).replace(/[<>&\"]/g,function(c){return {'<':'&lt;','>':'&gt;','&':'&amp;','\"':'&quot;'}[c];});};
     var cls=(S.classes||[]).filter(function(c){return c.name;});
     var prog=cls.filter(function(c){return c.active;});
     var inq=cls.filter(function(c){return c.inquiryOnly;});
-    var priceOf=function(n){var ps=(S.details||[]).filter(function(x){return x.cls===n&&x.price;}).map(function(x){return Number(x.price)||0;}).filter(function(v){return v>0;});if(!ps.length)return '\uac00\uaca9 \ud611\uc758';var mn=Math.min.apply(null,ps);var multi=ps.some(function(v){return v!==mn;});return '\u20a9'+mn.toLocaleString()+(multi?'\ubd80\ud130':'');};
+    var priceOf=function(n,inquiryOnly){if(inquiryOnly)return '\uac00\uaca9 \ud611\uc758';var ps=(S.details||[]).filter(function(x){return x.cls===n&&x.price;}).map(function(x){return Number(x.price)||0;}).filter(function(v){return v>0;});if(!ps.length)return '\uac00\uaca9 \ud611\uc758';var mn=Math.min.apply(null,ps);var multi=ps.some(function(v){return v!==mn;});return '\u20a9'+mn.toLocaleString()+(multi?'\ubd80\ud130':'');};
     (function(){var lb=(S.branches||[]).filter(function(b){return b&&b.name;});
       var lt=document.getElementById('locTabs'),li=document.getElementById('locInfo'),lm=document.getElementById('locMap');
       if(!lt||!li||!lm||!lb.length)return;
@@ -1154,14 +1180,14 @@ window.UUHEE_SB={url:'https://ybfwnmgnledlumppfjbh.supabase.co',key:'sb_publisha
       grid.innerHTML=any?html:'<div class="sns-empty">등록된 SNS 링크가 없습니다. 환경설정 → 지점설정에서 인스타그램·페이스북·링크트리·네이버 지도 링크를 입력하면 표시됩니다.</div>';
     })();
     var cg=document.querySelector('#classes .class-grid');
-    if(cg&&prog.length){cg.innerHTML=prog.map(function(c){return '<div class="card" data-open-apply data-aclass="'+E(c.name)+'"><span class="tag">'+E(c.tag||'CLASS')+'</span><h3>'+E(c.name)+'</h3><p class="desc">'+E(c.desc||'')+'</p><div class="row"><span></span><span class="price">'+priceOf(c.name)+'</span></div></div>';}).join('');}
+    if(cg&&prog.length){cg.innerHTML=prog.map(function(c){return '<div class="card" data-open-apply data-aclass="'+E(c.name)+'"><span class="tag">'+E(c.tag||'CLASS')+'</span><h3>'+E(c.name)+'</h3><p class="desc">'+E(c.desc||'')+'</p><div class="row"><span></span><span class="price">'+priceOf(c.name,c.inquiryOnly)+'</span></div></div>';}).join('');}
     var cgD=document.getElementById('classProgGrid');
-    if(cgD&&prog.length){cgD.innerHTML=prog.map(function(c){return '<div class="card" data-open-apply data-aclass="'+E(c.name)+'"><span class="tag">'+E(c.tag||'CLASS')+'</span><h3>'+E(c.name)+'</h3><p class="desc">'+E(c.desc||'')+'</p><div class="row"><span></span><span class="price">'+priceOf(c.name)+'</span></div></div>';}).join('');}
+    if(cgD&&prog.length){cgD.innerHTML=prog.map(function(c){return '<div class="card" data-open-apply data-aclass="'+E(c.name)+'"><span class="tag">'+E(c.tag||'CLASS')+'</span><h3>'+E(c.name)+'</h3><p class="desc">'+E(c.desc||'')+'</p><div class="row"><span></span><span class="price">'+priceOf(c.name,c.inquiryOnly)+'</span></div></div>';}).join('');}
     var isVid=window.__isVid=function(u){u=String(u||'');return /^data:video/i.test(u)||/\.(mp4|webm|ogg|mov|m4v)(\?|#|$)/i.test(u);};
     function bindVid(scope){if(!scope)return;Array.prototype.forEach.call(scope.querySelectorAll('video.gv'),function(v){v.onmouseenter=function(){v.pause();};v.onmouseleave=function(){v.play().catch(function(){});};v.play().catch(function(){});});}
     (function(){
       var gal=(S.photos||[]).filter(function(g){return g.img&&(g.category||'')==='갤러리';}).sort(function(a,b){return ((b.cover?1:0)-(a.cover?1:0))||((a.order||0)-(b.order||0));});
-      var cell=function(p){var inner=isVid(p.img)?'<video class="gv" src="'+E(p.img)+'" muted loop playsinline autoplay preload="metadata"></video>':'<img src="'+E(p.img)+'" alt="">';return '<div class="gitem">'+inner+'<span style="display:none">'+E(p.title||'')+'</span></div>';};
+      var cell=function(p){var inner=isVid(p.img)?'<video class="gv" src="'+E(p.img)+'" muted loop playsinline autoplay preload="metadata"></video>':'<img loading="lazy" decoding="async" src="'+E(p.img)+'" alt="">';return '<div class="gitem">'+inner+'<span style="display:none">'+E(p.title||'')+'</span></div>';};
       var home=document.querySelector('#view-home .gallery-grid');
       if(home&&gal.length){home.innerHTML=gal.slice(0,4).map(cell).join('');bindVid(home);}
       var grid=document.querySelector('#view-gallery .gallery-grid'),chips=document.getElementById('galChips'),moreBtn=document.getElementById('galMore');
