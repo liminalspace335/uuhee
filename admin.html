@@ -356,20 +356,24 @@ window.UUHEE_SB={url:'https://ybfwnmgnledlumppfjbh.supabase.co',key:'sb_publisha
       });
     });
   }
-  function pushSettings(S){
+  function pushSettings(S,scope){
+    // scope: null/undefined/'all' = 예전처럼 전체 저장(하위호환). 문자열 또는 배열이면 해당 섹션만 클라우드로 전송.
+    // 섹션별 저장을 쓰는 이유: 예전에는 저장 버튼을 누르면 이 화면이 기억하고 있는 모든 섹션(다른 탭에서 이미
+    // 지운 값 포함)을 통째로 다시 덮어써서, 오래된 브라우저/탭에 남아있던 값이 되살아나는 사고가 있었음.
+    var want=function(k){if(scope==null||scope==='all')return true;if(Array.isArray(scope))return scope.indexOf(k)>=0;return scope===k;};
     var st=S.site||{},lg=S.legal||{},pay=S.pay||{};var jobs=[];
-    jobs.push(sb.from('site').upsert({id:'uuhee',brand:s(st.brand),est:s(st.est),copy_year:s(st.copyYear),hero_img:noD(st.heroImg),concept_img:noD(st.conceptImg),pay_bank:s(pay.bank),pay_account:s(pay.account),pay_holder:s(pay.holder),pay_portone_store:s(pay.portoneStore),pay_portone_channel:s(pay.portoneChannel)}));
-    jobs.push(sb.from('legal').upsert({id:'uuhee',company:s(lg.company),ceo:s(lg.ceo),bizno:s(lg.bizno),mailorder:s(lg.mailorder),privacy:s(lg.privacy),addr:s(lg.addr),tel:s(lg.tel),email:s(lg.email),kakao:s(lg.kakao),hosting:s(lg.hosting),terms_url:s(lg.termsUrl),privacy_url:s(lg.privacyUrl),refund_url:s(lg.refundUrl)}));
-    jobs.push(repl('branches',(S.branches||[]).map(function(b,i){return {ord:i,name:s(b.name),phone:s(b.phone),addr:s(b.addr),map:s(b.map),hours:s(b.hours),ig:s(b.ig),fb:s(b.fb),lt:s(b.lt),space_desc:s(b.spaceDesc)};})));
-    jobs.push(replClasses(S.classes||[]));
-    jobs.push(repl('details',(S.details||[]).map(function(d){return {branch:s(d.branch),cls:s(d.cls),size:s(d.size),price:N(d.price),discount_type:s(d.discountType),discount_val:N(d.discountVal),descr:s(d.desc)};})));
-    jobs.push(repl('slots',(S.slots||[]).map(function(x){return {branch:s(x.branch),cls:s(x.cls),stime:s(x.time),cap:N(x.cap)};})));
-    jobs.push(repl('partners',(S.partners||[]).map(function(p,i){return {ord:(p.order!=null?p.order:i),name:s(p.name),logo:noD(p.logo),cover:!!p.cover,link:s(p.link)};})));
-    jobs.push(repl('photos',(S.photos||[]).filter(function(p){return !(p.img&&/^data:/i.test(String(p.img)));}).map(function(p,i){return {ord:(p.order!=null?p.order:i),img:s(p.img),category:s(p.category),folder:s(p.folder),title:s(p.title),descr:s(p.desc),cover:!!p.cover,link:s(p.link)};})));
-    jobs.push(repl('photo_folders',(S.photoFolders||[]).map(function(f,i){return {ord:(f.order!=null?f.order:i),category:s(f.category),name:s(f.name)};})));
-    jobs.push(repl('concept_media',(S.conceptMedia||[]).filter(function(u){var v=(u&&typeof u==='object')?u.src:u;return !(v&&/^data:/i.test(String(v)));}).map(function(u,i){return {ord:i,url:s((u&&typeof u==='object')?u.src:u)};})));
-    var sr=[];Object.keys(S.schedule||{}).forEach(function(k){var p=k.split('|');(S.schedule[k]||[]).forEach(function(rr){sr.push({branch:p[0],sdate:p[1],cls:s(rr.cls),stime:s(rr.time),cap:N(rr.cap)});});});jobs.push(repl('schedule',sr));
-    jobs.push(repl('holidays',(S.holidays||[]).map(function(h){var p=String(h).split('|');return {branch:p[0],sdate:p[1]};})));
+    if(want('site'))jobs.push(sb.from('site').upsert({id:'uuhee',brand:s(st.brand),est:s(st.est),copy_year:s(st.copyYear),hero_img:noD(st.heroImg),concept_img:noD(st.conceptImg),pay_bank:s(pay.bank),pay_account:s(pay.account),pay_holder:s(pay.holder),pay_portone_store:s(pay.portoneStore),pay_portone_channel:s(pay.portoneChannel)}));
+    if(want('legal'))jobs.push(sb.from('legal').upsert({id:'uuhee',company:s(lg.company),ceo:s(lg.ceo),bizno:s(lg.bizno),mailorder:s(lg.mailorder),privacy:s(lg.privacy),addr:s(lg.addr),tel:s(lg.tel),email:s(lg.email),kakao:s(lg.kakao),hosting:s(lg.hosting),terms_url:s(lg.termsUrl),privacy_url:s(lg.privacyUrl),refund_url:s(lg.refundUrl)}));
+    if(want('branches'))jobs.push(repl('branches',(S.branches||[]).map(function(b,i){return {ord:i,name:s(b.name),phone:s(b.phone),addr:s(b.addr),map:s(b.map),hours:s(b.hours),ig:s(b.ig),fb:s(b.fb),lt:s(b.lt),space_desc:s(b.spaceDesc)};})));
+    if(want('classes'))jobs.push(replClasses(S.classes||[]));
+    if(want('details'))jobs.push(repl('details',(S.details||[]).map(function(d){return {branch:s(d.branch),cls:s(d.cls),size:s(d.size),price:N(d.price),discount_type:s(d.discountType),discount_val:N(d.discountVal),descr:s(d.desc)};})));
+    if(want('slots'))jobs.push(repl('slots',(S.slots||[]).map(function(x){return {branch:s(x.branch),cls:s(x.cls),stime:s(x.time),cap:N(x.cap)};})));
+    if(want('partners'))jobs.push(repl('partners',(S.partners||[]).map(function(p,i){return {ord:(p.order!=null?p.order:i),name:s(p.name),logo:noD(p.logo),cover:!!p.cover,link:s(p.link)};})));
+    if(want('photos'))jobs.push(repl('photos',(S.photos||[]).filter(function(p){return !(p.img&&/^data:/i.test(String(p.img)));}).map(function(p,i){return {ord:(p.order!=null?p.order:i),img:s(p.img),category:s(p.category),folder:s(p.folder),title:s(p.title),descr:s(p.desc),cover:!!p.cover,link:s(p.link)};})));
+    if(want('photo_folders'))jobs.push(repl('photo_folders',(S.photoFolders||[]).map(function(f,i){return {ord:(f.order!=null?f.order:i),category:s(f.category),name:s(f.name)};})));
+    if(want('concept_media'))jobs.push(repl('concept_media',(S.conceptMedia||[]).filter(function(u){var v=(u&&typeof u==='object')?u.src:u;return !(v&&/^data:/i.test(String(v)));}).map(function(u,i){return {ord:i,url:s((u&&typeof u==='object')?u.src:u)};})));
+    if(want('schedule')){var sr=[];Object.keys(S.schedule||{}).forEach(function(k){var p=k.split('|');(S.schedule[k]||[]).forEach(function(rr){sr.push({branch:p[0],sdate:p[1],cls:s(rr.cls),stime:s(rr.time),cap:N(rr.cap)});});});jobs.push(repl('schedule',sr));}
+    if(want('holidays'))jobs.push(repl('holidays',(S.holidays||[]).map(function(h){var p=String(h).split('|');return {branch:p[0],sdate:p[1]};})));
     return Promise.all(jobs);
   }
   function compressImage(file,maxDim,quality){
@@ -472,19 +476,25 @@ if(S.photos&&S.photos.length){if((S.space&&S.space.length)||(S.gallery&&S.galler
   if(S.site){if(isD(S.site.heroImg)){S.site.heroImg='';changed=true;}if(isD(S.site.conceptImg)){S.site.conceptImg='';changed=true;}}
   if(changed){try{localStorage.setItem('uuhee_settings',JSON.stringify(S));}catch(e){}}
 })();
-var __cloudSaving=false,__cloudSavePending=false;
-function __pushCloud(){
+var __cloudSaving=false,__cloudSavePending=null; // null | 'all' | array of scope names
+function __pushCloud(scope){
   if(!window.__cloud)return;
-  if(__cloudSaving){__cloudSavePending=true;return;}
+  if(__cloudSaving){
+    if(__cloudSavePending==='all')return;
+    if(scope==null||scope==='all'){__cloudSavePending='all';return;}
+    if(!Array.isArray(__cloudSavePending))__cloudSavePending=[];
+    (Array.isArray(scope)?scope:[scope]).forEach(function(s){if(__cloudSavePending.indexOf(s)<0)__cloudSavePending.push(s);});
+    return;
+  }
   __cloudSaving=true;
   try{
-    Promise.resolve(window.__cloud.pushSettings(S)).catch(function(e){console.warn('cloud save',e);}).then(function(){
+    Promise.resolve(window.__cloud.pushSettings(S,scope)).catch(function(e){console.warn('cloud save',e);}).then(function(){
       __cloudSaving=false;
-      if(__cloudSavePending){__cloudSavePending=false;__pushCloud();}
+      if(__cloudSavePending){var p=__cloudSavePending;__cloudSavePending=null;__pushCloud(p);}
     });
   }catch(e){__cloudSaving=false;}
 }
-function save(){var j=JSON.stringify(S);localStorage.setItem('uuhee_settings',j);__pushCloud();}
+function save(scope){var j=JSON.stringify(S);localStorage.setItem('uuhee_settings',j);__pushCloud(scope);}
 const branchNames=()=>S.branches.map(b=>b.name).filter(Boolean);
 
 function unlock(){$('#gate').style.display='none';$('#app').style.display='flex';renderAll();}
@@ -635,7 +645,7 @@ function download(name,text){const b=new Blob(['﻿'+text],{type:'text/csv;chars
 function renderSite(){$$('[data-site]').forEach(i=>{i.value=(S.site[i.dataset.site]||'');});}
 document.addEventListener('input',e=>{const t=e.target;if(t.dataset.site!=null)S.site[t.dataset.site]=t.value;});
 document.addEventListener('change',e=>{const t=e.target;if(t.dataset.siteup!=null){const f=t.files[0];if(!f)return;const k=t.dataset.siteup;if(window.__cloud&&window.__cloud.uploadFile){window.__cloud.uploadFile(f).then(function(u){S.site[k]=u;renderSite();}).catch(function(er){alert('업로드 실패: '+(er.message||er));});}else{const r=new FileReader();r.onload=()=>{S.site[k]=r.result;renderSite();};r.readAsDataURL(f);}}});
-$('#saveSite').addEventListener('click',()=>{try{save();flash($('#siteSaved'));}catch(e){alert('저장 실패: 이미지 용량이 큽니다.');}});
+$('#saveSite').addEventListener('click',()=>{try{save('site');flash($('#siteSaved'));}catch(e){alert('저장 실패: 이미지 용량이 큽니다.');}});
 
 /* 공통 표 엔진 */
 function makeTable(sel,key,cols,blank,addLabel){
@@ -668,7 +678,7 @@ function makeTable(sel,key,cols,blank,addLabel){
       if(t.dataset.add!=null){S[key].push(blank());render();}
       else if(t.dataset.rm!=null){S[key].splice(+t.dataset.rm,1);render();}
       else if(t.dataset.tg!=null){S[key][+t.dataset.tg][t.dataset.c]=!S[key][+t.dataset.tg][t.dataset.c];render();}
-      else if(t.dataset.save!=null){try{save();flash(mount.querySelector('.saved'));}catch(err){alert('저장 실패: 이미지 용량이 큽니다. 더 작게 줄여 올려주세요.');}}});
+      else if(t.dataset.save!=null){try{save(key);flash(mount.querySelector('.saved'));}catch(err){alert('저장 실패: 이미지 용량이 큽니다. 더 작게 줄여 올려주세요.');}}});
   }
   render();return {render};
 }
@@ -712,7 +722,7 @@ function renderSpaceUploader(){
     box.addEventListener('click',function(e){var t=e.target;
       if(t.dataset.padd!=null){S.photos.push({img:'',category:'공간',folder:t.dataset.padd,title:'',desc:'',cover:false,order:S.photos.length+1,link:''});renderSpaceUploader();}
       else if(t.dataset.prm!=null){S.photos.splice(+t.dataset.prm,1);renderSpaceUploader();}
-      else if(t.dataset.psave!=null){try{save();flash(box.querySelector('.saved'));}catch(err){alert('저장 실패: 이미지 용량이 큽니다. 더 작게 줄여 올려주세요.');}}});
+      else if(t.dataset.psave!=null){try{save('photos');flash(box.querySelector('.saved'));}catch(err){alert('저장 실패: 이미지 용량이 큽니다. 더 작게 줄여 올려주세요.');}}});
   }
   var branches=[];(S.branches||[]).forEach(function(b,oi){if(b&&b.name)branches.push({b:b,oi:oi});});
   if(!branches.length){box.innerHTML='<div class="empty">먼저 지점설정 탭에서 지점을 등록해 주세요.</div>';return;}
@@ -743,7 +753,7 @@ function renderFolderMgr(cat,mountId){
     box.addEventListener('click',function(e){var t=e.target;
       if(t.dataset.fadd!=null){S.photoFolders.push({category:t.dataset.fadd,name:'',order:(S.photoFolders.length+1)});renderFoldersAll();renderUploadersAll();}
       else if(t.dataset.frm!=null){S.photoFolders.splice(+t.dataset.frm,1);renderFoldersAll();renderUploadersAll();}
-      else if(t.dataset.fsave!=null){try{save();flash(box.querySelector('.saved'));renderUploadersAll();}catch(err){alert('저장 실패: 용량이 큽니다.');}}});
+      else if(t.dataset.fsave!=null){try{save('photo_folders');flash(box.querySelector('.saved'));renderUploadersAll();}catch(err){alert('저장 실패: 용량이 큽니다.');}}});
   }
   var items=[];(S.photoFolders||[]).forEach(function(f,gi){if((f.category||'')===cat)items.push({f:f,gi:gi});});
   var html='<table><thead><tr><th>순서</th><th>폴더명</th><th></th></tr></thead><tbody>';
@@ -763,7 +773,7 @@ function renderUploader(cat,boxId){
     box.addEventListener('click',function(e){var t=e.target;
       if(t.dataset.padd!=null){var parts=t.dataset.padd.split('||');S.photos.push({img:'',category:parts[0]||'갤러리',folder:parts[1]||'',title:'',desc:'',cover:false,order:S.photos.length+1,link:''});renderUploadersAll();}
       else if(t.dataset.prm!=null){S.photos.splice(+t.dataset.prm,1);renderUploadersAll();}
-      else if(t.dataset.psave!=null){try{save();flash(box.querySelector('.saved'));}catch(err){alert('저장 실패: 이미지 용량이 큽니다. 더 작게 줄여 올려주세요.');}}});
+      else if(t.dataset.psave!=null){try{save('photos');flash(box.querySelector('.saved'));}catch(err){alert('저장 실패: 이미지 용량이 큽니다. 더 작게 줄여 올려주세요.');}}});
   }
   var folders=(S.photoFolders||[]).filter(function(f){return (f.category||'')===cat&&f.name;}).slice().sort(function(a,b){return (a.order||0)-(b.order||0);});
   if(!folders.length){box.innerHTML='<div class="empty">먼저 위에서 폴더를 만들어 주세요.</div>';return;}
@@ -796,7 +806,7 @@ function renderConceptMedia(){
       else if(t.dataset.cmrm!=null){S.conceptMedia.splice(+t.dataset.cmrm,1);renderConceptMedia();}
       else if(t.dataset.cmmu!=null){var iu=+t.dataset.cmmu;if(iu>0){var a=S.conceptMedia;var tp=a[iu-1];a[iu-1]=a[iu];a[iu]=tp;renderConceptMedia();}}
       else if(t.dataset.cmmd!=null){var idn=+t.dataset.cmmd;var b=S.conceptMedia;if(idn<b.length-1){var tp2=b[idn+1];b[idn+1]=b[idn];b[idn]=tp2;renderConceptMedia();}}
-      else if(t.dataset.cmsave!=null){try{save();flash(box.querySelector('.saved'));}catch(err){alert('저장 실패: 용량이 큽니다.');}}});
+      else if(t.dataset.cmsave!=null){try{save('concept_media');flash(box.querySelector('.saved'));}catch(err){alert('저장 실패: 용량이 큽니다.');}}});
   }
   var html='';
   S.conceptMedia.forEach(function(src,i){var v=isVid(src);html+='<div class="up-row" style="margin-bottom:8px"><span class="thumb" style="'+((src&&!v)?("background-image:url('"+String(src).replace(/'/g,'%27')+"')"):'')+'">'+((src&&v)?'▶':'')+'</span><input data-cm="'+i+'" value="'+esc(src||'')+'" placeholder="URL 또는 업로드"><label class="upbtn">⬆<input type="file" accept="image/*,video/*" data-cmup="'+i+'" hidden></label><button class="del" data-cmmu="'+i+'" title="위로" style="margin-left:6px">▲</button><button class="del" data-cmmd="'+i+'" title="아래로">▼</button><button class="del" data-cmrm="'+i+'">삭제</button></div>';});
@@ -807,7 +817,7 @@ function renderPayForm(){
   var box=document.getElementById('payForm');if(!box)return;if(!S.pay)S.pay={};var p=S.pay;
   var fields=[['bank','은행'],['account','계좌번호'],['holder','예금주'],['portoneStore','포트원 Store ID (네이버페이)'],['portoneChannel','포트원 채널 키 (네이버페이)']];
   box.innerHTML='<div class="lg-grid">'+fields.map(function(f){return '<label class="lg-f"><span>'+esc(f[1])+'</span><input data-pay="'+f[0]+'" value="'+esc(p[f[0]]||'')+'"></label>';}).join('')+'</div><div class="row-tools" style="margin-top:16px"><span class="saved">저장됨 ✓</span><button class="btn gold" id="paySave">저장</button></div>';
-  if(!box._wired){box._wired=1;box.addEventListener('input',function(e){var t=e.target;if(t.dataset.pay){if(!S.pay)S.pay={};S.pay[t.dataset.pay]=t.value;}});box.addEventListener('click',function(e){if(e.target.id==='paySave'){try{save();flash(box.querySelector('.saved'));}catch(err){alert('저장 실패');}}});}
+  if(!box._wired){box._wired=1;box.addEventListener('input',function(e){var t=e.target;if(t.dataset.pay){if(!S.pay)S.pay={};S.pay[t.dataset.pay]=t.value;}});box.addEventListener('click',function(e){if(e.target.id==='paySave'){try{save('site');flash(box.querySelector('.saved'));}catch(err){alert('저장 실패');}}});}
 }
 function renderLegalForm(){
   var box=$('#legalForm');if(!box)return;
@@ -816,7 +826,7 @@ function renderLegalForm(){
   box.innerHTML='<div class="lg-grid">'+fields.map(function(f){return '<label class="lg-f"><span>'+esc(f[1])+'</span><input data-lg="'+f[0]+'" value="'+esc(lg[f[0]]||'')+'"></label>';}).join('')+'</div><div class="row-tools" style="margin-top:16px"><span class="saved">저장됨 ✓</span><button class="btn gold" id="legalSave">저장</button></div>';
   if(!box._wired){box._wired=1;
     box.addEventListener('input',function(e){var t=e.target;if(t.dataset.lg){if(!S.legal)S.legal={};S.legal[t.dataset.lg]=t.value;}});
-    box.addEventListener('click',function(e){if(e.target.id==='legalSave'){try{save();flash(box.querySelector('.saved'));}catch(err){alert('저장 실패: 용량이 큽니다.');}}});
+    box.addEventListener('click',function(e){if(e.target.id==='legalSave'){try{save('legal');flash(box.querySelector('.saved'));}catch(err){alert('저장 실패: 용량이 큽니다.');}}});
   }
 }
 /* ===== 클래스설정 (날짜별 운영) ===== */
@@ -882,13 +892,13 @@ function buildSchedule(){
     var day=e.target.closest('.d[data-d]');if(day){if(pasteMode){if(didDrag){didDrag=false;return;}selDates=[day.dataset.d];renderCal();renderPasteBar();}else selectSchedDate(day.dataset.d);return;}
     if(e.target.id==='schedCopy'){schedClip=(schedRows||[]).map(function(r){return Object.assign({},r);});pasteMode=true;selDates=[];renderCal();renderPasteBar();return;}
     if(e.target.id==='schedPasteCancel'){pasteMode=false;selDates=[];dragging=false;renderCal();renderPasteBar();return;}
-    if(e.target.id==='schedPaste'){if(!schedClip){pasteMode=false;renderPasteBar();return;}var targets=selDates.length?selDates.slice():(schedDate?[schedDate]:[]);if(!targets.length){alert('붙여넣을 날짜를 선택하세요.');return;}if(!S.schedule)S.schedule={};targets.forEach(function(ds){S.schedule[schedBranch+'|'+ds]=schedClip.map(function(r){return Object.assign({},r);});var hk=schedBranch+'|'+ds,hi=(S.holidays||[]).indexOf(hk);if(hi>-1)S.holidays.splice(hi,1);});save();pasteMode=false;selDates=[];dragging=false;renderCal();renderPasteBar();renderSchedEditor();alert(targets.length+'개 날짜에 붙여넣었습니다.');return;}
+    if(e.target.id==='schedPaste'){if(!schedClip){pasteMode=false;renderPasteBar();return;}var targets=selDates.length?selDates.slice():(schedDate?[schedDate]:[]);if(!targets.length){alert('붙여넣을 날짜를 선택하세요.');return;}if(!S.schedule)S.schedule={};targets.forEach(function(ds){S.schedule[schedBranch+'|'+ds]=schedClip.map(function(r){return Object.assign({},r);});var hk=schedBranch+'|'+ds,hi=(S.holidays||[]).indexOf(hk);if(hi>-1)S.holidays.splice(hi,1);});save(['schedule','holidays']);pasteMode=false;selDates=[];dragging=false;renderCal();renderPasteBar();renderSchedEditor();alert(targets.length+'개 날짜에 붙여넣었습니다.');return;}
     var rm=e.target.closest('[data-srm]');if(rm){schedRows.splice(+rm.dataset.srm,1);renderSchedEditor();return;}
     if(e.target.id==='schedAdd'){schedRows.push({cls:(classNames()[0]||''),time:'',cap:''});renderSchedEditor();return;}
     if(e.target.id==='schedDefault'){var anyB=schedRows.some(function(r){return bookedForDay(r.cls,r.time)>0;});if(anyB&&!confirm('이 날짜에 접수된 신청이 있습니다. 기본값으로 덮어쓸까요?'))return;schedRows=defSlots(schedBranch);renderSchedEditor();return;}
-    if(e.target.id==='schedSave'){if(!S.schedule)S.schedule={};S.schedule[schedBranch+'|'+schedDate]=schedRows.map(function(r){return Object.assign({},r);});save();renderCal();alert('저장되었습니다.');return;}
-    if(e.target.id==='schedHol'){var k=schedBranch+'|'+schedDate;if(!S.holidays)S.holidays=[];var ix=S.holidays.indexOf(k);if(ix>-1)S.holidays.splice(ix,1);else S.holidays.push(k);save();renderCal();renderSchedEditor();return;}
-    if(e.target.id==='schedClear'){var anyB2=schedRows.some(function(r){return bookedForDay(r.cls,r.time)>0;});if(anyB2&&!confirm('이 날짜에 접수된 신청이 있습니다. 개별설정을 해제할까요?'))return;var k2=schedBranch+'|'+schedDate;if(S.schedule)delete S.schedule[k2];schedRows=defSlots(schedBranch);save();renderCal();renderSchedEditor();return;}
+    if(e.target.id==='schedSave'){if(!S.schedule)S.schedule={};S.schedule[schedBranch+'|'+schedDate]=schedRows.map(function(r){return Object.assign({},r);});save('schedule');renderCal();alert('저장되었습니다.');return;}
+    if(e.target.id==='schedHol'){var k=schedBranch+'|'+schedDate;if(!S.holidays)S.holidays=[];var ix=S.holidays.indexOf(k);if(ix>-1)S.holidays.splice(ix,1);else S.holidays.push(k);save('holidays');renderCal();renderSchedEditor();return;}
+    if(e.target.id==='schedClear'){var anyB2=schedRows.some(function(r){return bookedForDay(r.cls,r.time)>0;});if(anyB2&&!confirm('이 날짜에 접수된 신청이 있습니다. 개별설정을 해제할까요?'))return;var k2=schedBranch+'|'+schedDate;if(S.schedule)delete S.schedule[k2];schedRows=defSlots(schedBranch);save('schedule');renderCal();renderSchedEditor();return;}
   });
   p.addEventListener('input',function(e){var t=e.target;if(t.dataset.sc!=null)schedRows[+t.dataset.i][t.dataset.sc]=t.value;});
   p.addEventListener('mousedown',function(e){if(!pasteMode)return;var day=e.target.closest('.d[data-d]');if(!day)return;e.preventDefault();dragging=true;didDrag=false;selDates=[day.dataset.d];renderCal();renderPasteBar();});
