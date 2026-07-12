@@ -461,13 +461,39 @@ $('#loginBtn').addEventListener('click',()=>{if($('#pw').value===PW){sessionStor
   }).catch(function(e){console.warn('subs refresh',e);});
 }
 unlock();
+restoreAdminTab();
 refreshSubmissionsFromCloud();}else alert('비밀번호가 올바르지 않습니다.');});
 $('#pw').addEventListener('keydown',e=>{if(e.key==='Enter')$('#loginBtn').click();});
 $('#logout').addEventListener('click',()=>{sessionStorage.removeItem('uuhee_admin');location.reload();});
 $$('#nav a').forEach(a=>a.addEventListener('click',()=>{$$('#nav a').forEach(x=>x.classList.remove('active'));a.classList.add('active');
-  const p=a.dataset.p;$$('.panel').forEach(x=>x.classList.remove('active'));$('#panel-'+p).classList.add('active');$('#ptitle').textContent=a.textContent;}));
+  const p=a.dataset.p;$$('.panel').forEach(x=>x.classList.remove('active'));$('#panel-'+p).classList.add('active');$('#ptitle').textContent=a.textContent;
+  try{sessionStorage.setItem('uuhee_panel',p);}catch(e){}}));
 $$('#panel-settings>.subtabs .subtab').forEach(t=>t.addEventListener('click',()=>{$$('#panel-settings>.subtabs .subtab').forEach(x=>x.classList.remove('active'));t.classList.add('active');
-  $$('.subpanel').forEach(x=>x.classList.remove('active'));$('#sub-'+t.dataset.s).classList.add('active');if(t.dataset.s==='space'||t.dataset.s==='gallery'){renderFoldersAll();renderUploadersAll();}if(t.dataset.s==='legal'){renderLegalForm();renderPayForm();}}));
+  $$('.subpanel').forEach(x=>x.classList.remove('active'));$('#sub-'+t.dataset.s).classList.add('active');if(t.dataset.s==='space'||t.dataset.s==='gallery'){renderFoldersAll();renderUploadersAll();}if(t.dataset.s==='legal'){renderLegalForm();renderPayForm();}
+  try{sessionStorage.setItem('uuhee_subtab',t.dataset.s);}catch(e){}}));
+function restoreAdminTab(){
+  try{
+    var savedPanel=sessionStorage.getItem('uuhee_panel');
+    if(!savedPanel)return;
+    var navA=document.querySelector('#nav a[data-p="'+savedPanel+'"]');
+    var panelEl=document.getElementById('panel-'+savedPanel);
+    if(!navA||!panelEl)return;
+    $$('#nav a').forEach(x=>x.classList.remove('active'));navA.classList.add('active');
+    $$('.panel').forEach(x=>x.classList.remove('active'));panelEl.classList.add('active');
+    $('#ptitle').textContent=navA.textContent;
+    if(savedPanel==='settings'){
+      var savedSub=sessionStorage.getItem('uuhee_subtab');
+      if(!savedSub)return;
+      var subA=document.querySelector('#panel-settings>.subtabs .subtab[data-s="'+savedSub+'"]');
+      var subEl=document.getElementById('sub-'+savedSub);
+      if(!subA||!subEl)return;
+      $$('#panel-settings>.subtabs .subtab').forEach(x=>x.classList.remove('active'));subA.classList.add('active');
+      $$('.subpanel').forEach(x=>x.classList.remove('active'));subEl.classList.add('active');
+      if(savedSub==='space'||savedSub==='gallery'){renderFoldersAll();renderUploadersAll();}
+      if(savedSub==='legal'){renderLegalForm();renderPayForm();}
+    }
+  }catch(e){}
+}
 
 let apps=Jarr('uuhee_apps'), group=Jarr('uuhee_group');
 function renderOverview(){
@@ -846,6 +872,7 @@ function refreshSubmissionsFromCloud(){
   }).catch(function(e){console.warn('subs refresh',e);});
 }
 unlock();
+restoreAdminTab();
 refreshSubmissionsFromCloud();
 </script>
 </body>

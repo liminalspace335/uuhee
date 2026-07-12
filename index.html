@@ -1214,18 +1214,20 @@ window.UUHEE_SB={url:'https://ybfwnmgnledlumppfjbh.supabase.co',key:'sb_publisha
   /* ---------- 단일 파일 뷰 라우터 ---------- */
   (function(){
     const views=document.querySelectorAll('.view');if(!views.length)return;
-    window.__showView=function(name,anchor){
+    window.__showView=function(name,anchor,skipSave){
       let found=false;
       views.forEach(v=>{const on=v.id==='view-'+name;v.classList.toggle('active',on);if(on)found=true;});
       if(!found){const h=document.getElementById('view-home');if(h)h.classList.add('active');name='home';}
       document.querySelectorAll('#navLinks a[data-view]').forEach(a=>a.classList.toggle('active',a.dataset.view===name&&!a.dataset.anchor));
       document.querySelectorAll('#view-'+name+' .reveal').forEach(r=>r.classList.add('in'));
+      if(!skipSave){try{sessionStorage.setItem('uuhee_view',name);}catch(e){}}
       if(anchor){const el=document.getElementById(anchor);window.scrollTo(0,0);if(el)setTimeout(()=>el.scrollIntoView({behavior:'smooth'}),50);}
-      else window.scrollTo({top:0});
+      else if(!skipSave)window.scrollTo({top:0});
     };
     document.addEventListener('click',e=>{const a=e.target.closest('[data-view]');if(!a)return;e.preventDefault();
       const nl=document.getElementById('navLinks');if(nl)nl.classList.remove('open');
       window.__showView(a.dataset.view,a.dataset.anchor);});
+    try{const savedView=sessionStorage.getItem('uuhee_view');if(savedView&&savedView!=='home')window.__showView(savedView,null,true);}catch(e){}
   })();
 
   /* ---------- 네비 / 언어 ---------- */
