@@ -656,15 +656,13 @@ function renderSpaceUploader(){
     var ps=[];(S.photos||[]).forEach(function(p,gi){if((p.category||'')==='공간'&&(p.folder||'')===b.name)ps.push({p:p,gi:gi});});
     html+='<div class="pf-block"><div class="pf-head">▸ '+esc(b.name)+' <span style="color:var(--ink-soft);font-weight:400">· '+ps.length+'장</span></div>';
     html+='<label class="lg-f" style="display:block;margin:8px 0 12px"><span>공간 설명</span><textarea data-bsd="'+bi+'" rows="2" style="width:100%">'+esc(b.spaceDesc||'')+'</textarea></label>';
-    html+='<table class="pf-table"><thead><tr><th>이미지</th><th>제목</th><th>설명</th><th>대표</th><th>순서</th><th>링크</th><th></th></tr></thead><tbody>';
-    if(!ps.length)html+='<tr><td colspan="7" class="empty">사진이 없습니다. 아래 + 버튼으로 추가하세요.</td></tr>';
+    html+='<table class="pf-table"><thead><tr><th>이미지</th><th>제목</th><th>대표</th><th>순서</th><th></th></tr></thead><tbody>';
+    if(!ps.length)html+='<tr><td colspan="5" class="empty">사진이 없습니다. 아래 + 버튼으로 추가하세요.</td></tr>';
     ps.forEach(function(o){var p=o.p,gi=o.gi;
       html+='<tr><td><span class="thumb" style="'+((p.img&&!isVid(p.img))?("background-image:url('"+String(p.img).replace(/'/g,'%27')+"')"):'')+'">'+((p.img&&isVid(p.img))?'▶':'')+'</span><span class="up-row" style="display:inline-flex;width:calc(100% - 64px)"><input data-pi="'+gi+'" data-pc="img" value="'+esc(String(p.img||'').slice(0,160))+'" placeholder="URL 또는 업로드"><label class="upbtn">⬆<input type="file" accept="image/*,video/*" data-pup="'+gi+'" hidden></label></span></td>'
         +'<td><input data-pi="'+gi+'" data-pc="title" value="'+esc(p.title||'')+'"></td>'
-        +'<td><input data-pi="'+gi+'" data-pc="desc" value="'+esc(p.desc||'')+'"></td>'
         +'<td><input type="checkbox" data-pck="'+gi+'" '+(p.cover?'checked':'')+' style="width:auto"></td>'
         +'<td><input type="number" data-pi="'+gi+'" data-pc="order" value="'+esc(p.order||'')+'" style="width:68px"></td>'
-        +'<td><input data-pi="'+gi+'" data-pc="link" value="'+esc(p.link||'')+'"></td>'
         +'<td><button class="del" data-prm="'+gi+'">삭제</button></td></tr>';
     });
     html+='</tbody></table><div class="row-tools" style="margin:8px 0 0"><button class="btn ghost" data-padd="'+esc(b.name)+'">+ 사진 추가</button></div></div>';
@@ -707,15 +705,13 @@ function renderUploader(cat,boxId){
   folders.forEach(function(f){
     var ps=[];(S.photos||[]).forEach(function(p,gi){if((p.category||'')===cat&&(p.folder||'')===f.name)ps.push({p:p,gi:gi});});
     html+='<div class="pf-block"><div class="pf-head">▸ '+esc(f.name)+' <span style="color:var(--ink-soft);font-weight:400">· '+ps.length+'장</span></div>';
-    html+='<table class="pf-table"><thead><tr><th>이미지</th><th>제목</th><th>설명</th><th>대표</th><th>순서</th><th>링크</th><th></th></tr></thead><tbody>';
-    if(!ps.length)html+='<tr><td colspan="7" class="empty">사진이 없습니다. 아래 + 버튼으로 추가하세요.</td></tr>';
+    html+='<table class="pf-table"><thead><tr><th>이미지</th><th>제목</th><th>대표</th><th>순서</th><th></th></tr></thead><tbody>';
+    if(!ps.length)html+='<tr><td colspan="5" class="empty">사진이 없습니다. 아래 + 버튼으로 추가하세요.</td></tr>';
     ps.forEach(function(o){var p=o.p,gi=o.gi;
       html+='<tr><td><span class="thumb" style="'+((p.img&&!isVid(p.img))?("background-image:url('"+String(p.img).replace(/'/g,'%27')+"')"):'')+'">'+((p.img&&isVid(p.img))?'▶':'')+'</span><span class="up-row" style="display:inline-flex;width:calc(100% - 64px)"><input data-pi="'+gi+'" data-pc="img" value="'+esc(String(p.img||'').slice(0,160))+'" placeholder="URL 또는 업로드"><label class="upbtn">⬆<input type="file" accept="image/*,video/*" data-pup="'+gi+'" hidden></label></span></td>'
         +'<td><input data-pi="'+gi+'" data-pc="title" value="'+esc(p.title||'')+'"></td>'
-        +'<td><input data-pi="'+gi+'" data-pc="desc" value="'+esc(p.desc||'')+'"></td>'
         +'<td><input type="checkbox" data-pck="'+gi+'" '+(p.cover?'checked':'')+' style="width:auto"></td>'
         +'<td><input type="number" data-pi="'+gi+'" data-pc="order" value="'+esc(p.order||'')+'" style="width:68px"></td>'
-        +'<td><input data-pi="'+gi+'" data-pc="link" value="'+esc(p.link||'')+'"></td>'
         +'<td><button class="del" data-prm="'+gi+'">삭제</button></td></tr>';
     });
     html+='</tbody></table><div class="row-tools" style="margin:8px 0 0"><button class="btn ghost" data-padd="'+esc(cat)+'||'+esc(f.name)+'">+ 사진 추가</button></div></div>';
