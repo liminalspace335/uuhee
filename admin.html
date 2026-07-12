@@ -859,6 +859,7 @@ function selectSchedDate(ds){schedDate=ds;var key=schedBranch+'|'+ds;
   schedRows=(S.schedule&&S.schedule[key])?S.schedule[key].map(function(r){return Object.assign({},r);}):[];
   renderCal();renderSchedEditor();}
 function bookedForDay(cls,tm){var n=0;(typeof apps!=='undefined'?apps:[]).forEach(function(a){if(a.branch===schedBranch&&a.date===schedDate&&a.time===tm&&(!cls||a.class===cls)){n+=parseInt(a.people||'0',10)||0;}});return n;}
+function appsSummaryForDate(ds){var count=0,people=0;(typeof apps!=='undefined'?apps:[]).forEach(function(a){if(a.branch===schedBranch&&a.date===ds){count++;people+=parseInt(a.people||'0',10)||0;}});return {count:count,people:people};}
 function renderSchedEditor(){
   var ed=$('#schedEditor');if(!ed)return;
   if(!schedDate){ed.innerHTML='<div class="empty">왼쪽 달력에서 날짜를 선택해 주세요.</div>';return;}
@@ -897,7 +898,11 @@ function buildSchedule(){
     if(e.target.id==='schedAdd'){schedRows.push({cls:(classNames()[0]||''),time:'',cap:''});renderSchedEditor();return;}
     if(e.target.id==='schedDefault'){var anyB=schedRows.some(function(r){return bookedForDay(r.cls,r.time)>0;});if(anyB&&!confirm('이 날짜에 접수된 신청이 있습니다. 기본값으로 덮어쓸까요?'))return;schedRows=defSlots(schedBranch);renderSchedEditor();return;}
     if(e.target.id==='schedSave'){if(!S.schedule)S.schedule={};S.schedule[schedBranch+'|'+schedDate]=schedRows.map(function(r){return Object.assign({},r);});save('schedule');renderCal();alert('저장되었습니다.');return;}
-    if(e.target.id==='schedHol'){var k=schedBranch+'|'+schedDate;if(!S.holidays)S.holidays=[];var ix=S.holidays.indexOf(k);if(ix>-1)S.holidays.splice(ix,1);else S.holidays.push(k);save('holidays');renderCal();renderSchedEditor();return;}
+    if(e.target.id==='schedHol'){var k=schedBranch+'|'+schedDate;if(!S.holidays)S.holidays=[];var ix=S.holidays.indexOf(k);
+      if(ix>-1){S.holidays.splice(ix,1);save('holidays');renderCal();renderSchedEditor();return;} // 휴무 해제는 바로 처리
+      var sum=appsSummaryForDate(schedDate);
+      if(sum.count>0&&!confirm(schedDate+'는 신청데이터가 '+sum.count+'건('+sum.people+'명) 있습니다. 휴무일로 지정하시겠습니까?'))return;
+      S.holidays.push(k);save('holidays');renderCal();renderSchedEditor();return;}
     if(e.target.id==='schedClear'){var anyB2=schedRows.some(function(r){return bookedForDay(r.cls,r.time)>0;});if(anyB2&&!confirm('이 날짜에 접수된 신청이 있습니다. 개별설정을 해제할까요?'))return;var k2=schedBranch+'|'+schedDate;if(S.schedule)delete S.schedule[k2];schedRows=defSlots(schedBranch);save('schedule');renderCal();renderSchedEditor();return;}
   });
   p.addEventListener('input',function(e){var t=e.target;if(t.dataset.sc!=null)schedRows[+t.dataset.i][t.dataset.sc]=t.value;});
