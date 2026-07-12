@@ -432,7 +432,19 @@ if(!S.photos.length){(S.space||[]).forEach(function(p){if(p.img)S.photos.push({i
 if(!S.photoFolders||!S.photoFolders.length){S.photoFolders=[];var _sf={};(S.photos||[]).forEach(function(p){var k=(p.category||'공간')+'|'+(p.folder||'');if(p.folder&&!_sf[k]){_sf[k]=1;S.photoFolders.push({category:p.category||'공간',name:p.folder,order:S.photoFolders.length+1});}});if(!S.photoFolders.length)S.photoFolders=[{category:'공간',name:'홍대',order:1},{category:'공간',name:'성수',order:2},{category:'갤러리',name:'갤러리',order:3}];}
 (function(){var nc=function(c){return c==='공간'?'공간':'갤러리';};(S.photoFolders||[]).forEach(function(f){f.category=nc(f.category);});(S.photos||[]).forEach(function(p){p.category=nc(p.category);});})();
 if(S.photos&&S.photos.length){if((S.space&&S.space.length)||(S.gallery&&S.gallery.length)){S.space=[];S.gallery=[];try{localStorage.setItem('uuhee_settings',JSON.stringify(S));}catch(e){}}}
-function save(){var j=JSON.stringify(S);localStorage.setItem('uuhee_settings',j);if(window.__cloud){try{window.__cloud.pushSettings(S).catch(function(e){console.warn('cloud save',e);});}catch(e){}}}
+var __cloudSaving=false,__cloudSavePending=false;
+function __pushCloud(){
+  if(!window.__cloud)return;
+  if(__cloudSaving){__cloudSavePending=true;return;}
+  __cloudSaving=true;
+  try{
+    Promise.resolve(window.__cloud.pushSettings(S)).catch(function(e){console.warn('cloud save',e);}).then(function(){
+      __cloudSaving=false;
+      if(__cloudSavePending){__cloudSavePending=false;__pushCloud();}
+    });
+  }catch(e){__cloudSaving=false;}
+}
+function save(){var j=JSON.stringify(S);localStorage.setItem('uuhee_settings',j);__pushCloud();}
 const branchNames=()=>S.branches.map(b=>b.name).filter(Boolean);
 
 function unlock(){$('#gate').style.display='none';$('#app').style.display='flex';renderAll();}
