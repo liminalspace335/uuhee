@@ -1326,11 +1326,11 @@ window.UUHEE_SB={url:'https://ybfwnmgnledlumppfjbh.supabase.co',key:'sb_publisha
       document.getElementById('confirmSummary').innerHTML=rows.map(r=>'<div class="sr"><span class="k">'+r[0]+'</span><span class="v">'+(r[1]||'-')+'</span></div>').join('');};
     function inqTypeOf(name){try{var SS=JSON.parse(localStorage.getItem('uuhee_settings')||'{}');var cc=(SS.classes||[]).filter(function(x){return x.name===name;})[0];if(cc&&cc.inquiryOnly){if(/기업/.test(name))return '기업 협업';if(/단체/.test(name))return '단체 클래스';if(/출강/.test(name))return '출강 · 외부 클래스';if(/특강/.test(name))return '특강';return name;}}catch(e){}return '';}
     function preparePay(){var amt=parseInt(data.estimate||'0',10)||0;var el=document.getElementById('payAmt');if(el)el.textContent=amt>0?('\u20a9'+amt.toLocaleString()):'가격 협의';var S2=SET();var pay=(S2.pay||{});var tb=document.getElementById('payTransfer');if(tb){tb.innerHTML='<div class="pb-row"><span>은행</span><b>'+E(pay.bank||'-')+'</b></div><div class="pb-row"><span>계좌번호</span><b>'+E(pay.account||'-')+'</b></div><div class="pb-row"><span>예금주</span><b>'+E(pay.holder||'-')+'</b></div><div class="pb-note">위 계좌로 입금해 주시면 입금 확인 후 예약이 확정됩니다.</div>';tb.style.display='block';}data.pay='transfer';}
+    // finalizeApp()은 항상 {ok, message} 형태로 resolve된다(reject하지 않음) — 호출부에서
+    // 성공/실패를 분기해 화면을 다르게 보여줄 수 있도록(정원마감 등 서버 거부를 조용히 삼키지 않기 위함).
     function finalizeApp(){var rec=Object.assign({},data,{ts:Date.now()});try{var all=JSON.parse(localStorage.getItem('uuhee_apps')||'[]');all.push(rec);localStorage.setItem('uuhee_apps',JSON.stringify(all));}catch(e){}
-      if(!window.__cloud)return Promise.resolve();
-      // 예약을 서버(클라우드)에 저장하지 못하면 예전엔 콘솔에만 조용히 기록되고 손님/매장 모두 실패를 알 수 없었음.
-      // 결제/입금 안내까지 마친 뒤라 되돌릴 수 없으니, 최소한 매장에 직접 확인하도록 안내 문구를 띄움.
-      try{return window.__cloud.insertApplication(rec).then(function(r){if(r&&r.error){console.warn(r.error);alert('예약 정보를 서버에 저장하는 중 문제가 발생했습니다. 예약이 누락될 수 있으니 매장으로 연락해 확인해 주세요.');}}).catch(function(e){console.warn(e);alert('예약 정보를 서버에 저장하는 중 문제가 발생했습니다. 예약이 누락될 수 있으니 매장으로 연락해 확인해 주세요.');});}catch(e){console.warn(e);return Promise.resolve();}}
+      if(!window.__cloud)return Promise.resolve({ok:true});
+      try{return window.__cloud.insertApplication(rec).then(function(r){if(r&&r.error){console.warn(r.error);return {ok:false,message:r.error.message};}return {ok:true};}).catch(function(e){console.warn(e);return {ok:false,message:(e&&e.message)||''};});}catch(e){console.warn(e);return Promise.resolve({ok:false,message:(e&&e.message)||''});}}
     const render=()=>showStep(step);
     document.getElementById('btnNext').addEventListener('click',()=>{
       if(step<=4&&!validate(step))return;
@@ -1342,13 +1342,35 @@ window.UUHEE_SB={url:'https://ybfwnmgnledlumppfjbh.supabase.co',key:'sb_publisha
     document.getElementById('payGo').addEventListener('click',function(){
       var btn=this;if(btn.disabled)return; // 중복 클릭으로 예약/결제가 두 번 접수되는 것을 방지
       hideErr();if(!data.pay)return err('pay');var amt=parseInt(data.estimate||'0',10)||0;var S2=SET();var pay=(S2.pay||{});
-      if(data.pay==='transfer'){btn.disabled=true;data.status=2;data.payMethod='계좌이체';finalizeApp().then(function(){btn.disabled=false;});var dm=document.getElementById('doneMsg');if(dm)dm.innerHTML='입금 계좌 <b>'+E(pay.bank||'')+' '+E(pay.account||'')+'</b> ('+E(pay.holder||'')+')<br>금액 '+(amt>0?('\u20a9'+amt.toLocaleString()):'협의')+' · 입금이 확인되면 예약이 확정됩니다.';step=7;return render();}
+      if(data.pay==='transfer'){
+        // 아직 실제 결제 전이므로, 서버 저장(정원 등 검증 포함)이 성공했을 때만 완료 화면으로 넘어간다.
+        btn.disabled=true;data.status=2;data.payMethod='계좌이체';
+        finalizeApp().then(function(r){
+          btn.disabled=false;
+          if(!r.ok){alert(r.message||'죄송합니다, 방금 다른 예약으로 자리가 찼습니다. 다른 시간을 선택해 주세요.');step=3;return render();}
+          var dm=document.getElementById('doneMsg');if(dm)dm.innerHTML='입금 계좌 <b>'+E(pay.bank||'')+' '+E(pay.account||'')+'</b> ('+E(pay.holder||'')+')<br>금액 '+(amt>0?('\u20a9'+amt.toLocaleString()):'협의')+' · 입금이 확인되면 예약이 확정됩니다.';
+          step=7;render();
+        });
+        return;
+      }
       if(!pay.portoneStore||!pay.portoneChannel){alert('네이버페이 결제가 아직 설정되지 않았습니다. 계좌이체를 이용해 주세요.');return;}
       if(amt<=0){alert('결제 금액이 확정되지 않았습니다. 계좌이체를 이용해 주세요.');return;}
       if(!window.PortOne){alert('결제 모듈을 불러오는 중입니다. 잠시 후 다시 시도해 주세요.');return;}
       btn.disabled=true;
       var pid='uuhee-'+Date.now();
-      window.PortOne.requestPayment({storeId:pay.portoneStore,channelKey:pay.portoneChannel,paymentId:pid,orderName:(data.class||'유유히 클래스'),totalAmount:amt,currency:'CURRENCY_KRW',payMethod:'EASY_PAY',easyPay:{easyPayProvider:'EASY_PAY_PROVIDER_NAVERPAY'},customer:{fullName:data.name||'',phoneNumber:data.phone||''}}).then(function(res){btn.disabled=false;if(res&&res.code!=null){alert('결제 실패: '+(res.message||'취소되었습니다'));return;}data.status=3;data.payMethod='네이버페이';data.payId=pid;finalizeApp();var dm2=document.getElementById('doneMsg');if(dm2)dm2.textContent='결제가 완료되어 예약이 확정되었습니다. 감사합니다.';step=7;return render();}).catch(function(e){btn.disabled=false;alert('결제 오류: '+((e&&e.message)||e));});
+      window.PortOne.requestPayment({storeId:pay.portoneStore,channelKey:pay.portoneChannel,paymentId:pid,orderName:(data.class||'유유히 클래스'),totalAmount:amt,currency:'CURRENCY_KRW',payMethod:'EASY_PAY',easyPay:{easyPayProvider:'EASY_PAY_PROVIDER_NAVERPAY'},customer:{fullName:data.name||'',phoneNumber:data.phone||''}}).then(function(res){
+        if(res&&res.code!=null){btn.disabled=false;alert('결제 실패: '+(res.message||'취소되었습니다'));return;}
+        // 결제는 이미 완료된 뒤라 되돌릴 수 없으므로, 서버 저장이 실패해도 완료 화면은 보여주되
+        // 문구를 다르게 해서 매장에 결제번호로 직접 확인하도록 안내한다(성공했다고 거짓 안내하지 않음).
+        data.status=3;data.payMethod='네이버페이';data.payId=pid;
+        finalizeApp().then(function(r){
+          btn.disabled=false;
+          var dm2=document.getElementById('doneMsg');
+          if(!r.ok){if(dm2)dm2.textContent='결제가 완료되었습니다. 다만 예약 확정 처리 중 문제가 발생했습니다. 결제번호 '+pid+'를 매장에 알려주시면 확인해 드리겠습니다.';}
+          else if(dm2)dm2.textContent='결제가 완료되어 예약이 확정되었습니다. 감사합니다.';
+          step=7;render();
+        });
+      }).catch(function(e){btn.disabled=false;alert('결제 오류: '+((e&&e.message)||e));});
     });
     showStep(1);
   })();
