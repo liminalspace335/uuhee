@@ -337,7 +337,27 @@ window.UUHEE_SB={url:'https://ybfwnmgnledlumppfjbh.supabase.co',key:'sb_publisha
       return {apps:apps,grp:grp};
     });
   }
-  function repl(t,rows){return sb.from(t).select('id').then(function(r){var oldIds=(r.data||[]).map(function(x){return x.id;});var ins=rows.length?sb.from(t).insert(rows):Promise.resolve({error:null});return Promise.resolve(ins).then(function(res){if(res&&res.error)throw res.error;if(oldIds.length)return sb.from(t).delete().in('id',oldIds);return res;});});}
+  function fetchAllIds(t){
+    // select('id')만 쓰면 Supabase 기본 응답 제한(보통 1000행)에 걸려 행이 많을 때 일부 id만 가져오게 되고,
+    // 그 결과 아래 repl()의 delete 단계가 예전 데이터를 다 지우지 못해 저장할 때마다 중복이 계속 쌓이는 사고가 있었음.
+    // range로 페이지네이션해서 전체 id를 반드시 다 가져오도록 수정.
+    var out=[],page=1000;
+    function loop(from){return sb.from(t).select('id').order('id').range(from,from+page-1).then(function(r){if(r.error)throw r.error;var rows=r.data||[];out=out.concat(rows.map(function(x){return x.id;}));if(rows.length<page)return out;return loop(from+page);});}
+    return loop(0);
+  }
+  function repl(t,rows){
+    return fetchAllIds(t).then(function(oldIds){
+      var ins=rows.length?sb.from(t).insert(rows):Promise.resolve({error:null});
+      return Promise.resolve(ins).then(function(res){
+        if(res&&res.error)throw res.error;
+        if(!oldIds.length)return res;
+        // 예전엔 delete 결과의 에러를 검사하지 않아 삭제 실패가 조용히 무시됐음(→ 중복 누적의 직접 원인).
+        // 또한 id가 많을 때 in() 목록이 너무 길어지는 걸 피하려고 청크로 나눠서 삭제하고, 실패하면 throw해서 저장 실패가 눈에 보이게 함.
+        var chunks=[];for(var i=0;i<oldIds.length;i+=300)chunks.push(oldIds.slice(i,i+300));
+        return chunks.reduce(function(p,chunk){return p.then(function(){return sb.from(t).delete().in('id',chunk).then(function(dr){if(dr&&dr.error)throw dr.error;});});},Promise.resolve()).then(function(){return res;});
+      });
+    });
+  }
   function replClasses(list){
     // 예전엔 저장할 때마다 classes를 전부 delete 후 재insert 해서 id가 매번 바뀌었음.
     // details/slots/schedule이 이제 class_id로 클래스를 참조하므로, id가 안정적으로 유지되도록
