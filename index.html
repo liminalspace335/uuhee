@@ -1326,7 +1326,11 @@ window.UUHEE_SB={url:'https://ybfwnmgnledlumppfjbh.supabase.co',key:'sb_publisha
       document.getElementById('confirmSummary').innerHTML=rows.map(r=>'<div class="sr"><span class="k">'+r[0]+'</span><span class="v">'+(r[1]||'-')+'</span></div>').join('');};
     function inqTypeOf(name){try{var SS=JSON.parse(localStorage.getItem('uuhee_settings')||'{}');var cc=(SS.classes||[]).filter(function(x){return x.name===name;})[0];if(cc&&cc.inquiryOnly){if(/기업/.test(name))return '기업 협업';if(/단체/.test(name))return '단체 클래스';if(/출강/.test(name))return '출강 · 외부 클래스';if(/특강/.test(name))return '특강';return name;}}catch(e){}return '';}
     function preparePay(){var amt=parseInt(data.estimate||'0',10)||0;var el=document.getElementById('payAmt');if(el)el.textContent=amt>0?('\u20a9'+amt.toLocaleString()):'가격 협의';var S2=SET();var pay=(S2.pay||{});var tb=document.getElementById('payTransfer');if(tb){tb.innerHTML='<div class="pb-row"><span>은행</span><b>'+E(pay.bank||'-')+'</b></div><div class="pb-row"><span>계좌번호</span><b>'+E(pay.account||'-')+'</b></div><div class="pb-row"><span>예금주</span><b>'+E(pay.holder||'-')+'</b></div><div class="pb-note">위 계좌로 입금해 주시면 입금 확인 후 예약이 확정됩니다.</div>';tb.style.display='block';}data.pay='transfer';}
-    function finalizeApp(){var rec=Object.assign({},data,{ts:Date.now()});try{var all=JSON.parse(localStorage.getItem('uuhee_apps')||'[]');all.push(rec);localStorage.setItem('uuhee_apps',JSON.stringify(all));}catch(e){}if(window.__cloud){try{window.__cloud.insertApplication(rec).then(function(r){if(r&&r.error)console.warn(r.error);});}catch(e){}}}
+    function finalizeApp(){var rec=Object.assign({},data,{ts:Date.now()});try{var all=JSON.parse(localStorage.getItem('uuhee_apps')||'[]');all.push(rec);localStorage.setItem('uuhee_apps',JSON.stringify(all));}catch(e){}
+      if(!window.__cloud)return Promise.resolve();
+      // 예약을 서버(클라우드)에 저장하지 못하면 예전엔 콘솔에만 조용히 기록되고 손님/매장 모두 실패를 알 수 없었음.
+      // 결제/입금 안내까지 마친 뒤라 되돌릴 수 없으니, 최소한 매장에 직접 확인하도록 안내 문구를 띄움.
+      try{return window.__cloud.insertApplication(rec).then(function(r){if(r&&r.error){console.warn(r.error);alert('예약 정보를 서버에 저장하는 중 문제가 발생했습니다. 예약이 누락될 수 있으니 매장으로 연락해 확인해 주세요.');}}).catch(function(e){console.warn(e);alert('예약 정보를 서버에 저장하는 중 문제가 발생했습니다. 예약이 누락될 수 있으니 매장으로 연락해 확인해 주세요.');});}catch(e){console.warn(e);return Promise.resolve();}}
     const render=()=>showStep(step);
     document.getElementById('btnNext').addEventListener('click',()=>{
       if(step<=4&&!validate(step))return;
@@ -1335,13 +1339,16 @@ window.UUHEE_SB={url:'https://ybfwnmgnledlumppfjbh.supabase.co',key:'sb_publisha
       if(step===5){step=6;return render();}
       step++;render();});
     document.getElementById('btnBack').addEventListener('click',()=>{if(step>1){step--;render();}});
-    document.getElementById('payGo').addEventListener('click',function(){hideErr();if(!data.pay)return err('pay');var amt=parseInt(data.estimate||'0',10)||0;var S2=SET();var pay=(S2.pay||{});
-      if(data.pay==='transfer'){data.status=2;data.payMethod='계좌이체';finalizeApp();var dm=document.getElementById('doneMsg');if(dm)dm.innerHTML='입금 계좌 <b>'+E(pay.bank||'')+' '+E(pay.account||'')+'</b> ('+E(pay.holder||'')+')<br>금액 '+(amt>0?('\u20a9'+amt.toLocaleString()):'협의')+' · 입금이 확인되면 예약이 확정됩니다.';step=7;return render();}
+    document.getElementById('payGo').addEventListener('click',function(){
+      var btn=this;if(btn.disabled)return; // 중복 클릭으로 예약/결제가 두 번 접수되는 것을 방지
+      hideErr();if(!data.pay)return err('pay');var amt=parseInt(data.estimate||'0',10)||0;var S2=SET();var pay=(S2.pay||{});
+      if(data.pay==='transfer'){btn.disabled=true;data.status=2;data.payMethod='계좌이체';finalizeApp().then(function(){btn.disabled=false;});var dm=document.getElementById('doneMsg');if(dm)dm.innerHTML='입금 계좌 <b>'+E(pay.bank||'')+' '+E(pay.account||'')+'</b> ('+E(pay.holder||'')+')<br>금액 '+(amt>0?('\u20a9'+amt.toLocaleString()):'협의')+' · 입금이 확인되면 예약이 확정됩니다.';step=7;return render();}
       if(!pay.portoneStore||!pay.portoneChannel){alert('네이버페이 결제가 아직 설정되지 않았습니다. 계좌이체를 이용해 주세요.');return;}
       if(amt<=0){alert('결제 금액이 확정되지 않았습니다. 계좌이체를 이용해 주세요.');return;}
       if(!window.PortOne){alert('결제 모듈을 불러오는 중입니다. 잠시 후 다시 시도해 주세요.');return;}
+      btn.disabled=true;
       var pid='uuhee-'+Date.now();
-      window.PortOne.requestPayment({storeId:pay.portoneStore,channelKey:pay.portoneChannel,paymentId:pid,orderName:(data.class||'유유히 클래스'),totalAmount:amt,currency:'CURRENCY_KRW',payMethod:'EASY_PAY',easyPay:{easyPayProvider:'EASY_PAY_PROVIDER_NAVERPAY'},customer:{fullName:data.name||'',phoneNumber:data.phone||''}}).then(function(res){if(res&&res.code!=null){alert('결제 실패: '+(res.message||'취소되었습니다'));return;}data.status=3;data.payMethod='네이버페이';data.payId=pid;finalizeApp();var dm2=document.getElementById('doneMsg');if(dm2)dm2.textContent='결제가 완료되어 예약이 확정되었습니다. 감사합니다.';step=7;return render();}).catch(function(e){alert('결제 오류: '+((e&&e.message)||e));});
+      window.PortOne.requestPayment({storeId:pay.portoneStore,channelKey:pay.portoneChannel,paymentId:pid,orderName:(data.class||'유유히 클래스'),totalAmount:amt,currency:'CURRENCY_KRW',payMethod:'EASY_PAY',easyPay:{easyPayProvider:'EASY_PAY_PROVIDER_NAVERPAY'},customer:{fullName:data.name||'',phoneNumber:data.phone||''}}).then(function(res){btn.disabled=false;if(res&&res.code!=null){alert('결제 실패: '+(res.message||'취소되었습니다'));return;}data.status=3;data.payMethod='네이버페이';data.payId=pid;finalizeApp();var dm2=document.getElementById('doneMsg');if(dm2)dm2.textContent='결제가 완료되어 예약이 확정되었습니다. 감사합니다.';step=7;return render();}).catch(function(e){btn.disabled=false;alert('결제 오류: '+((e&&e.message)||e));});
     });
     showStep(1);
   })();
@@ -1357,13 +1364,20 @@ window.UUHEE_SB={url:'https://ybfwnmgnledlumppfjbh.supabase.co',key:'sb_publisha
     document.querySelectorAll('[data-open-group]').forEach(b=>b.addEventListener('click',e=>{e.preventDefault();collapsibles.forEach(function(l){if(l)l.classList.remove('collapsed');});open();}));
     document.getElementById('groupClose').addEventListener('click',close);
     document.addEventListener('keydown',e=>{if(e.key==='Escape'&&gm.classList.contains('open'))close();});
-    document.getElementById('groupSubmit').addEventListener('click',()=>{
+    const gsBtn=document.getElementById('groupSubmit');
+    gsBtn.addEventListener('click',()=>{
+      if(gsBtn.disabled)return; // 중복 클릭으로 문의가 두 번 접수되는 것을 방지
       const st=gm.querySelector('.gtype .opt.sel'),sb=gm.querySelector('.gbranch .opt.sel');
       const c=gm.querySelector('[data-field="gcompany"]').value.trim(),n=gm.querySelector('[data-field="gname"]').value.trim(),p=gm.querySelector('[data-field="gphone"]').value.trim();
       const er=gm.querySelector('[data-err="group"]');
       if(!st||!sb||!c||!n||!p){er.style.display='block';return;}er.style.display='none';
-      var grec={type:st.dataset.val,branch:sb.dataset.val,company:c,name:n,phone:p,email:gm.querySelector('[data-field="gemail"]').value,size:gm.querySelector('[data-field="gsize"]').value,msg:gm.querySelector('[data-field="gmsg"]').value,ts:Date.now()};try{const all=JSON.parse(localStorage.getItem('uuhee_group')||'[]');all.push(grec);localStorage.setItem('uuhee_group',JSON.stringify(all));}catch(e){}if(window.__cloud){try{window.__cloud.insertInquiry(grec).then(function(r){if(r&&r.error)console.warn(r.error);});}catch(e){}}
-      document.getElementById('groupForm').style.display='none';document.getElementById('groupFoot').style.display='none';document.getElementById('groupDone').style.display='block';});
+      gsBtn.disabled=true;
+      var grec={type:st.dataset.val,branch:sb.dataset.val,company:c,name:n,phone:p,email:gm.querySelector('[data-field="gemail"]').value,size:gm.querySelector('[data-field="gsize"]').value,msg:gm.querySelector('[data-field="gmsg"]').value,ts:Date.now()};try{const all=JSON.parse(localStorage.getItem('uuhee_group')||'[]');all.push(grec);localStorage.setItem('uuhee_group',JSON.stringify(all));}catch(e){}
+      var done=function(){document.getElementById('groupForm').style.display='none';document.getElementById('groupFoot').style.display='none';document.getElementById('groupDone').style.display='block';gsBtn.disabled=false;};
+      if(window.__cloud){
+        try{window.__cloud.insertInquiry(grec).then(function(r){if(r&&r.error){console.warn(r.error);alert('문의 접수 중 서버 저장에 문제가 발생했습니다. 확인을 위해 매장으로 연락해 주세요.');}done();}).catch(function(e){console.warn(e);alert('문의 접수 중 오류가 발생했습니다. 확인을 위해 매장으로 연락해 주세요.');done();});}catch(e){done();}
+      }else{done();}
+    });
     window.__openGroup=function(presetType,presetBranch){
       document.getElementById('groupForm').style.display='';document.getElementById('groupFoot').style.display='flex';document.getElementById('groupDone').style.display='none';
       open();
@@ -1378,14 +1392,21 @@ window.UUHEE_SB={url:'https://ybfwnmgnledlumppfjbh.supabase.co',key:'sb_publisha
     const typeBox=document.getElementById('inqType');
     const vol=document.getElementById('inqVol');
     typeBox.addEventListener('change',function(){var v=typeBox.value;if(/단체|출강/.test(v)){vol.classList.add('show');}else{vol.classList.remove('show');vol.value='';}});
-    document.getElementById('inqSubmit').addEventListener('click',()=>{
+    const inqBtn=document.getElementById('inqSubmit');
+    inqBtn.addEventListener('click',()=>{
+      if(inqBtn.disabled)return; // 중복 클릭으로 문의가 두 번 접수되는 것을 방지
       const type=typeBox.value,sb=f.querySelector('.gbranch .opt.sel');
       const c=f.querySelector('[data-field="icompany"]').value.trim(),n=f.querySelector('[data-field="iname"]').value.trim(),p=f.querySelector('[data-field="iphone"]').value.trim();
       const needVol=vol.classList.contains('show');
       const er=f.querySelector('[data-err="inq"]');
       if(!type||!sb||!c||!n||!p||(needVol&&!vol.value)){er.style.display='block';return;}er.style.display='none';
-      var irec={type:type,volume:vol.value||'',branch:sb.dataset.val,company:c,name:n,phone:p,email:f.querySelector('[data-field="iemail"]').value,msg:f.querySelector('[data-field="imsg"]').value,ts:Date.now()};try{const all=JSON.parse(localStorage.getItem('uuhee_group')||'[]');all.push(irec);localStorage.setItem('uuhee_group',JSON.stringify(all));}catch(e){}if(window.__cloud){try{window.__cloud.insertInquiry(irec).then(function(r){if(r&&r.error)console.warn(r.error);});}catch(e){}}
-      f.style.display='none';document.getElementById('inqDone').style.display='block';});
+      inqBtn.disabled=true;
+      var irec={type:type,volume:vol.value||'',branch:sb.dataset.val,company:c,name:n,phone:p,email:f.querySelector('[data-field="iemail"]').value,msg:f.querySelector('[data-field="imsg"]').value,ts:Date.now()};try{const all=JSON.parse(localStorage.getItem('uuhee_group')||'[]');all.push(irec);localStorage.setItem('uuhee_group',JSON.stringify(all));}catch(e){}
+      var done=function(){f.style.display='none';document.getElementById('inqDone').style.display='block';inqBtn.disabled=false;};
+      if(window.__cloud){
+        try{window.__cloud.insertInquiry(irec).then(function(r){if(r&&r.error){console.warn(r.error);alert('문의 접수 중 서버 저장에 문제가 발생했습니다. 확인을 위해 매장으로 연락해 주세요.');}done();}).catch(function(e){console.warn(e);alert('문의 접수 중 오류가 발생했습니다. 확인을 위해 매장으로 연락해 주세요.');done();});}catch(e){done();}
+      }else{done();}
+    });
   })();
 
   /* ---------- 단체 섹션 갤러리 2x2 슬라이드 ---------- */

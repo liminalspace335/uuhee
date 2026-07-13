@@ -141,7 +141,7 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--gold)}
 <div class="gate" id="gate" style="display:none">
   <div class="card"><h1>유유히 · Admin</h1><p>유유히 홈페이지 관리 콘솔입니다.</p>
     <input type="password" id="pw" placeholder="비밀번호 입력" /><button id="loginBtn">로그인</button>
-    <div class="hint">초안 비밀번호: uuhee</div></div>
+  </div>
 </div>
 
 <div class="layout" id="app" style="display:none">
@@ -460,7 +460,7 @@ window.UUHEE_SB={url:'https://ybfwnmgnledlumppfjbh.supabase.co',key:'sb_publisha
 })();
 </script>
 <script>
-const PW='uuhee';
+const ADMIN_EMAIL='liminalspace335@gmail.com';
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
 const Jarr=k=>{try{const v=JSON.parse(localStorage.getItem(k)||'[]');return Array.isArray(v)?v:[];}catch(e){return [];}};
 const esc=s=>(s==null?'':String(s)).replace(/[<>&"]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c]));
@@ -529,7 +529,7 @@ function __pushCloud(scope){
   }
   __cloudSaving=true;
   try{
-    Promise.resolve(window.__cloud.pushSettings(S,scope)).catch(function(e){console.warn('cloud save',e);}).then(function(){
+    Promise.resolve(window.__cloud.pushSettings(S,scope)).catch(function(e){console.warn('cloud save',e);alert('저장 중 서버 오류가 발생했습니다. 화면엔 "저장됨"으로 보여도 실제로는 반영되지 않았을 수 있으니, 인터넷 연결을 확인하고 다시 저장해 주세요.\n('+((e&&e.message)||e)+')');}).then(function(){
       __cloudSaving=false;
       if(__cloudSavePending){var p=__cloudSavePending;__cloudSavePending=null;__pushCloud(p);}
     });
@@ -539,23 +539,17 @@ function save(scope){var j=JSON.stringify(S);localStorage.setItem('uuhee_setting
 const branchNames=()=>S.branches.map(b=>b.name).filter(Boolean);
 
 function unlock(){$('#gate').style.display='none';$('#app').style.display='flex';renderAll();}
-$('#loginBtn').addEventListener('click',()=>{if($('#pw').value===PW){sessionStorage.setItem('uuhee_admin','1');function refreshSubmissionsFromCloud(){
-  if(!window.__sb)return;
-  var s=function(v){return v==null?'':String(v);};
-  Promise.all([window.__sb.from('applications').select('*').order('id'),window.__sb.from('inquiries').select('*').order('id'),window.__sb.from('application_items').select('*')]).then(function(r){
-    if(r[0].error||r[1].error){console.warn('subs load',r[0].error||r[1].error);return;}
-    var itemsBy={};(r[2].data||[]).forEach(function(it){var k=it.application_id;(itemsBy[k]=itemsBy[k]||{})[s(it.size)]=it.qty;});
-    apps=(r[0].data||[]).map(function(a){return {id:a.id,status:(a.status||1),memo:s(a.memo),branch:s(a.branch),class:s(a.cls),size:s(a.size),date:s(a.sdate),time:s(a.stime),people:(a.people==null?'':String(a.people)),name:s(a.name),phone:s(a.phone),email:s(a.email),msg:s(a.msg),estimate:a.estimate,qty:itemsBy[a.id]||null,ts:a.created_at?Date.parse(a.created_at):Date.now()};});
-    group=(r[1].data||[]).map(function(g){return {id:g.id,status:(g.status||1),memo:s(g.memo),type:s(g.itype),volume:s(g.volume),branch:s(g.branch),company:s(g.company),name:s(g.name),phone:s(g.phone),email:s(g.email),size:s(g.isize),msg:s(g.msg),ts:g.created_at?Date.parse(g.created_at):Date.now()};});
-    try{localStorage.setItem('uuhee_apps',JSON.stringify(apps));localStorage.setItem('uuhee_group',JSON.stringify(group));}catch(e){}
-    renderLists();renderOverview();
-  }).catch(function(e){console.warn('subs refresh',e);});
-}
-unlock();
-restoreAdminTab();
-refreshSubmissionsFromCloud();}else alert('비밀번호가 올바르지 않습니다.');});
+$('#loginBtn').addEventListener('click',async ()=>{
+  if(!window.__sb){alert('서버 연결에 실패했습니다. 잠시 후 다시 시도해 주세요.');return;}
+  var pwVal=$('#pw').value;
+  var res=await window.__sb.auth.signInWithPassword({email:ADMIN_EMAIL,password:pwVal});
+  if(res.error){alert('비밀번호가 올바르지 않습니다.');return;}
+  unlock();
+  restoreAdminTab();
+  refreshSubmissionsFromCloud();
+});
 $('#pw').addEventListener('keydown',e=>{if(e.key==='Enter')$('#loginBtn').click();});
-$('#logout').addEventListener('click',()=>{sessionStorage.removeItem('uuhee_admin');location.reload();});
+$('#logout').addEventListener('click',()=>{(window.__sb?window.__sb.auth.signOut():Promise.resolve()).finally(()=>location.reload());});
 $$('#nav a').forEach(a=>a.addEventListener('click',()=>{$$('#nav a').forEach(x=>x.classList.remove('active'));a.classList.add('active');
   const p=a.dataset.p;$$('.panel').forEach(x=>x.classList.remove('active'));$('#panel-'+p).classList.add('active');$('#ptitle').textContent=a.textContent;
   try{sessionStorage.setItem('uuhee_panel',p);}catch(e){}}));
@@ -653,8 +647,8 @@ $('#bulkApply')&&$('#bulkApply').addEventListener('click',function(){var picks=c
 $('#bkClose')&&$('#bkClose').addEventListener('click',function(){$('#bulkModal').style.display='none';});
 $('#bkCancel')&&$('#bkCancel').addEventListener('click',function(){$('#bulkModal').style.display='none';});
 $('#bulkModal')&&$('#bulkModal').addEventListener('click',function(e){if(e.target.id==='bulkModal')$('#bulkModal').style.display='none';});
-$('#bkApply')&&$('#bkApply').addEventListener('click',function(){var picks=window.__bkPicks||[];var from=+$('#bkFrom').value,to=+$('#bkTo').value,ig=$('#bkIgnore').checked;var aid=[],gid=[];picks.forEach(function(p){if(ig||(p.rec.status||1)===from){p.rec.status=to;if(p.rec.id)(p.w==='apps'?aid:gid).push(p.rec.id);}});if(window.__sb){if(aid.length)window.__sb.from('applications').update({status:to}).in('id',aid).then(function(r){if(r.error)console.warn(r.error);});if(gid.length)window.__sb.from('inquiries').update({status:to}).in('id',gid).then(function(r){if(r.error)console.warn(r.error);});}try{localStorage.setItem('uuhee_apps',JSON.stringify(apps));localStorage.setItem('uuhee_group',JSON.stringify(group));}catch(_){}renderSubs();renderOverview();$('#bulkModal').style.display='none';});
-$('#bulkDel')&&$('#bulkDel').addEventListener('click',function(){var picks=checkedPicks();if(!picks.length){alert('선택된 항목이 없습니다.');return;}if(!confirm(picks.length+'건 삭제할까요?'))return;var aid=[],gid=[];picks.forEach(function(p){var arr=p.w==='apps'?apps:group;var r=arr[p.i];if(r&&r.id)(p.w==='apps'?aid:gid).push(r.id);});if(window.__sb){if(aid.length)window.__sb.from('applications').delete().in('id',aid);if(gid.length)window.__sb.from('inquiries').delete().in('id',gid);}apps=apps.filter(function(a){return aid.indexOf(a.id)<0;});group=group.filter(function(g){return gid.indexOf(g.id)<0;});try{localStorage.setItem('uuhee_apps',JSON.stringify(apps));localStorage.setItem('uuhee_group',JSON.stringify(group));}catch(_){}renderSubs();renderOverview();});
+$('#bkApply')&&$('#bkApply').addEventListener('click',function(){var picks=window.__bkPicks||[];var from=+$('#bkFrom').value,to=+$('#bkTo').value,ig=$('#bkIgnore').checked;var aid=[],gid=[];picks.forEach(function(p){if(ig||(p.rec.status||1)===from){p.rec.status=to;if(p.rec.id)(p.w==='apps'?aid:gid).push(p.rec.id);}});if(window.__sb){if(aid.length)window.__sb.from('applications').update({status:to}).in('id',aid).then(function(r){if(r.error){console.warn(r.error);alert('일부 항목의 서버 저장에 실패했습니다: '+r.error.message);}});if(gid.length)window.__sb.from('inquiries').update({status:to}).in('id',gid).then(function(r){if(r.error){console.warn(r.error);alert('일부 항목의 서버 저장에 실패했습니다: '+r.error.message);}});}try{localStorage.setItem('uuhee_apps',JSON.stringify(apps));localStorage.setItem('uuhee_group',JSON.stringify(group));}catch(_){}renderSubs();renderOverview();$('#bulkModal').style.display='none';});
+$('#bulkDel')&&$('#bulkDel').addEventListener('click',function(){var picks=checkedPicks();if(!picks.length){alert('선택된 항목이 없습니다.');return;}if(!confirm(picks.length+'건 삭제할까요?'))return;var aid=[],gid=[];picks.forEach(function(p){var arr=p.w==='apps'?apps:group;var r=arr[p.i];if(r&&r.id)(p.w==='apps'?aid:gid).push(r.id);});if(window.__sb){if(aid.length)window.__sb.from('applications').delete().in('id',aid).then(function(r){if(r.error){console.warn(r.error);alert('일부 항목의 서버 삭제에 실패했습니다: '+r.error.message);}});if(gid.length)window.__sb.from('inquiries').delete().in('id',gid).then(function(r){if(r.error){console.warn(r.error);alert('일부 항목의 서버 삭제에 실패했습니다: '+r.error.message);}});}apps=apps.filter(function(a){return aid.indexOf(a.id)<0;});group=group.filter(function(g){return gid.indexOf(g.id)<0;});try{localStorage.setItem('uuhee_apps',JSON.stringify(apps));localStorage.setItem('uuhee_group',JSON.stringify(group));}catch(_){}renderSubs();renderOverview();});
 $('#subAdd')&&$('#subAdd').addEventListener('click',function(){openSubEditNew(SUBTAB==='group'?'group':'apps');});
 $('#csvApps')&&$('#csvApps').addEventListener('click',function(){download('uuhee_class_apps.csv',toCSV([['지점','클래스','용량','날짜','시간','인원','이름','연락처','이메일','결제금액','상태','메모','접수'],].concat(apps.map(function(a){return [a.branch,a.class,a.size,a.date,a.time,a.people,a.name,a.phone,a.email,a.estimate,STLAB[a.status||1],a.memo,fmt(a.ts)];}))));});
 $('#csvGroup')&&$('#csvGroup').addEventListener('click',function(){download('uuhee_group.csv',toCSV([['유형','용량','지점','회사단체','담당자','연락처','이메일','내용','상태','메모','접수'],].concat(group.map(function(g){return [g.type,g.volume,g.branch,g.company,g.name,g.phone,g.email,g.msg,STLAB[g.status||1],g.memo,fmt(g.ts)];}))));});
@@ -973,7 +967,7 @@ function buildSchedule(){
 
 function renderAll(){renderOverview();renderLists();renderSite();buildTables();buildSchedule();renderSchedule();}
 
-/* 모든 정의 이후 자동 진입 (로그인 게이트 임시 비활성화) */
+/* 모든 정의 이후 — 기존 로그인 세션이 있으면 게이트 없이 자동 진입, 없으면 로그인 게이트 표시 */
 function refreshSubmissionsFromCloud(){
   if(!window.__sb)return;
   var s=function(v){return v==null?'':String(v);};
@@ -986,9 +980,14 @@ function refreshSubmissionsFromCloud(){
     renderLists();renderOverview();
   }).catch(function(e){console.warn('subs refresh',e);});
 }
-unlock();
-restoreAdminTab();
-refreshSubmissionsFromCloud();
+(function(){
+  if(!window.__sb){$('#gate').style.display='flex';return;}
+  window.__sb.auth.getSession().then(function(r){
+    var session=r&&r.data&&r.data.session;
+    if(session){unlock();restoreAdminTab();refreshSubmissionsFromCloud();}
+    else{$('#gate').style.display='flex';}
+  });
+})();
 </script>
 </body>
 </html>
