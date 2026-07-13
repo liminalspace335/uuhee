@@ -860,7 +860,9 @@ function renderLegalForm(){
 }
 /* ===== 클래스설정 (날짜별 운영) ===== */
 let schedBranch='', schedMonth=new Date(), schedDate='', schedRows=[];
-let schedInit=false, schedClip=null, pasteMode=false, selDates=[], dragging=false, didDrag=false, dragStartDay='';
+let schedInit=false, schedClip=null, pasteMode=false, selDates=[], dragging=false, didDrag=false, dragStartDay='', dragRange=[];
+function parseYmd(s){var p=String(s||'').split('-');return new Date(+p[0],+p[1]-1,+p[2]);}
+function dateRangeBetween(a,b){var da=parseYmd(a),db=parseYmd(b);var lo=da<=db?da:db,hi=da<=db?db:da;var out=[],cur=new Date(lo);while(cur<=hi){out.push(ymd(cur));cur.setDate(cur.getDate()+1);}return out;}
 function ymd(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
 function defSlots(b){return (S.slots||[]).filter(function(s){return s.branch===b;}).map(function(s){return {classId:s.classId,time:s.time,cap:s.cap};});}
 function renderSchedule(){
@@ -880,7 +882,7 @@ function renderCal(){
   for(var dd=1;dd<=days;dd++){var ds=ymd(new Date(y,m,dd)),key=schedBranch+'|'+ds;
     var hol=(S.holidays||[]).indexOf(key)>-1,ov=S.schedule&&S.schedule[key];
     var tag=hol?'<div class="tag hol">휴무</div>':(ov?'<div class="tag">●설정 '+ov.length+'</div>':'');
-    var pc=(pasteMode&&selDates.indexOf(ds)>-1)?' psel':'';var tc=(ds===_today)?' today':'';
+    var pc=(pasteMode&&(selDates.indexOf(ds)>-1||(dragging&&dragRange.indexOf(ds)>-1)))?' psel':'';var tc=(ds===_today)?' today':'';
     c+='<div class="d '+(ds===schedDate?'sel':'')+pc+tc+'" data-d="'+ds+'"><div class="n">'+dd+'</div>'+tag+'</div>';}
   cal.innerHTML=c;
 }
@@ -909,7 +911,9 @@ function renderPasteBar(){
   var bar=$('#schedPasteBar');if(!bar)return;
   if(!pasteMode){bar.style.display='none';bar.innerHTML='';return;}
   bar.style.display='';
-  bar.innerHTML='<div class="paste-bar">📋 복사됨 — 붙여넣을 날짜를 클릭하거나 드래그로 여러 날 선택 · <b>'+(selDates.length?selDates.length+'일 선택됨':'날짜 미선택')+'</b><span class="sp"></span><button class="btn gold" id="schedPaste">붙여넣기</button><button class="btn ghost" id="schedPasteCancel">취소</button></div>';
+  var previewCount=selDates.length;
+  if(dragging&&dragRange.length){var u={};selDates.forEach(function(d){u[d]=1;});dragRange.forEach(function(d){u[d]=1;});previewCount=Object.keys(u).length;}
+  bar.innerHTML='<div class="paste-bar">📋 복사됨 — 붙여넣을 날짜를 클릭하거나 드래그로 여러 날 선택 · <b>'+(previewCount?previewCount+'일 선택됨':'날짜 미선택')+'</b><span class="sp"></span><button class="btn gold" id="schedPaste">붙여넣기</button><button class="btn ghost" id="schedPasteCancel">취소</button></div>';
 }
 var schedWired=false;
 function buildSchedule(){
@@ -935,15 +939,16 @@ function buildSchedule(){
     if(e.target.id==='schedClear'){var anyB2=schedRows.some(function(r){return bookedForDay(r.classId,r.time)>0;});if(anyB2&&!confirm('이 날짜에 접수된 신청이 있습니다. 개별설정을 해제할까요?'))return;var k2=schedBranch+'|'+schedDate;if(S.schedule)delete S.schedule[k2];schedRows=defSlots(schedBranch);save('schedule');renderCal();renderSchedEditor();return;}
   });
   p.addEventListener('input',function(e){var t=e.target;if(t.dataset.sc!=null)schedRows[+t.dataset.i][t.dataset.sc]=t.value;});
-  // 클릭 = 그 날짜를 선택/해제 토글, 드래그 = 지나간 날짜들을 기존 선택에 추가.
-  // 예전엔 mousedown에서 매번 selDates를 통째로 새 배열로 덮어써서, 클릭으로 여러 날을 하나씩
-  // 골라도 마지막 클릭한 날짜만 남고 이전 선택이 다 사라지는 문제가 있었음(그래서 엉뚱한 날짜에만 저장됨).
-  p.addEventListener('mousedown',function(e){if(!pasteMode)return;var day=e.target.closest('.d[data-d]');if(!day)return;e.preventDefault();dragging=true;didDrag=false;dragStartDay=day.dataset.d;});
-  p.addEventListener('mouseover',function(e){if(!pasteMode||!dragging)return;var day=e.target.closest('.d[data-d]');if(!day)return;var ds=day.dataset.d;if(ds===dragStartDay&&!didDrag)return;var changed=false;
-    if(!didDrag){didDrag=true;if(selDates.indexOf(dragStartDay)<0){selDates.push(dragStartDay);changed=true;}}
-    if(selDates.indexOf(ds)<0){selDates.push(ds);changed=true;}
-    if(changed){renderCal();renderPasteBar();}});
-  document.addEventListener('mouseup',function(){if(dragging)dragging=false;});
+  // 클릭 = 그 날짜를 선택/해제 토글. 드래그 = 시작 날짜~지금 가리키는 날짜 사이의 모든 날짜를
+  // (다음 줄로 넘어가도) 자연스럽게 이어서 미리보기로 채워주고, 손을 떼는 순간 기존 선택에 합쳐짐.
+  p.addEventListener('mousedown',function(e){if(!pasteMode)return;var day=e.target.closest('.d[data-d]');if(!day)return;e.preventDefault();dragging=true;didDrag=false;dragStartDay=day.dataset.d;dragRange=[dragStartDay];});
+  p.addEventListener('mouseover',function(e){if(!pasteMode||!dragging)return;var day=e.target.closest('.d[data-d]');if(!day)return;var ds=day.dataset.d;
+    var next=dateRangeBetween(dragStartDay,ds);
+    if(ds!==dragStartDay)didDrag=true;
+    dragRange=next;renderCal();renderPasteBar();});
+  document.addEventListener('mouseup',function(){if(!dragging)return;dragging=false;
+    if(didDrag){dragRange.forEach(function(d){if(selDates.indexOf(d)<0)selDates.push(d);});renderPasteBar();}
+    dragRange=[];renderCal();});
 }
 
 function renderAll(){renderOverview();renderLists();renderSite();buildTables();buildSchedule();renderSchedule();}
