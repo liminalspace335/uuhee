@@ -860,7 +860,7 @@ function renderLegalForm(){
 }
 /* ===== 클래스설정 (날짜별 운영) ===== */
 let schedBranch='', schedMonth=new Date(), schedDate='', schedRows=[];
-let schedInit=false, schedClip=null, pasteMode=false, selDates=[], dragging=false, didDrag=false;
+let schedInit=false, schedClip=null, pasteMode=false, selDates=[], dragging=false, didDrag=false, dragStartDay='';
 function ymd(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
 function defSlots(b){return (S.slots||[]).filter(function(s){return s.branch===b;}).map(function(s){return {classId:s.classId,time:s.time,cap:s.cap};});}
 function renderSchedule(){
@@ -917,9 +917,9 @@ function buildSchedule(){
   $('#schedBranch').addEventListener('change',function(e){schedBranch=e.target.value;schedDate='';renderCal();renderSchedEditor();});
   $('#schedPrev').addEventListener('click',function(){schedMonth=new Date(schedMonth.getFullYear(),schedMonth.getMonth()-1,1);renderCal();});
   $('#schedNext').addEventListener('click',function(){schedMonth=new Date(schedMonth.getFullYear(),schedMonth.getMonth()+1,1);renderCal();});
-  $('#schedToday').addEventListener('click',function(){var t=new Date();schedMonth=new Date(t.getFullYear(),t.getMonth(),1);if(pasteMode){selDates=[ymd(t)];renderCal();renderPasteBar();}else selectSchedDate(ymd(t));});
+  $('#schedToday').addEventListener('click',function(){var t=new Date();schedMonth=new Date(t.getFullYear(),t.getMonth(),1);if(pasteMode){var dst=ymd(t);var ixt=selDates.indexOf(dst);if(ixt>-1)selDates.splice(ixt,1);else selDates.push(dst);renderCal();renderPasteBar();}else selectSchedDate(ymd(t));});
   p.addEventListener('click',function(e){
-    var day=e.target.closest('.d[data-d]');if(day){if(pasteMode){if(didDrag){didDrag=false;return;}selDates=[day.dataset.d];renderCal();renderPasteBar();}else selectSchedDate(day.dataset.d);return;}
+    var day=e.target.closest('.d[data-d]');if(day){if(pasteMode){if(didDrag){didDrag=false;return;}var ds0=day.dataset.d;var ix0=selDates.indexOf(ds0);if(ix0>-1)selDates.splice(ix0,1);else selDates.push(ds0);renderCal();renderPasteBar();}else selectSchedDate(day.dataset.d);return;}
     if(e.target.id==='schedCopy'){schedClip=(schedRows||[]).map(function(r){return Object.assign({},r);});pasteMode=true;selDates=[];renderCal();renderPasteBar();return;}
     if(e.target.id==='schedPasteCancel'){pasteMode=false;selDates=[];dragging=false;renderCal();renderPasteBar();return;}
     if(e.target.id==='schedPaste'){if(!schedClip){pasteMode=false;renderPasteBar();return;}var targets=selDates.length?selDates.slice():(schedDate?[schedDate]:[]);if(!targets.length){alert('붙여넣을 날짜를 선택하세요.');return;}if(!S.schedule)S.schedule={};targets.forEach(function(ds){S.schedule[schedBranch+'|'+ds]=schedClip.map(function(r){return Object.assign({},r);});var hk=schedBranch+'|'+ds,hi=(S.holidays||[]).indexOf(hk);if(hi>-1)S.holidays.splice(hi,1);});save(['schedule','holidays']);pasteMode=false;selDates=[];dragging=false;renderCal();renderPasteBar();renderSchedEditor();alert(targets.length+'개 날짜에 붙여넣었습니다.');return;}
@@ -935,8 +935,14 @@ function buildSchedule(){
     if(e.target.id==='schedClear'){var anyB2=schedRows.some(function(r){return bookedForDay(r.classId,r.time)>0;});if(anyB2&&!confirm('이 날짜에 접수된 신청이 있습니다. 개별설정을 해제할까요?'))return;var k2=schedBranch+'|'+schedDate;if(S.schedule)delete S.schedule[k2];schedRows=defSlots(schedBranch);save('schedule');renderCal();renderSchedEditor();return;}
   });
   p.addEventListener('input',function(e){var t=e.target;if(t.dataset.sc!=null)schedRows[+t.dataset.i][t.dataset.sc]=t.value;});
-  p.addEventListener('mousedown',function(e){if(!pasteMode)return;var day=e.target.closest('.d[data-d]');if(!day)return;e.preventDefault();dragging=true;didDrag=false;selDates=[day.dataset.d];renderCal();renderPasteBar();});
-  p.addEventListener('mouseover',function(e){if(!pasteMode||!dragging)return;var day=e.target.closest('.d[data-d]');if(!day)return;if(selDates.indexOf(day.dataset.d)<0){selDates.push(day.dataset.d);didDrag=true;renderCal();renderPasteBar();}});
+  // 클릭 = 그 날짜를 선택/해제 토글, 드래그 = 지나간 날짜들을 기존 선택에 추가.
+  // 예전엔 mousedown에서 매번 selDates를 통째로 새 배열로 덮어써서, 클릭으로 여러 날을 하나씩
+  // 골라도 마지막 클릭한 날짜만 남고 이전 선택이 다 사라지는 문제가 있었음(그래서 엉뚱한 날짜에만 저장됨).
+  p.addEventListener('mousedown',function(e){if(!pasteMode)return;var day=e.target.closest('.d[data-d]');if(!day)return;e.preventDefault();dragging=true;didDrag=false;dragStartDay=day.dataset.d;});
+  p.addEventListener('mouseover',function(e){if(!pasteMode||!dragging)return;var day=e.target.closest('.d[data-d]');if(!day)return;var ds=day.dataset.d;if(ds===dragStartDay&&!didDrag)return;var changed=false;
+    if(!didDrag){didDrag=true;if(selDates.indexOf(dragStartDay)<0){selDates.push(dragStartDay);changed=true;}}
+    if(selDates.indexOf(ds)<0){selDates.push(ds);changed=true;}
+    if(changed){renderCal();renderPasteBar();}});
   document.addEventListener('mouseup',function(){if(dragging)dragging=false;});
 }
 
