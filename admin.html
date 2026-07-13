@@ -621,7 +621,8 @@ function renderSubs(){
 $$('#subTabs .subtab').forEach(function(t){t.addEventListener('click',function(){$$('#subTabs .subtab').forEach(function(x){x.classList.remove('active');});t.classList.add('active');SUBTAB=t.dataset.st;renderSubs();});});
 ['subSearch'].forEach(function(id){var el=$('#'+id);if(el)el.addEventListener('input',renderSubs);});
 ['subFStatus','subFBranch','subFDate'].forEach(function(id){var el=$('#'+id);if(el)el.addEventListener('change',renderSubs);});
-(function(){var el=$('#subFDate');if(el&&!el.value)el.value=ymd(new Date());})();
+// 예전엔 날짜 필터 기본값이 '오늘'이라서, 신청 데이터가 있어도 희망일이 오늘이 아니면
+// 신청관리 목록에서 안 보이는 혼란이 있었음. 기본값을 '전체'로 바꿔 모든 신청이 먼저 보이게 함.
 $('#subDateAll')&&$('#subDateAll').addEventListener('click',function(){var el=$('#subFDate');if(el)el.value='';renderSubs();});
 document.addEventListener('change',function(e){if(e.target.id==='subAll'){$$('#subsTable .subck').forEach(function(c){c.checked=e.target.checked;});}});
 function checkedPicks(){return $$('#subsTable .subck:checked').map(function(c){return {w:c.dataset.w,i:+c.dataset.i};});}
