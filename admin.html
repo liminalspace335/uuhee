@@ -442,8 +442,32 @@ window.UUHEE_SB={url:'https://ybfwnmgnledlumppfjbh.supabase.co',key:'sb_publisha
       img.src=url;
     });
   }
+  // 날짜 하나(schedule)/휴무일 키 하나(holidays)만 건드리는 저장 — 캘린더 저장이 테이블 전체를
+  // 지우고 다시 쓰던 방식(repl)을 쓰면서 반복적으로 중복·유실 사고가 났던 문제의 근본 원인을 없앤다.
+  function saveScheduleDate(branch,sdate,rows){
+    var payload=(rows||[]).map(function(r){
+      var c=(S.classes||[]).filter(function(x){return String(x.id)===String(r.classId);})[0];
+      return {branch:s(branch),sdate:s(sdate),class_id:(r.classId===''||r.classId==null?null:N(r.classId)),cls:c?c.name:'',stime:s(r.time),cap:N(r.cap)};
+    });
+    return sb.from('schedule').select('id').eq('branch',branch).eq('sdate',sdate).then(function(r){
+      if(r.error)throw r.error;
+      var oldIds=(r.data||[]).map(function(x){return x.id;});
+      var ins=payload.length?sb.from('schedule').insert(payload):Promise.resolve({error:null});
+      return Promise.resolve(ins).then(function(res){
+        if(res&&res.error)throw res.error;
+        if(!oldIds.length)return res;
+        return sb.from('schedule').delete().in('id',oldIds).then(function(dr){if(dr&&dr.error)throw dr.error;return res;});
+      });
+    });
+  }
+  function saveHolidayToggle(branch,sdate,isHoliday){
+    if(isHoliday)return sb.from('holidays').insert({branch:s(branch),sdate:s(sdate)}).then(function(res){if(res&&res.error)throw res.error;return res;});
+    return sb.from('holidays').delete().eq('branch',branch).eq('sdate',sdate).then(function(res){if(res&&res.error)throw res.error;return res;});
+  }
   window.__cloud={
     pushSettings:pushSettings,
+    saveScheduleDate:saveScheduleDate,
+    saveHolidayToggle:saveHolidayToggle,
     uploadFile:function(file){if(!file)return Promise.reject(new Error('no file'));
       if(file.type&&file.type.indexOf('video/')===0){
         var maxVideoMB=30;
@@ -940,17 +964,50 @@ function buildSchedule(){
     var day=e.target.closest('.d[data-d]');if(day){if(pasteMode){if(didDrag){didDrag=false;return;}var ds0=day.dataset.d;var ix0=selDates.indexOf(ds0);if(ix0>-1)selDates.splice(ix0,1);else selDates.push(ds0);renderCal();renderPasteBar();}else selectSchedDate(day.dataset.d);return;}
     if(e.target.id==='schedCopy'){schedClip=(schedRows||[]).map(function(r){return Object.assign({},r);});pasteMode=true;selDates=[];renderCal();renderPasteBar();return;}
     if(e.target.id==='schedPasteCancel'){pasteMode=false;selDates=[];dragging=false;renderCal();renderPasteBar();return;}
-    if(e.target.id==='schedPaste'){if(!schedClip){pasteMode=false;renderPasteBar();return;}var targets=selDates.length?selDates.slice():(schedDate?[schedDate]:[]);if(!targets.length){alert('붙여넣을 날짜를 선택하세요.');return;}if(!S.schedule)S.schedule={};targets.forEach(function(ds){S.schedule[schedBranch+'|'+ds]=schedClip.map(function(r){return Object.assign({},r);});var hk=schedBranch+'|'+ds,hi=(S.holidays||[]).indexOf(hk);if(hi>-1)S.holidays.splice(hi,1);});save(['schedule','holidays']);pasteMode=false;selDates=[];dragging=false;renderCal();renderPasteBar();renderSchedEditor();alert(targets.length+'개 날짜에 붙여넣었습니다.');return;}
+    if(e.target.id==='schedPaste'){if(!schedClip){pasteMode=false;renderPasteBar();return;}var targets=selDates.length?selDates.slice():(schedDate?[schedDate]:[]);if(!targets.length){alert('붙여넣을 날짜를 선택하세요.');return;}if(!S.schedule)S.schedule={};
+      var pasteJobs=[];
+      targets.forEach(function(ds){var rowsCopy=schedClip.map(function(r){return Object.assign({},r);});S.schedule[schedBranch+'|'+ds]=rowsCopy;var hk=schedBranch+'|'+ds,hi=(S.holidays||[]).indexOf(hk);var wasHoliday=hi>-1;if(wasHoliday)S.holidays.splice(hi,1);pasteJobs.push({ds:ds,rows:rowsCopy,wasHoliday:wasHoliday});});
+      try{localStorage.setItem('uuhee_settings',JSON.stringify(S));}catch(_){}
+      pasteMode=false;selDates=[];dragging=false;renderCal();renderPasteBar();renderSchedEditor();
+      if(window.__cloud&&window.__cloud.saveScheduleDate){
+        Promise.all(pasteJobs.map(function(t){var jobs=[window.__cloud.saveScheduleDate(schedBranch,t.ds,t.rows)];if(t.wasHoliday&&window.__cloud.saveHolidayToggle)jobs.push(window.__cloud.saveHolidayToggle(schedBranch,t.ds,false));return Promise.all(jobs);}))
+          .then(function(){alert(targets.length+'개 날짜에 붙여넣었습니다.');}).catch(function(err){alert('일부 날짜 저장에 실패했습니다: '+((err&&err.message)||err));});
+      }else{alert(targets.length+'개 날짜에 붙여넣었습니다.');}
+      return;}
     var rm=e.target.closest('[data-srm]');if(rm){schedRows.splice(+rm.dataset.srm,1);renderSchedEditor();return;}
     if(e.target.id==='schedAdd'){schedRows.push({classId:(S.classes[0]&&S.classes[0].id)||'',time:'',cap:''});renderSchedEditor();return;}
     if(e.target.id==='schedDefault'){var anyB=schedRows.some(function(r){return bookedForDay(r.classId,r.time)>0;});if(anyB&&!confirm('이 날짜에 접수된 신청이 있습니다. 기본값으로 덮어쓸까요?'))return;schedRows=defSlots(schedBranch);renderSchedEditor();return;}
-    if(e.target.id==='schedSave'){if(!S.schedule)S.schedule={};S.schedule[schedBranch+'|'+schedDate]=schedRows.map(function(r){return Object.assign({},r);});save('schedule');renderCal();alert('저장되었습니다.');return;}
+    if(e.target.id==='schedSave'){
+      if(!S.schedule)S.schedule={};
+      var rowsCopy=schedRows.map(function(r){return Object.assign({},r);});
+      S.schedule[schedBranch+'|'+schedDate]=rowsCopy;
+      try{localStorage.setItem('uuhee_settings',JSON.stringify(S));}catch(_){}
+      renderCal();
+      if(window.__cloud&&window.__cloud.saveScheduleDate){window.__cloud.saveScheduleDate(schedBranch,schedDate,rowsCopy).then(function(){alert('저장되었습니다.');}).catch(function(err){alert('서버 저장 실패: '+((err&&err.message)||err));});}
+      else alert('저장되었습니다.');
+      return;}
     if(e.target.id==='schedHol'){var k=schedBranch+'|'+schedDate;if(!S.holidays)S.holidays=[];var ix=S.holidays.indexOf(k);
-      if(ix>-1){S.holidays.splice(ix,1);save('holidays');renderCal();renderSchedEditor();return;} // 휴무 해제는 바로 처리
+      if(ix>-1){
+        S.holidays.splice(ix,1);
+        try{localStorage.setItem('uuhee_settings',JSON.stringify(S));}catch(_){}
+        renderCal();renderSchedEditor();
+        if(window.__cloud&&window.__cloud.saveHolidayToggle)window.__cloud.saveHolidayToggle(schedBranch,schedDate,false).catch(function(err){alert('서버 저장 실패: '+((err&&err.message)||err));});
+        return;
+      } // 휴무 해제는 바로 처리
       var sum=appsSummaryForDate(schedDate);
       if(sum.count>0&&!confirm(schedDate+'는 신청데이터가 '+sum.count+'건('+sum.people+'명) 있습니다. 휴무일로 지정하시겠습니까?'))return;
-      S.holidays.push(k);save('holidays');renderCal();renderSchedEditor();return;}
-    if(e.target.id==='schedClear'){var anyB2=schedRows.some(function(r){return bookedForDay(r.classId,r.time)>0;});if(anyB2&&!confirm('이 날짜에 접수된 신청이 있습니다. 개별설정을 해제할까요?'))return;var k2=schedBranch+'|'+schedDate;if(S.schedule)delete S.schedule[k2];schedRows=defSlots(schedBranch);save('schedule');renderCal();renderSchedEditor();return;}
+      S.holidays.push(k);
+      try{localStorage.setItem('uuhee_settings',JSON.stringify(S));}catch(_){}
+      renderCal();renderSchedEditor();
+      if(window.__cloud&&window.__cloud.saveHolidayToggle)window.__cloud.saveHolidayToggle(schedBranch,schedDate,true).catch(function(err){alert('서버 저장 실패: '+((err&&err.message)||err));});
+      return;}
+    if(e.target.id==='schedClear'){var anyB2=schedRows.some(function(r){return bookedForDay(r.classId,r.time)>0;});if(anyB2&&!confirm('이 날짜에 접수된 신청이 있습니다. 개별설정을 해제할까요?'))return;
+      var k2=schedBranch+'|'+schedDate;if(S.schedule)delete S.schedule[k2];
+      schedRows=defSlots(schedBranch);
+      try{localStorage.setItem('uuhee_settings',JSON.stringify(S));}catch(_){}
+      renderCal();renderSchedEditor();
+      if(window.__cloud&&window.__cloud.saveScheduleDate)window.__cloud.saveScheduleDate(schedBranch,schedDate,[]).catch(function(err){alert('서버 저장 실패: '+((err&&err.message)||err));});
+      return;}
   });
   p.addEventListener('input',function(e){var t=e.target;if(t.dataset.sc!=null)schedRows[+t.dataset.i][t.dataset.sc]=t.value;});
   // 클릭 = 그 날짜를 선택/해제 토글. 드래그 = 시작 날짜~지금 가리키는 날짜 사이의 모든 날짜를
