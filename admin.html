@@ -1183,7 +1183,7 @@ function permsEditorHtml(prefix,perms){
   return MENU_KEYS.map(function(m){
     var cells=VERB_KEYS.map(function(v){
       var checked=(perms[m]&&perms[m][v])?'checked':'';
-      return '<label style="display:inline-flex;align-items:center;gap:4px;margin-right:14px"><input type="checkbox" data-pe="'+prefix+'" data-menu="'+m+'" data-verb="'+v+'" '+checked+'> '+VERB_LABELS[v]+'</label>';
+      return '<label style="display:inline-flex;align-items:center;gap:4px;margin-right:14px;white-space:nowrap"><input type="checkbox" data-pe="'+prefix+'" data-menu="'+m+'" data-verb="'+v+'" '+checked+' style="width:auto"> '+VERB_LABELS[v]+'</label>';
     }).join('');
     return '<div style="margin-bottom:8px"><b style="display:inline-block;width:76px">'+MENU_LABELS[m]+'</b>'+cells+'</div>';
   }).join('');
