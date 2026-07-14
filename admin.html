@@ -313,17 +313,17 @@ window.UUHEE_SB={url:'https://ybfwnmgnledlumppfjbh.supabase.co',key:'sb_publisha
       if(!site&&!legal&&!br.length&&!cl.length&&!de.length&&!sl.length&&!pa.length&&!ph.length&&!pf.length&&!sc.length&&!ho.length&&!cm.length&&!cb.length)return null;
       var S={};
       if(site)S.site={brand:s(site.brand),est:s(site.est),copyYear:s(site.copy_year),heroImg:s(site.hero_img),conceptImg:s(site.concept_img)};
-      S.conceptMedia=cm.map(function(m){return s(m.url);});
+      S.conceptMedia=cm.map(function(m){return {id:m.id,url:s(m.url)};});
       if(site)S.pay={bank:s(site.pay_bank),account:s(site.pay_account),holder:s(site.pay_holder),portoneStore:s(site.pay_portone_store),portoneChannel:s(site.pay_portone_channel)};
       if(legal)S.legal={company:s(legal.company),ceo:s(legal.ceo),bizno:s(legal.bizno),mailorder:s(legal.mailorder),privacy:s(legal.privacy),addr:s(legal.addr),tel:s(legal.tel),email:s(legal.email),kakao:s(legal.kakao),hosting:s(legal.hosting),termsUrl:s(legal.terms_url),privacyUrl:s(legal.privacy_url),refundUrl:s(legal.refund_url)};
-      S.branches=br.map(function(b){return {name:s(b.name),phone:s(b.phone),addr:s(b.addr),map:s(b.map),hours:s(b.hours),ig:s(b.ig),fb:s(b.fb),lt:s(b.lt),spaceDesc:s(b.space_desc)};});
+      S.branches=br.map(function(b){return {id:b.id,name:s(b.name),phone:s(b.phone),addr:s(b.addr),map:s(b.map),hours:s(b.hours),ig:s(b.ig),fb:s(b.fb),lt:s(b.lt),spaceDesc:s(b.space_desc)};});
       S.classes=cl.map(function(x){var brs=cb.filter(function(b){return b.class_id===x.id;}).map(function(b){return s(b.branch_name);});return {id:x.id,order:x.ord,tag:s(x.tag),name:s(x.name),desc:s(x.descr),active:!!x.active,inquiryOnly:!!x.inquiry_only,branches:brs};});
       // 클래스는 이름 문자열이 아니라 classId로 연결(조인)합니다. cls는 참고용으로만 남겨두고 매칭에는 쓰지 않습니다.
-      S.details=de.map(function(d){return {classId:d.class_id,branch:s(d.branch),size:s(d.size),price:(d.price==null?'':String(d.price)),discountType:s(d.discount_type),discountVal:(d.discount_val==null?'':String(d.discount_val)),desc:s(d.descr)};});
-      S.slots=sl.map(function(x){return {classId:x.class_id,branch:s(x.branch),time:s(x.stime),cap:(x.cap==null?'':String(x.cap))};});
-      S.partners=pa.map(function(p){return {name:s(p.name),logo:s(p.logo),cover:!!p.cover,order:p.ord,link:s(p.link)};});
-      S.photos=ph.map(function(p){return {img:s(p.img),category:s(p.category),folder:s(p.folder),title:s(p.title),desc:s(p.descr),cover:!!p.cover,order:p.ord,link:s(p.link)};});
-      S.photoFolders=pf.map(function(f){return {category:s(f.category),name:s(f.name),order:f.ord};});
+      S.details=de.map(function(d){return {id:d.id,classId:d.class_id,branch:s(d.branch),size:s(d.size),price:(d.price==null?'':String(d.price)),discountType:s(d.discount_type),discountVal:(d.discount_val==null?'':String(d.discount_val)),desc:s(d.descr)};});
+      S.slots=sl.map(function(x){return {id:x.id,classId:x.class_id,branch:s(x.branch),time:s(x.stime),cap:(x.cap==null?'':String(x.cap))};});
+      S.partners=pa.map(function(p){return {id:p.id,name:s(p.name),logo:s(p.logo),cover:!!p.cover,order:p.ord,link:s(p.link)};});
+      S.photos=ph.map(function(p){return {id:p.id,img:s(p.img),category:s(p.category),folder:s(p.folder),title:s(p.title),desc:s(p.descr),cover:!!p.cover,order:p.ord,link:s(p.link)};});
+      S.photoFolders=pf.map(function(f){return {id:f.id,category:s(f.category),name:s(f.name),order:f.ord};});
       var sd={};sc.forEach(function(x){var k=s(x.branch)+'|'+s(x.sdate);(sd[k]=sd[k]||[]).push({classId:x.class_id,time:s(x.stime),cap:(x.cap==null?'':String(x.cap))});});S.schedule=sd;
       S.holidays=ho.map(function(h){return s(h.branch)+'|'+s(h.sdate);});
       return S;
@@ -345,16 +345,32 @@ window.UUHEE_SB={url:'https://ybfwnmgnledlumppfjbh.supabase.co',key:'sb_publisha
     function loop(from){return sb.from(t).select('id').order('id').range(from,from+page-1).then(function(r){if(r.error)throw r.error;var rows=r.data||[];out=out.concat(rows.map(function(x){return x.id;}));if(rows.length<page)return out;return loop(from+page);});}
     return loop(0);
   }
-  function repl(t,rows){
-    return fetchAllIds(t).then(function(oldIds){
-      var ins=rows.length?sb.from(t).insert(rows):Promise.resolve({error:null});
-      return Promise.resolve(ins).then(function(res){
-        if(res&&res.error)throw res.error;
-        if(!oldIds.length)return res;
-        // 예전엔 delete 결과의 에러를 검사하지 않아 삭제 실패가 조용히 무시됐음(→ 중복 누적의 직접 원인).
-        // 또한 id가 많을 때 in() 목록이 너무 길어지는 걸 피하려고 청크로 나눠서 삭제하고, 실패하면 throw해서 저장 실패가 눈에 보이게 함.
-        var chunks=[];for(var i=0;i<oldIds.length;i+=300)chunks.push(oldIds.slice(i,i+300));
-        return chunks.reduce(function(p,chunk){return p.then(function(){return sb.from(t).delete().in('id',chunk).then(function(dr){if(dr&&dr.error)throw dr.error;});});},Promise.resolve()).then(function(){return res;});
+  function replUpsert(t,list,toPayload){
+    // classes(replClasses)와 같은 원칙을 다른 테이블에도 일반화한 버전: 기존 id가 있는 행은
+    // update, 새 행만 insert, 목록에서 빠진 것만 delete — 테이블 전체를 지우고 다시 쓰지 않음.
+    // (예전 repl()은 저장할 때마다 그 테이블의 관련 없는 행까지 전부 지웠다 새로 넣었음)
+    list=list||[];
+    var payload=list.map(function(x,i){var p=toPayload(x,i);p._idx=i;p.id=x.id;return p;});
+    return fetchAllIds(t).then(function(existingIds){
+      var toUpdate=payload.filter(function(p){return p.id!=null&&existingIds.indexOf(p.id)>=0;});
+      var toInsert=payload.filter(function(p){return p.id==null||existingIds.indexOf(p.id)<0;});
+      var keepIds=toUpdate.map(function(p){return p.id;});
+      var toDelete=existingIds.filter(function(id){return keepIds.indexOf(id)<0;});
+      var strip=function(p){var b=Object.assign({},p);delete b._idx;delete b.id;return b;};
+      var updateJobs=toUpdate.map(function(p){return sb.from(t).update(strip(p)).eq('id',p.id);});
+      return Promise.all(updateJobs).then(function(updRes){
+        var uErr=updRes.filter(function(r2){return r2&&r2.error;})[0];
+        if(uErr)throw uErr.error;
+        var insertRows=toInsert.map(strip);
+        var insJob=insertRows.length?sb.from(t).insert(insertRows).select('id'):Promise.resolve({data:[],error:null});
+        return Promise.resolve(insJob).then(function(insRes){
+          if(insRes&&insRes.error)throw insRes.error;
+          var newIds=(insRes.data||[]).map(function(x){return x.id;});
+          toInsert.forEach(function(p,k){if(list[p._idx])list[p._idx].id=newIds[k];}); // 새로 생긴 id를 로컬 상태에도 반영(다음 저장부터 update로 처리됨)
+          if(!toDelete.length)return insRes;
+          var chunks=[];for(var i=0;i<toDelete.length;i+=300)chunks.push(toDelete.slice(i,i+300));
+          return chunks.reduce(function(pr,chunk){return pr.then(function(){return sb.from(t).delete().in('id',chunk).then(function(dr){if(dr&&dr.error)throw dr.error;});});},Promise.resolve()).then(function(){return insRes;});
+        });
       });
     });
   }
@@ -405,16 +421,14 @@ window.UUHEE_SB={url:'https://ybfwnmgnledlumppfjbh.supabase.co',key:'sb_publisha
     var st=S.site||{},lg=S.legal||{},pay=S.pay||{};var jobs=[];
     if(want('site'))jobs.push(sb.from('site').upsert({id:'uuhee',brand:s(st.brand),est:s(st.est),copy_year:s(st.copyYear),hero_img:noD(st.heroImg),concept_img:noD(st.conceptImg),pay_bank:s(pay.bank),pay_account:s(pay.account),pay_holder:s(pay.holder),pay_portone_store:s(pay.portoneStore),pay_portone_channel:s(pay.portoneChannel)}));
     if(want('legal'))jobs.push(sb.from('legal').upsert({id:'uuhee',company:s(lg.company),ceo:s(lg.ceo),bizno:s(lg.bizno),mailorder:s(lg.mailorder),privacy:s(lg.privacy),addr:s(lg.addr),tel:s(lg.tel),email:s(lg.email),kakao:s(lg.kakao),hosting:s(lg.hosting),terms_url:s(lg.termsUrl),privacy_url:s(lg.privacyUrl),refund_url:s(lg.refundUrl)}));
-    if(want('branches'))jobs.push(repl('branches',(S.branches||[]).map(function(b,i){return {ord:i,name:s(b.name),phone:s(b.phone),addr:s(b.addr),map:s(b.map),hours:s(b.hours),ig:s(b.ig),fb:s(b.fb),lt:s(b.lt),space_desc:s(b.spaceDesc)};})));
+    if(want('branches'))jobs.push(replUpsert('branches',S.branches||[],function(b,i){return {ord:i,name:s(b.name),phone:s(b.phone),addr:s(b.addr),map:s(b.map),hours:s(b.hours),ig:s(b.ig),fb:s(b.fb),lt:s(b.lt),space_desc:s(b.spaceDesc)};}));
     if(want('classes'))jobs.push(replClasses(S.classes||[]));
-    if(want('details'))jobs.push(repl('details',(S.details||[]).map(function(d){return {branch:s(d.branch),class_id:(d.classId===''||d.classId==null?null:N(d.classId)),cls:cnById(d.classId),size:s(d.size),price:N(d.price),discount_type:s(d.discountType),discount_val:N(d.discountVal),descr:s(d.desc)};})));
-    if(want('slots'))jobs.push(repl('slots',(S.slots||[]).map(function(x){return {branch:s(x.branch),class_id:(x.classId===''||x.classId==null?null:N(x.classId)),cls:cnById(x.classId),stime:s(x.time),cap:N(x.cap)};})));
-    if(want('partners'))jobs.push(repl('partners',(S.partners||[]).map(function(p,i){return {ord:(p.order!=null?p.order:i),name:s(p.name),logo:noD(p.logo),cover:!!p.cover,link:s(p.link)};})));
-    if(want('photos'))jobs.push(repl('photos',(S.photos||[]).filter(function(p){return !(p.img&&/^data:/i.test(String(p.img)));}).map(function(p,i){return {ord:(p.order!=null?p.order:i),img:s(p.img),category:s(p.category),folder:s(p.folder),title:s(p.title),descr:s(p.desc),cover:!!p.cover,link:s(p.link)};})));
-    if(want('photo_folders'))jobs.push(repl('photo_folders',(S.photoFolders||[]).map(function(f,i){return {ord:(f.order!=null?f.order:i),category:s(f.category),name:s(f.name)};})));
-    if(want('concept_media'))jobs.push(repl('concept_media',(S.conceptMedia||[]).filter(function(u){var v=(u&&typeof u==='object')?u.src:u;return !(v&&/^data:/i.test(String(v)));}).map(function(u,i){return {ord:i,url:s((u&&typeof u==='object')?u.src:u)};})));
-    if(want('schedule')){var sr=[];Object.keys(S.schedule||{}).forEach(function(k){var p=k.split('|');(S.schedule[k]||[]).forEach(function(rr){sr.push({branch:p[0],sdate:p[1],class_id:(rr.classId===''||rr.classId==null?null:N(rr.classId)),cls:cnById(rr.classId),stime:s(rr.time),cap:N(rr.cap)});});});jobs.push(repl('schedule',sr));}
-    if(want('holidays'))jobs.push(repl('holidays',(S.holidays||[]).map(function(h){var p=String(h).split('|');return {branch:p[0],sdate:p[1]};})));
+    if(want('details'))jobs.push(replUpsert('details',S.details||[],function(d){return {branch:s(d.branch),class_id:(d.classId===''||d.classId==null?null:N(d.classId)),cls:cnById(d.classId),size:s(d.size),price:N(d.price),discount_type:s(d.discountType),discount_val:N(d.discountVal),descr:s(d.desc)};}));
+    if(want('slots'))jobs.push(replUpsert('slots',S.slots||[],function(x){return {branch:s(x.branch),class_id:(x.classId===''||x.classId==null?null:N(x.classId)),cls:cnById(x.classId),stime:s(x.time),cap:N(x.cap)};}));
+    if(want('partners'))jobs.push(replUpsert('partners',S.partners||[],function(p,i){return {ord:(p.order!=null?p.order:i),name:s(p.name),logo:noD(p.logo),cover:!!p.cover,link:s(p.link)};}));
+    if(want('photos'))jobs.push(replUpsert('photos',(S.photos||[]).filter(function(p){return !(p.img&&/^data:/i.test(String(p.img)));}),function(p,i){return {ord:(p.order!=null?p.order:i),img:s(p.img),category:s(p.category),folder:s(p.folder),title:s(p.title),descr:s(p.desc),cover:!!p.cover,link:s(p.link)};}));
+    if(want('photo_folders'))jobs.push(replUpsert('photo_folders',S.photoFolders||[],function(f,i){return {ord:(f.order!=null?f.order:i),category:s(f.category),name:s(f.name)};}));
+    if(want('concept_media'))jobs.push(replUpsert('concept_media',(S.conceptMedia||[]).filter(function(u){return !(u&&u.url&&/^data:/i.test(String(u.url)));}),function(u,i){return {ord:i,url:s(u.url)};}));
     return Promise.all(jobs);
   }
   function compressImage(file,maxDim,quality){
@@ -537,7 +551,7 @@ if(S.photos&&S.photos.length){if((S.space&&S.space.length)||(S.gallery&&S.galler
   var changed=false;
   if(S.photos&&S.photos.length){var before=S.photos.length;S.photos=S.photos.filter(function(p){return !isD(p.img);});if(S.photos.length!==before)changed=true;}
   if(S.partners&&S.partners.length){S.partners.forEach(function(p){if(isD(p.logo)){p.logo='';changed=true;}});}
-  if(S.conceptMedia&&S.conceptMedia.length){var beforeCm=S.conceptMedia.length;S.conceptMedia=S.conceptMedia.filter(function(u){var v=(u&&typeof u==='object')?u.src:u;return !isD(v);});if(S.conceptMedia.length!==beforeCm)changed=true;}
+  if(S.conceptMedia&&S.conceptMedia.length){var beforeCm=S.conceptMedia.length;S.conceptMedia=S.conceptMedia.filter(function(u){return !isD(u&&u.url);});if(S.conceptMedia.length!==beforeCm)changed=true;}
   if(S.site){if(isD(S.site.heroImg)){S.site.heroImg='';changed=true;}if(isD(S.site.conceptImg)){S.site.conceptImg='';changed=true;}}
   if(changed){try{localStorage.setItem('uuhee_settings',JSON.stringify(S));}catch(e){}}
 })();
@@ -866,17 +880,17 @@ function renderConceptMedia(){
   var box=document.getElementById('conceptMediaBox');if(!box)return;
   if(!Array.isArray(S.conceptMedia))S.conceptMedia=[];
   if(!box._wired){box._wired=1;
-    box.addEventListener('input',function(e){var t=e.target;if(t.dataset.cm!=null)S.conceptMedia[+t.dataset.cm]=t.value;});
-    box.addEventListener('change',function(e){var t=e.target;if(t.dataset.cmup!=null){var f=t.files[0];if(!f)return;var i=+t.dataset.cmup;if(window.__cloud&&window.__cloud.uploadFile){window.__cloud.uploadFile(f).then(function(u){S.conceptMedia[i]=u;renderConceptMedia();}).catch(function(er){alert('업로드 실패: '+(er.message||er));});}else{var r=new FileReader();r.onload=function(){S.conceptMedia[i]=r.result;renderConceptMedia();};r.readAsDataURL(f);}}});
+    box.addEventListener('input',function(e){var t=e.target;if(t.dataset.cm!=null){var it=S.conceptMedia[+t.dataset.cm];if(it)it.url=t.value;}});
+    box.addEventListener('change',function(e){var t=e.target;if(t.dataset.cmup!=null){var f=t.files[0];if(!f)return;var i=+t.dataset.cmup;if(window.__cloud&&window.__cloud.uploadFile){window.__cloud.uploadFile(f).then(function(u){if(S.conceptMedia[i])S.conceptMedia[i].url=u;renderConceptMedia();}).catch(function(er){alert('업로드 실패: '+(er.message||er));});}else{var r=new FileReader();r.onload=function(){if(S.conceptMedia[i])S.conceptMedia[i].url=r.result;renderConceptMedia();};r.readAsDataURL(f);}}});
     box.addEventListener('click',function(e){var t=e.target;
-      if(t.dataset.cmadd!=null){if(S.conceptMedia.length<5){S.conceptMedia.push('');renderConceptMedia();}}
+      if(t.dataset.cmadd!=null){if(S.conceptMedia.length<5){S.conceptMedia.push({url:''});renderConceptMedia();}}
       else if(t.dataset.cmrm!=null){S.conceptMedia.splice(+t.dataset.cmrm,1);renderConceptMedia();}
       else if(t.dataset.cmmu!=null){var iu=+t.dataset.cmmu;if(iu>0){var a=S.conceptMedia;var tp=a[iu-1];a[iu-1]=a[iu];a[iu]=tp;renderConceptMedia();}}
       else if(t.dataset.cmmd!=null){var idn=+t.dataset.cmmd;var b=S.conceptMedia;if(idn<b.length-1){var tp2=b[idn+1];b[idn+1]=b[idn];b[idn]=tp2;renderConceptMedia();}}
       else if(t.dataset.cmsave!=null){try{save('concept_media');flash(box.querySelector('.saved'));}catch(err){alert('저장 실패: 용량이 큽니다.');}}});
   }
   var html='';
-  S.conceptMedia.forEach(function(src,i){var v=isVid(src);html+='<div class="up-row" style="margin-bottom:8px"><span class="thumb" style="'+((src&&!v)?("background-image:url('"+String(src).replace(/'/g,'%27')+"')"):'')+'">'+((src&&v)?'▶':'')+'</span><input data-cm="'+i+'" value="'+esc(src||'')+'" placeholder="URL 또는 업로드"><label class="upbtn">⬆<input type="file" accept="image/*,video/*" data-cmup="'+i+'" hidden></label><button class="del" data-cmmu="'+i+'" title="위로" style="margin-left:6px">▲</button><button class="del" data-cmmd="'+i+'" title="아래로">▼</button><button class="del" data-cmrm="'+i+'">삭제</button></div>';});
+  S.conceptMedia.forEach(function(item,i){var src=item&&item.url;var v=isVid(src);html+='<div class="up-row" style="margin-bottom:8px"><span class="thumb" style="'+((src&&!v)?("background-image:url('"+String(src).replace(/'/g,'%27')+"')"):'')+'">'+((src&&v)?'▶':'')+'</span><input data-cm="'+i+'" value="'+esc(src||'')+'" placeholder="URL 또는 업로드"><label class="upbtn">⬆<input type="file" accept="image/*,video/*" data-cmup="'+i+'" hidden></label><button class="del" data-cmmu="'+i+'" title="위로" style="margin-left:6px">▲</button><button class="del" data-cmmd="'+i+'" title="아래로">▼</button><button class="del" data-cmrm="'+i+'">삭제</button></div>';});
   html+='<div class="row-tools" style="margin-top:8px"><button class="btn ghost" data-cmadd="1"'+(S.conceptMedia.length>=5?' disabled':'')+'>+ 영상 추가 ('+S.conceptMedia.length+'/5)</button><span class="sp"></span><span class="saved">저장됨 ✓</span><button class="btn gold" data-cmsave="1">저장</button></div>';
   box.innerHTML=html;
 }
