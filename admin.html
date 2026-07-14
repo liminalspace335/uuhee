@@ -140,7 +140,8 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--gold)}
 
 <div class="gate" id="gate" style="display:none">
   <div class="card"><h1>유유히 · Admin</h1><p>유유히 홈페이지 관리 콘솔입니다.</p>
-    <input type="password" id="pw" placeholder="비밀번호 입력" /><button id="loginBtn">로그인</button>
+    <input type="email" id="loginEmail" placeholder="이메일" autocomplete="username" style="margin-bottom:12px" />
+    <input type="password" id="pw" placeholder="비밀번호 입력" autocomplete="current-password" /><button id="loginBtn">로그인</button>
   </div>
 </div>
 
@@ -152,6 +153,7 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--gold)}
       <a data-p="list">신청관리</a>
       <a data-p="schedule">클래스설정</a>
       <a data-p="settings">환경설정</a>
+      <a data-p="accounts" style="display:none">계정관리</a>
     </nav>
     <div class="foot"><a href="index.html">← 사이트로</a><a id="logout">로그아웃</a></div>
   </aside>
@@ -282,6 +284,10 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--gold)}
           <div class="box"><h3>갤러리 — 사진 업로드</h3><div class="desc">위 폴더별로 사진/영상을 추가해 업로드합니다.<br><b>권장 사이즈</b> · 가로형 4:3, 1600×1200px · JPG/PNG · 2MB 이하 (자동으로 최적화되어 업로드됩니다)<br><b>영상</b> · 30MB 이하만 업로드 가능</div><div id="galUploader"></div></div>
           <div class="box"><h3>협업·언론 로고</h3><div class="desc">단체·기업 섹션의 '함께한 곳' 로고 띠에 표시됩니다.<br><b>권장 사이즈</b> · 가로형, 배경 투명 PNG, 높이 80px (예: 240×80px) · 1MB 이하</div><div class="tbl-wrap" id="tbl-partners"></div></div>
         </div>
+      </div>
+      <div class="panel" id="panel-accounts">
+        <div class="box"><h3>계정 목록</h3><div class="desc">마스터 계정만 볼 수 있는 화면입니다. 각 계정의 메뉴별 조회·생성·수정·삭제 권한을 설정합니다.</div><div id="acctList"></div></div>
+        <div class="box"><h3>계정 추가</h3><div id="acctAddForm"></div></div>
       </div>
     </div>
   </div>
@@ -498,8 +504,23 @@ window.UUHEE_SB={url:'https://ybfwnmgnledlumppfjbh.supabase.co',key:'sb_publisha
 })();
 </script>
 <script>
-const ADMIN_EMAIL='liminalspace335@gmail.com';
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+/* ---------- 계정별 메뉴/CRUD 권한 ----------
+   perms 구조: { 메뉴키: {view,create,update,delete} }. 메뉴키는 nav의 data-p 값과 맞춤(overview 제외).
+   이 권한은 화면(UI) 레벨 제어다 — 서버(RLS)까지 강제하는 게 아니므로, devtools로 window.__sb를
+   직접 두드리면 이론상 우회 가능하다는 한계가 있음(admin_accounts 테이블 자체도 이 한계 때문에
+   쓰기 정책을 아예 안 만들고 Edge Function으로만 쓰게 막아둠). */
+let PERMS={},IS_MASTER=false,LOGIN_EMAIL='';
+function can(menu,action){if(menu==='overview')return true;if(IS_MASTER)return true;return !!(PERMS[menu]&&PERMS[menu][action]);}
+function loadPerms(email){
+  LOGIN_EMAIL=email||'';
+  if(!window.__sb)return Promise.resolve();
+  return window.__sb.from('admin_accounts').select('*').eq('email',LOGIN_EMAIL).maybeSingle().then(function(r){
+    if(r.error){console.warn('perms load',r.error);PERMS={};IS_MASTER=false;return;}
+    if(!r.data){PERMS={};IS_MASTER=false;return;} // 미등록 계정은 안전하게 전부 차단(개요만 보임)
+    PERMS=r.data.perms||{};IS_MASTER=!!r.data.is_master;
+  }).catch(function(e){console.warn('perms load',e);PERMS={};IS_MASTER=false;});
+}
 const Jarr=k=>{try{const v=JSON.parse(localStorage.getItem(k)||'[]');return Array.isArray(v)?v:[];}catch(e){return [];}};
 const esc=s=>(s==null?'':String(s)).replace(/[<>&"]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c]));
 const fmt=ts=>{if(!ts)return'-';const d=new Date(ts);return (d.getMonth()+1)+'/'+d.getDate()+' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');};
@@ -576,21 +597,106 @@ function __pushCloud(scope){
 function save(scope){var j=JSON.stringify(S);localStorage.setItem('uuhee_settings',j);__pushCloud(scope);}
 const branchNames=()=>S.branches.map(b=>b.name).filter(Boolean);
 
-function unlock(){$('#gate').style.display='none';$('#app').style.display='flex';renderAll();}
+function unlock(){$('#gate').style.display='none';$('#app').style.display='flex';renderAll();applyMenuVisibility();applyButtonPerms();}
 $('#loginBtn').addEventListener('click',async ()=>{
   if(!window.__sb){alert('서버 연결에 실패했습니다. 잠시 후 다시 시도해 주세요.');return;}
+  var emailVal=($('#loginEmail').value||'').trim();
   var pwVal=$('#pw').value;
-  var res=await window.__sb.auth.signInWithPassword({email:ADMIN_EMAIL,password:pwVal});
-  if(res.error){alert('비밀번호가 올바르지 않습니다.');return;}
+  if(!emailVal){alert('이메일을 입력해 주세요.');return;}
+  var res=await window.__sb.auth.signInWithPassword({email:emailVal,password:pwVal});
+  if(res.error){alert('이메일 또는 비밀번호가 올바르지 않습니다.');return;}
+  await loadPerms(emailVal);
   unlock();
   restoreAdminTab();
+  applyMenuVisibility(); // restoreAdminTab이 세션에 저장된 탭을 되살릴 때 권한 밖 탭이면 다시 걸러냄
   refreshSubmissionsFromCloud();
 });
 $('#pw').addEventListener('keydown',e=>{if(e.key==='Enter')$('#loginBtn').click();});
+$('#loginEmail').addEventListener('keydown',e=>{if(e.key==='Enter')$('#pw').focus();});
 $('#logout').addEventListener('click',()=>{(window.__sb?window.__sb.auth.signOut():Promise.resolve()).finally(()=>location.reload());});
 $$('#nav a').forEach(a=>a.addEventListener('click',()=>{$$('#nav a').forEach(x=>x.classList.remove('active'));a.classList.add('active');
   const p=a.dataset.p;$$('.panel').forEach(x=>x.classList.remove('active'));$('#panel-'+p).classList.add('active');$('#ptitle').textContent=a.textContent;
+  if(p==='accounts')renderAccounts();
   try{sessionStorage.setItem('uuhee_panel',p);}catch(e){}}));
+function applyMenuVisibility(){
+  var firstVisible=null;
+  $$('#nav a[data-p]').forEach(function(a){
+    var p=a.dataset.p;
+    var visible=(p==='overview')?true:((p==='accounts')?IS_MASTER:can(p,'view'));
+    a.style.display=visible?'':'none';
+    if(visible&&!firstVisible)firstVisible=a;
+  });
+  var activeA=$('#nav a.active');
+  if(activeA&&activeA.style.display==='none'&&firstVisible)firstVisible.click();
+}
+/* ---------- 버튼 단위 CRUD 권한 게이트 ----------
+   sel: 매칭할 CSS 선택자(closest로 검사). menu: 권한 메뉴 키. action: 'create'|'update'|'delete'
+   또는 클릭 시점 상태에 따라 동작이 갈리는 버튼은 함수(el)=>action 을 대신 둔다.
+   "저장" 류 버튼은 한 번에 insert+update+delete를 처리하므로(replUpsert 등) update 권한 하나로 묶어 게이트한다
+   — 행 추가/삭제는 이미 create/delete로 따로 막혀 있으므로 저장 시점엔 실제로 허용된 변경만 반영됨. */
+const CRUD_MAP=[
+  {sel:'#subAdd',menu:'list',action:'create'},
+  {sel:'#bkApply',menu:'list',action:'update'},
+  {sel:'#bulkDel',menu:'list',action:'delete'},
+  {sel:'#seSave',menu:'list',action:function(){return EI===-1?'create':'update';}},
+  {sel:'#seDelete',menu:'list',action:'delete'},
+  {sel:'#schedAdd',menu:'schedule',action:'create'},
+  {sel:'#schedDefault',menu:'schedule',action:'update'},
+  {sel:'[data-srm]',menu:'schedule',action:'delete'},
+  {sel:'#schedSave',menu:'schedule',action:'update'},
+  {sel:'#schedClear',menu:'schedule',action:'delete'},
+  {sel:'#schedHol',menu:'schedule',action:function(){var k=schedBranch+'|'+schedDate;return (S.holidays||[]).indexOf(k)>-1?'delete':'create';}},
+  {sel:'#schedPaste',menu:'schedule',action:'update'},
+  {sel:'[data-add]',menu:'settings',action:'create'},
+  {sel:'[data-rm]',menu:'settings',action:'delete'},
+  {sel:'[data-save]',menu:'settings',action:'update'},
+  {sel:'[data-tg]',menu:'settings',action:'update'},
+  {sel:'[data-fadd]',menu:'settings',action:'create'},
+  {sel:'[data-frm]',menu:'settings',action:'delete'},
+  {sel:'[data-fsave]',menu:'settings',action:'update'},
+  {sel:'[data-padd]',menu:'settings',action:'create'},
+  {sel:'[data-prm]',menu:'settings',action:'delete'},
+  {sel:'[data-psave]',menu:'settings',action:'update'},
+  {sel:'[data-cmadd]',menu:'settings',action:'create'},
+  {sel:'[data-cmrm]',menu:'settings',action:'delete'},
+  {sel:'[data-cmsave]',menu:'settings',action:'update'},
+  {sel:'#saveSite',menu:'settings',action:'update'},
+  {sel:'#legalSave',menu:'settings',action:'update'},
+  {sel:'#paySave',menu:'settings',action:'update'},
+  {sel:'label.upbtn:has(input[data-siteup])',menu:'settings',action:'update'},
+  {sel:'label.upbtn:has(input[data-up])',menu:'settings',action:'update'},
+  {sel:'label.upbtn:has(input[data-pup])',menu:'settings',action:'update'},
+  {sel:'label.upbtn:has(input[data-cmup])',menu:'settings',action:'update'}
+];
+function crudActionFor(entry,el){return typeof entry.action==='function'?entry.action(el):entry.action;}
+function matchCrud(target){
+  for(var i=0;i<CRUD_MAP.length;i++){
+    var entry=CRUD_MAP[i],el=null;
+    try{el=target.closest(entry.sel);}catch(e){}
+    if(el)return {entry:entry,el:el};
+  }
+  return null;
+}
+document.addEventListener('click',function(e){
+  var m=matchCrud(e.target);
+  if(!m)return;
+  var action=crudActionFor(m.entry,m.el);
+  if(!can(m.entry.menu,action)){e.preventDefault();e.stopImmediatePropagation();alert('이 작업을 수행할 권한이 없습니다.');}
+},true);
+function applyButtonPerms(){
+  CRUD_MAP.forEach(function(entry){
+    var els;
+    try{els=document.querySelectorAll(entry.sel);}catch(e){return;}
+    els.forEach(function(el){
+      var allowed=can(entry.menu,crudActionFor(entry,el));
+      if(el.tagName==='BUTTON'){el.disabled=!allowed;el.style.opacity=allowed?'':'.5';}
+      else{el.style.pointerEvents=allowed?'':'none';el.style.opacity=allowed?'':'.4';}
+    });
+  });
+}
+var __bpTimer=null;
+function scheduleButtonPerms(){if(__bpTimer)return;__bpTimer=setTimeout(function(){__bpTimer=null;applyButtonPerms();},60);}
+new MutationObserver(scheduleButtonPerms).observe(document.getElementById('app'),{childList:true,subtree:true});
 $$('#panel-settings>.subtabs .subtab').forEach(t=>t.addEventListener('click',()=>{$$('#panel-settings>.subtabs .subtab').forEach(x=>x.classList.remove('active'));t.classList.add('active');
   $$('.subpanel').forEach(x=>x.classList.remove('active'));$('#sub-'+t.dataset.s).classList.add('active');if(t.dataset.s==='space'||t.dataset.s==='gallery'){renderFoldersAll();renderUploadersAll();}if(t.dataset.s==='legal'){renderLegalForm();renderPayForm();}
   try{sessionStorage.setItem('uuhee_subtab',t.dataset.s);}catch(e){}}));
@@ -615,6 +721,7 @@ function restoreAdminTab(){
       if(savedSub==='space'||savedSub==='gallery'){renderFoldersAll();renderUploadersAll();}
       if(savedSub==='legal'){renderLegalForm();renderPayForm();}
     }
+    if(savedPanel==='accounts')renderAccounts();
   }catch(e){}
 }
 
@@ -1038,6 +1145,135 @@ function buildSchedule(){
 
 function renderAll(){renderOverview();renderLists();renderSite();buildTables();buildSchedule();renderSchedule();}
 
+/* ---------- 계정 관리(마스터 전용) ---------- */
+var ACCTS=[],EDIT_ACCT_EMAIL=null,acctWired=false;
+var MENU_KEYS=['list','schedule','settings'];
+var MENU_LABELS={list:'신청관리',schedule:'클래스설정',settings:'환경설정'};
+var VERB_KEYS=['view','create','update','delete'];
+var VERB_LABELS={view:'조회',create:'생성',update:'수정',delete:'삭제'};
+function callAdminAccounts(payload){
+  if(!window.__sb)return Promise.reject(new Error('서버 연결에 실패했습니다.'));
+  return window.__sb.functions.invoke('admin-accounts',{body:payload}).then(function(res){
+    if(res.data&&res.data.error)throw new Error(res.data.error);
+    if(res.error){
+      var ctx=res.error.context;
+      if(ctx&&typeof ctx.json==='function')return ctx.json().then(function(b){throw new Error((b&&b.error)||res.error.message||'요청 실패');}).catch(function(e){throw (e instanceof Error?e:new Error(res.error.message||'요청 실패'));});
+      throw new Error(res.error.message||'요청 실패');
+    }
+    return res.data;
+  });
+}
+function fetchAccounts(){
+  if(!window.__sb)return Promise.resolve([]);
+  return window.__sb.from('admin_accounts').select('*').order('created_at').then(function(r){
+    if(r.error){console.warn('accounts load',r.error);return [];}
+    return r.data||[];
+  });
+}
+function permsSummary(perms){
+  perms=perms||{};
+  return MENU_KEYS.map(function(m){
+    var p=perms[m]||{};
+    var on=VERB_KEYS.filter(function(v){return p[v];}).map(function(v){return VERB_LABELS[v];});
+    return MENU_LABELS[m]+'('+(on.length?on.join('·'):'없음')+')';
+  }).join(', ');
+}
+function permsEditorHtml(prefix,perms){
+  perms=perms||{};
+  return MENU_KEYS.map(function(m){
+    var cells=VERB_KEYS.map(function(v){
+      var checked=(perms[m]&&perms[m][v])?'checked':'';
+      return '<label style="display:inline-flex;align-items:center;gap:4px;margin-right:14px"><input type="checkbox" data-pe="'+prefix+'" data-menu="'+m+'" data-verb="'+v+'" '+checked+'> '+VERB_LABELS[v]+'</label>';
+    }).join('');
+    return '<div style="margin-bottom:8px"><b style="display:inline-block;width:76px">'+MENU_LABELS[m]+'</b>'+cells+'</div>';
+  }).join('');
+}
+function collectPermsFromEditor(prefix){
+  var perms={};
+  $$('[data-pe="'+prefix+'"]').forEach(function(cb){
+    var m=cb.dataset.menu,v=cb.dataset.verb;
+    perms[m]=perms[m]||{};perms[m][v]=cb.checked;
+  });
+  return perms;
+}
+function renderAcctList(){
+  var box=$('#acctList');if(!box)return;
+  var html='';
+  if(!ACCTS.length)html='<div class="empty">등록된 계정이 없습니다.</div>';
+  else{
+    html='<table><thead><tr><th>이메일</th><th>이름</th><th>구분</th><th>권한</th><th></th></tr></thead><tbody>';
+    ACCTS.forEach(function(a){
+      var isSelf=a.email===LOGIN_EMAIL;
+      html+='<tr><td>'+esc(a.email)+'</td><td>'+esc(a.label||'')+'</td><td>'+(a.is_master?'<b>마스터</b>':'일반')+'</td>'
+        +'<td>'+(a.is_master?'전체 권한':esc(permsSummary(a.perms)))+'</td>'
+        +'<td><button class="btn ghost btn-sm" data-aedit="'+esc(a.email)+'">수정</button> <button class="btn ghost btn-sm" data-adel="'+esc(a.email)+'"'+((isSelf||a.is_master)?' disabled title="'+(isSelf?'본인 계정은 삭제할 수 없습니다':'마스터 계정은 삭제할 수 없습니다')+'"':'')+'>삭제</button></td></tr>';
+    });
+    html+='</tbody></table>';
+  }
+  if(EDIT_ACCT_EMAIL){
+    var acc=ACCTS.filter(function(a){return a.email===EDIT_ACCT_EMAIL;})[0];
+    if(acc){
+      html+='<div class="box" style="margin-top:14px"><h3>'+esc(acc.email)+' 수정</h3>'
+        +'<label class="se-f" style="max-width:320px;display:block;margin-bottom:10px"><span>이름</span><input id="aeLabel" value="'+esc(acc.label||'')+'"></label>'
+        +(acc.is_master?'<div class="desc">마스터 계정은 권한이 항상 전체로 고정되어 이름만 수정할 수 있습니다.</div>':permsEditorHtml('edit',acc.perms))
+        +'<div class="row-tools" style="margin-top:14px"><button class="btn gold" id="aeSave">저장</button><button class="btn ghost" id="aeCancel">취소</button></div></div>';
+    }
+  }
+  box.innerHTML=html;
+}
+function renderAcctAddForm(){
+  var box=$('#acctAddForm');if(!box)return;
+  box.innerHTML='<div class="grid2" style="max-width:520px">'
+    +'<label class="se-f"><span>이메일</span><input id="naEmail" type="email"></label>'
+    +'<label class="se-f"><span>이름</span><input id="naLabel"></label>'
+    +'<label class="se-f"><span>초기 비밀번호(6자 이상)</span><input id="naPw" type="password"></label>'
+    +'</div><div style="margin-top:12px">'+permsEditorHtml('new',{})+'</div>'
+    +'<div class="row-tools" style="margin-top:14px"><button class="btn gold" id="naCreate">계정 추가</button></div>';
+}
+function wireAccounts(){
+  if(acctWired)return;acctWired=true;
+  $('#acctList').addEventListener('click',function(e){
+    var t=e.target;
+    if(t.dataset.aedit!=null){EDIT_ACCT_EMAIL=t.dataset.aedit;renderAcctList();return;}
+    if(t.dataset.adel!=null){
+      var email=t.dataset.adel;
+      if(!confirm(email+' 계정을 삭제할까요?'))return;
+      t.disabled=true;
+      callAdminAccounts({action:'remove',email:email}).then(function(){renderAccounts();}).catch(function(err){alert('삭제 실패: '+(err.message||err));t.disabled=false;});
+      return;
+    }
+    if(t.id==='aeCancel'){EDIT_ACCT_EMAIL=null;renderAcctList();return;}
+    if(t.id==='aeSave'){
+      var acc=ACCTS.filter(function(a){return a.email===EDIT_ACCT_EMAIL;})[0];if(!acc)return;
+      var label=($('#aeLabel')&&$('#aeLabel').value)||'';
+      var payload={action:'updatePerms',email:acc.email,label:label};
+      if(!acc.is_master)payload.perms=collectPermsFromEditor('edit');
+      t.disabled=true;
+      callAdminAccounts(payload).then(function(){EDIT_ACCT_EMAIL=null;renderAccounts();}).catch(function(err){alert('저장 실패: '+(err.message||err));t.disabled=false;});
+      return;
+    }
+  });
+  $('#acctAddForm').addEventListener('click',function(e){
+    if(e.target.id!=='naCreate')return;
+    var email=(($('#naEmail')&&$('#naEmail').value)||'').trim();
+    var label=(($('#naLabel')&&$('#naLabel').value)||'').trim();
+    var pw=($('#naPw')&&$('#naPw').value)||'';
+    if(!email||!pw){alert('이메일과 비밀번호를 입력해 주세요.');return;}
+    var perms=collectPermsFromEditor('new');
+    e.target.disabled=true;
+    callAdminAccounts({action:'create',email:email,label:label,password:pw,perms:perms})
+      .then(function(){renderAccounts();})
+      .catch(function(err){alert('계정 추가 실패: '+(err.message||err));})
+      .then(function(){e.target.disabled=false;});
+  });
+}
+function renderAccounts(){
+  wireAccounts();
+  if(!IS_MASTER){$('#acctList').innerHTML='<div class="empty">마스터 계정만 접근할 수 있습니다.</div>';$('#acctAddForm').innerHTML='';return;}
+  $('#acctList').innerHTML='<div class="empty">불러오는 중…</div>';
+  fetchAccounts().then(function(list){ACCTS=list;renderAcctList();renderAcctAddForm();});
+}
+
 /* 모든 정의 이후 — 기존 로그인 세션이 있으면 게이트 없이 자동 진입, 없으면 로그인 게이트 표시 */
 function refreshSubmissionsFromCloud(){
   if(!window.__sb)return;
@@ -1055,7 +1291,7 @@ function refreshSubmissionsFromCloud(){
   if(!window.__sb){$('#gate').style.display='flex';return;}
   window.__sb.auth.getSession().then(function(r){
     var session=r&&r.data&&r.data.session;
-    if(session){unlock();restoreAdminTab();refreshSubmissionsFromCloud();}
+    if(session){loadPerms(session.user&&session.user.email).then(function(){unlock();restoreAdminTab();applyMenuVisibility();refreshSubmissionsFromCloud();});}
     else{$('#gate').style.display='flex';}
   });
 })();
