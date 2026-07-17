@@ -802,7 +802,6 @@ select:not(.mfield select):not(.inq-card select){appearance:none;-webkit-appeara
 </section>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="https://cdn.portone.io/v2/browser-sdk.js"></script>
 <script>
 /* ===== Supabase 연동 (정규화/컬럼 테이블) ===== */
 window.UUHEE_SB={url:'https://ybfwnmgnledlumppfjbh.supabase.co',key:'sb_publishable_GNOsPyq2DHBY7gIYGs_hLQ_eeauXxG7'};
@@ -828,9 +827,9 @@ window.UUHEE_SB={url:'https://ybfwnmgnledlumppfjbh.supabase.co',key:'sb_publisha
       var S={};
       if(site)S.site={brand:s(site.brand),est:s(site.est),copyYear:s(site.copy_year),heroImg:s(site.hero_img),conceptImg:s(site.concept_img)};
       S.conceptMedia=cm.map(function(m){return s(m.url);});
-      if(site)S.pay={bank:s(site.pay_bank),account:s(site.pay_account),holder:s(site.pay_holder),portoneStore:s(site.pay_portone_store),portoneChannel:s(site.pay_portone_channel)};
+      if(site)S.pay={depositAmount:(site.deposit_amount==null?'':String(site.deposit_amount))};
       if(legal)S.legal={company:s(legal.company),ceo:s(legal.ceo),bizno:s(legal.bizno),mailorder:s(legal.mailorder),privacy:s(legal.privacy),addr:s(legal.addr),tel:s(legal.tel),email:s(legal.email),kakao:s(legal.kakao),hosting:s(legal.hosting),termsUrl:s(legal.terms_url),privacyUrl:s(legal.privacy_url),refundUrl:s(legal.refund_url)};
-      S.branches=br.map(function(b){return {name:s(b.name),nameEn:s(b.name_en),phone:s(b.phone),addr:s(b.addr),addrEn:s(b.addr_en),map:s(b.map),hours:s(b.hours),ig:s(b.ig),fb:s(b.fb),lt:s(b.lt),spaceDesc:s(b.space_desc)};});
+      S.branches=br.map(function(b){return {name:s(b.name),nameEn:s(b.name_en),phone:s(b.phone),addr:s(b.addr),addrEn:s(b.addr_en),map:s(b.map),hours:s(b.hours),ig:s(b.ig),fb:s(b.fb),lt:s(b.lt),spaceDesc:s(b.space_desc),transferLink:s(b.transfer_link),smartstoreLink:s(b.smartstore_link)};});
       S.classes=cl.map(function(x){var brs=cb.filter(function(b){return b.class_id===x.id;}).map(function(b){return s(b.branch_name);});return {id:x.id,order:x.ord,tag:s(x.tag),name:s(x.name),nameEn:s(x.name_en),desc:s(x.descr),descEn:s(x.desc_en),active:!!x.active,inquiryOnly:!!x.inquiry_only,branches:brs};});
       // 클래스는 이름이 아니라 classId로 연결(조인)합니다 — 이름을 바꿔도 연결이 끊기지 않도록.
       S.details=de.map(function(d){return {classId:d.class_id,branch:s(d.branch),size:s(d.size),price:(d.price==null?'':String(d.price)),discountType:s(d.discount_type),discountVal:(d.discount_val==null?'':String(d.discount_val)),desc:s(d.descr),descEn:s(d.desc_en)};});
@@ -873,7 +872,7 @@ window.UUHEE_SB={url:'https://ybfwnmgnledlumppfjbh.supabase.co',key:'sb_publisha
   }
   function pushSettings(S){
     var st=S.site||{},lg=S.legal||{},pay=S.pay||{};var jobs=[];
-    jobs.push(sb.from('site').upsert({id:'uuhee',brand:s(st.brand),est:s(st.est),copy_year:s(st.copyYear),hero_img:s(st.heroImg),concept_img:s(st.conceptImg),pay_bank:s(pay.bank),pay_account:s(pay.account),pay_holder:s(pay.holder),pay_portone_store:s(pay.portoneStore),pay_portone_channel:s(pay.portoneChannel)}));
+    jobs.push(sb.from('site').upsert({id:'uuhee',brand:s(st.brand),est:s(st.est),copy_year:s(st.copyYear),hero_img:s(st.heroImg),concept_img:s(st.conceptImg),deposit_amount:N(pay.depositAmount)}));
     jobs.push(sb.from('legal').upsert({id:'uuhee',company:s(lg.company),ceo:s(lg.ceo),bizno:s(lg.bizno),mailorder:s(lg.mailorder),privacy:s(lg.privacy),addr:s(lg.addr),tel:s(lg.tel),email:s(lg.email),kakao:s(lg.kakao),hosting:s(lg.hosting),terms_url:s(lg.termsUrl),privacy_url:s(lg.privacyUrl),refund_url:s(lg.refundUrl)}));
     jobs.push(repl('branches',(S.branches||[]).map(function(b,i){return {ord:i,name:s(b.name),name_en:s(b.nameEn),phone:s(b.phone),addr:s(b.addr),addr_en:s(b.addrEn),map:s(b.map),hours:s(b.hours),ig:s(b.ig),fb:s(b.fb),lt:s(b.lt),space_desc:s(b.spaceDesc)};})));
     jobs.push(replClasses(S.classes||[]));
@@ -1082,14 +1081,15 @@ window.UUHEE_SB={url:'https://ybfwnmgnledlumppfjbh.supabase.co',key:'sb_publisha
         <div class="modal-step" data-step="5"><div class="step-label">CONFIRM</div><div class="step-q">입력하신 내용을 확인해 주세요.</div><div class="summary" id="confirmSummary"></div><p class="foot-sub" style="margin-top:12px;color:var(--ink-soft)">잘못된 정보는 접수가 어려울 수 있어요. 확인 후 결제 단계로 진행합니다.</p></div>
         <div class="modal-step" data-step="6"><div class="step-label">PAYMENT</div><div class="step-q">결제 방법을 선택해 주세요.</div>
           <div class="pay-amt">결제 금액 <b id="payAmt">-</b></div>
-          <div class="opt-list" data-field="pay" style="display:none">
-            <div class="opt" data-val="naverpay" style="display:none"><div><div class="ti">네이버페이 간편결제</div><div class="de">카드·포인트로 즉시 결제</div></div></div>
-            <div class="opt" data-val="transfer"><div><div class="ti">계좌이체 (무통장입금)</div><div class="de">안내 계좌로 입금 후 확정됩니다</div></div></div>
+          <div class="opt-list" data-field="pay">
+            <div class="opt" data-val="transfer"><div><div class="ti">계좌이체</div><div class="de">안내 링크에서 전액 입금</div></div></div>
+            <div class="opt" data-val="smartstore"><div><div class="ti">스마트스토어 카드 결제</div><div class="de">네이버 스마트스토어에서 카드로 결제</div></div></div>
+            <div class="opt" data-val="onsite"><div><div class="ti">현장 카드 결제</div><div class="de">예약금 입금 후 방문 시 전액 환불·카드 결제</div></div></div>
           </div>
           <div id="payTransfer" class="pay-box" style="display:none"></div>
           <div class="err" data-err="pay">결제 방법을 선택해 주세요.</div>
-          <div style="margin-top:16px"><button class="btn" id="payGo" type="button" style="width:100%">결제 · 신청 완료</button></div></div>
-        <div class="modal-step" data-step="7"><div class="modal-done"><div class="check">◎</div><h3>신청이 접수되었습니다</h3><p id="doneMsg">확인 후 입력하신 연락처로 예약 확정을 안내드립니다.</p></div></div>
+          <div style="margin-top:16px"><button class="btn" id="payGo" type="button" style="width:100%">결제 페이지로 이동</button></div></div>
+        <div class="modal-step" data-step="7"><div class="modal-done"><div class="check">◎</div><h3>신청이 접수되었습니다</h3><p id="doneMsg">결제(입금) 확인 후 예약이 확정되면 안내드립니다.</p></div></div>
       </div>
       <div class="modal-foot" id="modalFoot"><button class="btn ghost" id="btnBack">이전</button><button class="btn" id="btnNext">다음</button></div>
     </div>
@@ -1327,7 +1327,7 @@ window.UUHEE_SB={url:'https://ybfwnmgnledlumppfjbh.supabase.co',key:'sb_publisha
     const closeModal=()=>{modal.classList.remove('open');document.body.style.overflow='';};
     document.querySelectorAll('[data-open-apply]').forEach(b=>b.addEventListener('click',e=>{e.preventDefault();openModal(b.getAttribute('data-aclass')||'');}));
     document.getElementById('modalClose').addEventListener('click',closeModal);
-    modal.addEventListener('click',function(e){var opt=e.target.closest('.opt-list .opt');if(opt){var list=opt.closest('.opt-list');list.querySelectorAll('.opt').forEach(function(o){o.classList.remove('sel');});opt.classList.add('sel');var f=list.dataset.field;if(f){data[f]=opt.dataset.val;if(f==='class')data.classId=opt.dataset.cid||'';if(f==='pay'){var _tb=document.getElementById('payTransfer');if(_tb)_tb.style.display=(opt.dataset.val==='transfer')?'block':'none';}}}});
+    modal.addEventListener('click',function(e){var opt=e.target.closest('.opt-list .opt');if(opt){var list=opt.closest('.opt-list');list.querySelectorAll('.opt').forEach(function(o){o.classList.remove('sel');});opt.classList.add('sel');var f=list.dataset.field;if(f){data[f]=opt.dataset.val;if(f==='class')data.classId=opt.dataset.cid||'';if(f==='pay')onPaySelected();}}});
     document.addEventListener('keydown',e=>{if(e.key==='Escape'&&modal.classList.contains('open'))closeModal();});
     modal.querySelectorAll('[data-field]').forEach(inp=>{if(inp.tagName==='INPUT'||inp.tagName==='SELECT'||inp.tagName==='TEXTAREA')inp.addEventListener('input',function(){
       if(inp.dataset.field==='phone'){var f=formatPhone(inp.value);inp.value=f;data.phone=f;return;}
@@ -1351,7 +1351,30 @@ window.UUHEE_SB={url:'https://ybfwnmgnledlumppfjbh.supabase.co',key:'sb_publisha
     const buildSummary=()=>{const _ev=(data.estimate&&data.estimate>0)?('\u20a9'+Number(data.estimate).toLocaleString()):'가격 협의';const rows=[['지점',data.branch],['클래스',data.class],['용량',data.size||'-'],['날짜',data.date],['시간',data.time],['인원',data.people+'명'],['결제 예상금액',_ev],['이름',data.name],['연락처',data.phone]];
       document.getElementById('confirmSummary').innerHTML=rows.map(r=>'<div class="sr"><span class="k">'+r[0]+'</span><span class="v">'+(r[1]||'-')+'</span></div>').join('');};
     function inqTypeOf(name){try{var SS=JSON.parse(localStorage.getItem('uuhee_settings')||'{}');var cc=(SS.classes||[]).filter(function(x){return x.name===name;})[0];if(cc&&cc.inquiryOnly){if(/기업/.test(name))return '기업 협업';if(/단체/.test(name))return '단체 클래스';if(/출강/.test(name))return '출강 · 외부 클래스';if(/특강/.test(name))return '특강';return name;}}catch(e){}return '';}
-    function preparePay(){var amt=parseInt(data.estimate||'0',10)||0;var el=document.getElementById('payAmt');if(el)el.textContent=amt>0?('\u20a9'+amt.toLocaleString()):'가격 협의';var S2=SET();var pay=(S2.pay||{});var tb=document.getElementById('payTransfer');if(tb){tb.innerHTML='<div class="pb-row"><span>은행</span><b>'+E(pay.bank||'-')+'</b></div><div class="pb-row"><span>계좌번호</span><b>'+E(pay.account||'-')+'</b></div><div class="pb-row"><span>예금주</span><b>'+E(pay.holder||'-')+'</b></div><div class="pb-note">위 계좌로 입금해 주시면 입금 확인 후 예약이 확정됩니다.</div>';tb.style.display='block';}data.pay='transfer';}
+    function branchInfo(){var S2=SET();return (S2.branches||[]).filter(function(b){return b.name===data.branch;})[0]||{};}
+    function payLinkFor(method){var b=branchInfo();if(method==='smartstore')return b.smartstoreLink||'';return b.transferLink||'';} // 계좌이체·현장결제는 동일한 지점별 링크를 재사용
+    function doneMsgFor(method){
+      if(method==='transfer')return '계좌이체 입금 확인 후 예약이 확정되면 안내드립니다.';
+      if(method==='smartstore')return '스마트스토어 결제 확인 후 예약이 확정되면 안내드립니다.';
+      if(method==='onsite')return '예약금 입금 확인 후 예약이 확정됩니다. 방문 시 예약금은 환불되며 전액은 현장에서 카드로 결제됩니다.';
+      return '결제(입금) 확인 후 예약이 확정되면 안내드립니다.';
+    }
+    function renderPayBox(){
+      var tb=document.getElementById('payTransfer');if(!tb)return;
+      var S2=SET();var deposit=parseInt((S2.pay||{}).depositAmount||'0',10)||0;
+      var link=payLinkFor(data.pay);var html='';
+      if(data.pay==='transfer'){
+        html='<div class="pb-note">계좌이체로 결제 금액 전액을 입금해 주세요. 아래 버튼을 누르면 안내 링크가 새 창으로 열립니다.</div>';
+      }else if(data.pay==='smartstore'){
+        html='<div class="pb-note">네이버 스마트스토어에서 카드로 결제해 주세요. 아래 버튼을 누르면 스마트스토어가 새 창으로 열립니다.</div>';
+      }else if(data.pay==='onsite'){
+        html='<div class="pb-note">예약금 '+(deposit>0?('\u20a9'+deposit.toLocaleString()):'-')+' 입금 시 예약이 확정됩니다. 방문 시 예약금은 전액 환불되며, 전액은 현장에서 카드로 결제됩니다. 아래 버튼을 누르면 예약금 입금 안내 링크가 새 창으로 열립니다.</div>';
+      }else{tb.style.display='none';return;}
+      if(!link)html+='<div class="pb-note">아직 결제 링크가 준비되지 않았습니다. 매장으로 문의해 주세요.</div>';
+      tb.innerHTML=html;tb.style.display='block';
+    }
+    function onPaySelected(){data.payLinkOpened=false;var btn=document.getElementById('payGo');if(btn)btn.textContent='결제 페이지로 이동';renderPayBox();}
+    function preparePay(){var amt=parseInt(data.estimate||'0',10)||0;var el=document.getElementById('payAmt');if(el)el.textContent=amt>0?('\u20a9'+amt.toLocaleString()):'가격 협의';data.payLinkOpened=false;var btn=document.getElementById('payGo');if(btn)btn.textContent='결제 페이지로 이동';renderPayBox();}
     // finalizeApp()은 항상 {ok, message} 형태로 resolve된다(reject하지 않음) — 호출부에서
     // 성공/실패를 분기해 화면을 다르게 보여줄 수 있도록(정원마감 등 서버 거부를 조용히 삼키지 않기 위함).
     function finalizeApp(){var rec=Object.assign({},data,{ts:Date.now()});try{var all=JSON.parse(localStorage.getItem('uuhee_apps')||'[]');all.push(rec);localStorage.setItem('uuhee_apps',JSON.stringify(all));}catch(e){}
@@ -1367,36 +1390,25 @@ window.UUHEE_SB={url:'https://ybfwnmgnledlumppfjbh.supabase.co',key:'sb_publisha
     document.getElementById('btnBack').addEventListener('click',()=>{if(step>1){step--;render();}});
     document.getElementById('payGo').addEventListener('click',function(){
       var btn=this;if(btn.disabled)return; // 중복 클릭으로 예약/결제가 두 번 접수되는 것을 방지
-      hideErr();if(!data.pay)return err('pay');var amt=parseInt(data.estimate||'0',10)||0;var S2=SET();var pay=(S2.pay||{});
-      if(data.pay==='transfer'){
-        // 아직 실제 결제 전이므로, 서버 저장(정원 등 검증 포함)이 성공했을 때만 완료 화면으로 넘어간다.
-        btn.disabled=true;data.status=2;data.payMethod='계좌이체';
-        finalizeApp().then(function(r){
-          btn.disabled=false;
-          if(!r.ok){alert(r.message||'죄송합니다, 방금 다른 예약으로 자리가 찼습니다. 다른 시간을 선택해 주세요.');step=3;return render();}
-          var dm=document.getElementById('doneMsg');if(dm)dm.innerHTML='입금 계좌 <b>'+E(pay.bank||'')+' '+E(pay.account||'')+'</b> ('+E(pay.holder||'')+')<br>금액 '+(amt>0?('\u20a9'+amt.toLocaleString()):'협의')+' · 입금이 확인되면 예약이 확정됩니다.';
-          step=7;render();
-        });
+      hideErr();if(!data.pay)return err('pay');
+      var methodLabel={transfer:'계좌이체',smartstore:'스마트스토어 카드결제',onsite:'현장 카드결제(예약금)'}[data.pay]||data.pay;
+      if(!data.payLinkOpened){
+        var link=payLinkFor(data.pay);
+        if(!link){alert('아직 결제 링크가 준비되지 않았습니다. 매장으로 문의해 주세요.');return;}
+        window.open(link,'_blank');
+        data.payLinkOpened=true;
+        btn.textContent='결제를 완료하셨나요? 다음';
+        var tb=document.getElementById('payTransfer');if(tb)tb.innerHTML+='<div class="pb-note">결제(입금)을 완료하셨다면 위 버튼을 다시 눌러 신청을 완료해 주세요.</div>';
         return;
       }
-      if(!pay.portoneStore||!pay.portoneChannel){alert('네이버페이 결제가 아직 설정되지 않았습니다. 계좌이체를 이용해 주세요.');return;}
-      if(amt<=0){alert('결제 금액이 확정되지 않았습니다. 계좌이체를 이용해 주세요.');return;}
-      if(!window.PortOne){alert('결제 모듈을 불러오는 중입니다. 잠시 후 다시 시도해 주세요.');return;}
-      btn.disabled=true;
-      var pid='uuhee-'+Date.now();
-      window.PortOne.requestPayment({storeId:pay.portoneStore,channelKey:pay.portoneChannel,paymentId:pid,orderName:(data.class||'유유히 클래스'),totalAmount:amt,currency:'CURRENCY_KRW',payMethod:'EASY_PAY',easyPay:{easyPayProvider:'EASY_PAY_PROVIDER_NAVERPAY'},customer:{fullName:data.name||'',phoneNumber:data.phone||''}}).then(function(res){
-        if(res&&res.code!=null){btn.disabled=false;alert('결제 실패: '+(res.message||'취소되었습니다'));return;}
-        // 결제는 이미 완료된 뒤라 되돌릴 수 없으므로, 서버 저장이 실패해도 완료 화면은 보여주되
-        // 문구를 다르게 해서 매장에 결제번호로 직접 확인하도록 안내한다(성공했다고 거짓 안내하지 않음).
-        data.status=3;data.payMethod='네이버페이';data.payId=pid;
-        finalizeApp().then(function(r){
-          btn.disabled=false;
-          var dm2=document.getElementById('doneMsg');
-          if(!r.ok){if(dm2)dm2.textContent='결제가 완료되었습니다. 다만 예약 확정 처리 중 문제가 발생했습니다. 결제번호 '+pid+'를 매장에 알려주시면 확인해 드리겠습니다.';}
-          else if(dm2)dm2.textContent='결제가 완료되어 예약이 확정되었습니다. 감사합니다.';
-          step=7;render();
-        });
-      }).catch(function(e){btn.disabled=false;alert('결제 오류: '+((e&&e.message)||e));});
+      // 아직 실제 결제 확인 전이므로, 서버 저장(정원 등 검증 포함)이 성공했을 때만 완료 화면으로 넘어간다.
+      btn.disabled=true;data.status=2;data.payMethod=methodLabel;
+      finalizeApp().then(function(r){
+        btn.disabled=false;
+        if(!r.ok){alert(r.message||'죄송합니다, 방금 다른 예약으로 자리가 찼습니다. 다른 시간을 선택해 주세요.');step=3;return render();}
+        var dm=document.getElementById('doneMsg');if(dm)dm.textContent=doneMsgFor(data.pay);
+        step=7;render();
+      });
     });
     showStep(1);
   })();
