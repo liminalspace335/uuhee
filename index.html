@@ -1373,8 +1373,18 @@ window.UUHEE_SB={url:'https://ybfwnmgnledlumppfjbh.supabase.co',key:'sb_publisha
       if(!link)html+='<div class="pb-note">아직 결제 링크가 준비되지 않았습니다. 매장으로 문의해 주세요.</div>';
       tb.innerHTML=html;tb.style.display='block';
     }
-    function onPaySelected(){data.payLinkOpened=false;var btn=document.getElementById('payGo');if(btn)btn.textContent='결제 페이지로 이동';renderPayBox();}
-    function preparePay(){var amt=parseInt(data.estimate||'0',10)||0;var el=document.getElementById('payAmt');if(el)el.textContent=amt>0?('\u20a9'+amt.toLocaleString()):'가격 협의';data.payLinkOpened=false;var btn=document.getElementById('payGo');if(btn)btn.textContent='결제 페이지로 이동';renderPayBox();}
+    function payButtonLabel(){
+      if(!data.pay)return '결제 페이지로 이동';
+      var S2=SET();
+      if(data.pay==='onsite'){
+        var dep=parseInt((S2.pay||{}).depositAmount||'0',10)||0;
+        return dep>0?(dep.toLocaleString()+'원 예약금 결제하기'):'결제 페이지로 이동';
+      }
+      var amt=parseInt(data.estimate||'0',10)||0;
+      return amt>0?(amt.toLocaleString()+'원 결제하기'):'결제 페이지로 이동';
+    }
+    function onPaySelected(){data.payLinkOpened=false;var btn=document.getElementById('payGo');if(btn)btn.textContent=payButtonLabel();renderPayBox();}
+    function preparePay(){var amt=parseInt(data.estimate||'0',10)||0;var el=document.getElementById('payAmt');if(el)el.textContent=amt>0?('\u20a9'+amt.toLocaleString()):'가격 협의';data.payLinkOpened=false;var btn=document.getElementById('payGo');if(btn)btn.textContent=payButtonLabel();renderPayBox();}
     // finalizeApp()은 항상 {ok, message} 형태로 resolve된다(reject하지 않음) — 호출부에서
     // 성공/실패를 분기해 화면을 다르게 보여줄 수 있도록(정원마감 등 서버 거부를 조용히 삼키지 않기 위함).
     function finalizeApp(){var rec=Object.assign({},data,{ts:Date.now()});try{var all=JSON.parse(localStorage.getItem('uuhee_apps')||'[]');all.push(rec);localStorage.setItem('uuhee_apps',JSON.stringify(all));}catch(e){}
