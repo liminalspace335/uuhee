@@ -163,6 +163,18 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--gold)}
     <div class="topbar"><h2 id="ptitle">소개</h2><span class="co mono">UUHEE ATELIER · Hongdae &amp; Seongsu</span></div>
     <div class="content">
 
+      <div class="amodal-ov" id="msgModal" style="display:none">
+        <div class="amodal" style="max-width:480px">
+          <div class="amodal-h"><b id="msgTitle">안내 문구</b><button type="button" id="msgClose" class="amodal-x">×</button></div>
+          <div class="amodal-b" style="grid-template-columns:1fr">
+            <textarea id="msgText" rows="16" readonly style="width:100%;font-family:inherit;font-size:13px;line-height:1.6"></textarea>
+            <div class="muted" id="msgNote">복사하기로 내용을 복사한 뒤 카카오톡으로 전달해 주세요.</div>
+            <div class="muted" id="msgResult" style="margin-top:4px"></div>
+          </div>
+          <div class="amodal-f"><button type="button" class="btn ghost" id="msgCopy">복사하기</button><span style="flex:1"></span><button type="button" class="btn gold" id="msgPrimary">복사 &amp; 확정 처리</button></div>
+        </div>
+      </div>
+
       <div class="panel active" id="panel-overview">
         <div class="stat-grid">
           <div class="stat"><div class="l">전체 접수</div><div class="v" id="st-all">0</div></div>
@@ -203,17 +215,6 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--gold)}
               <div class="amodal-f"><button type="button" class="del" id="seDelete">삭제</button><button type="button" class="btn ghost" id="seReceipt" style="display:none">접수안내</button><button type="button" class="btn ghost" id="seConfirm" style="display:none">확정안내</button><span style="flex:1"></span><button type="button" class="btn gold" id="seSave">저장</button></div>
             </div>
           </div>
-          <div class="amodal-ov" id="msgModal" style="display:none">
-            <div class="amodal" style="max-width:480px">
-              <div class="amodal-h"><b id="msgTitle">안내 문구</b><button type="button" id="msgClose" class="amodal-x">×</button></div>
-              <div class="amodal-b" style="grid-template-columns:1fr">
-                <textarea id="msgText" rows="16" readonly style="width:100%;font-family:inherit;font-size:13px;line-height:1.6"></textarea>
-                <div class="muted" id="msgNote">복사하기로 내용을 복사한 뒤 카카오톡으로 전달해 주세요.</div>
-                <div class="muted" id="msgResult" style="margin-top:4px"></div>
-              </div>
-              <div class="amodal-f"><button type="button" class="btn ghost" id="msgCopy">복사하기</button><span style="flex:1"></span><button type="button" class="btn gold" id="msgPrimary">복사 &amp; 확정 처리</button></div>
-            </div>
-          </div>
           <div class="amodal-ov" id="bulkModal" style="display:none">
             <div class="amodal" style="max-width:420px">
               <div class="amodal-h"><b>상태 일괄 변경</b><button type="button" id="bkClose" class="amodal-x">×</button></div>
@@ -246,8 +247,8 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--gold)}
 
       <div class="panel" id="panel-notify">
         <div class="box">
-          <h3>알림 발송 문구</h3>
-          <div class="desc">신청 접수 시 · 예약 확정 시 고객에게 전달되는 카카오톡 안내 문구입니다. 아래 항목을 클릭하면 실제 발송되는 내용을 확인·복사할 수 있습니다. 이 화면에서는 내용을 수정할 수 없으며, 문구 변경은 솔라피(Solapi)에서 새 알림톡 템플릿을 승인받은 뒤에만 반영됩니다.</div>
+          <div class="row-tools"><h3 style="flex:1">알림 발송 문구</h3><span class="saved" id="notifyTogglesSaved">저장됨 ✓</span></div>
+          <div class="desc">신청 접수 시 · 예약 확정 시 고객에게 전달되는 카카오톡 안내 문구입니다. 아래 항목을 클릭하면 실제 발송되는 내용을 확인·복사할 수 있습니다. 이 화면에서는 내용을 수정할 수 없으며, 문구 변경은 솔라피(Solapi)에서 새 알림톡 템플릿을 승인받은 뒤에만 반영됩니다. 활성화 토글은 누르면 즉시 저장됩니다.</div>
           <div class="stat-grid" style="grid-template-columns:repeat(2,1fr)">
             <div class="stat">
               <div class="l">접수 시</div>
@@ -273,8 +274,8 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--gold)}
 
       <div class="panel" id="panel-payment">
         <div class="box">
-          <h3>결제수단 활성화</h3>
-          <div class="desc">신청 결제 단계에서 고객에게 보여줄 결제수단을 켜고 끌 수 있습니다. 비활성화하면 해당 옵션이 신청 화면에서 보이지 않습니다.</div>
+          <div class="row-tools"><h3 style="flex:1">결제수단 활성화</h3><span class="saved" id="paymentTogglesSaved">저장됨 ✓</span></div>
+          <div class="desc">신청 결제 단계에서 고객에게 보여줄 결제수단을 켜고 끌 수 있습니다. 토글을 누르면 즉시 저장됩니다. 비활성화하면 해당 옵션이 신청 화면에서 보이지 않습니다.</div>
           <div class="stat-grid" style="grid-template-columns:repeat(3,1fr)">
             <div class="stat">
               <div class="l">계좌이체</div>
@@ -758,7 +759,7 @@ const CRUD_MAP=[
   {sel:'[data-cmsave]',menu:'settings',action:'update'},
   {sel:'#saveSite',menu:'settings',action:'update'},
   {sel:'#legalSave',menu:'settings',action:'update'},
-  {sel:'#paySave',menu:'settings',action:'update'},
+  {sel:'#paySave',menu:'payment',action:'update'},
   {sel:'label.upbtn:has(input[data-siteup])',menu:'settings',action:'update'},
   {sel:'label.upbtn:has(input[data-up])',menu:'settings',action:'update'},
   {sel:'label.upbtn:has(input[data-pup])',menu:'settings',action:'update'},
@@ -996,7 +997,7 @@ document.addEventListener('click',function(e){
   if(!S.site)S.site={};
   var k=b.getAttribute('data-notifytg')==='receipt'?'notifyReceiptOn':'notifyConfirmOn';
   S.site[k]=!(S.site[k]!==false);
-  try{save('site');}catch(_){}
+  try{save('site');flash($('#notifyTogglesSaved'));}catch(_){}
   renderNotify();
 });
 /* ---------- 결제수단 관리(활성화 토글 + 지점별 결제 링크) ---------- */
@@ -1014,7 +1015,7 @@ document.addEventListener('click',function(e){
   var map={transfer:'payTransferOn',smartstore:'paySmartstoreOn',onsite:'payOnsiteOn'};
   var k=map[b.getAttribute('data-paymenttg')];if(!k)return;
   S.site[k]=!(S.site[k]!==false);
-  try{save('site');}catch(_){}
+  try{save('site');flash($('#paymentTogglesSaved'));}catch(_){}
   renderPaymentToggles();
 });
 function renderPaymentLinks(){
