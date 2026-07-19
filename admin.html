@@ -152,6 +152,7 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--gold)}
       <a data-p="overview" class="active">소개</a>
       <a data-p="list">신청관리</a>
       <a data-p="notify">알림관리</a>
+      <a data-p="payment">결제수단</a>
       <a data-p="schedule">클래스설정</a>
       <a data-p="settings">환경설정</a>
       <a data-p="accounts" style="display:none">계정관리</a>
@@ -251,8 +252,14 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--gold)}
             <div class="stat">
               <div class="l">접수 시</div>
               <div class="v" style="font-size:16px;margin-top:10px">신청 접수 안내</div>
-              <div class="muted" style="margin-top:6px">신청 접수 직후 전달하는 문구</div>
-              <div class="row-tools" style="margin-top:14px;margin-bottom:0"><button type="button" class="btn ghost btn-sm" data-nf="receipt">내용 보기</button><span style="flex:1"></span><button type="button" class="tg" id="notifyReceiptTg" data-notifytg="receipt">활성</button></div>
+              <div class="muted" style="margin-top:6px">결제수단(계좌이체/현장결제/스마트스토어)별로 다른 문구가 발송됩니다</div>
+              <div class="row-tools" style="margin-top:14px;margin-bottom:0;flex-wrap:wrap">
+                <button type="button" class="btn ghost btn-sm" data-nf="receipt-transfer">계좌이체</button>
+                <button type="button" class="btn ghost btn-sm" data-nf="receipt-onsite">현장결제</button>
+                <button type="button" class="btn ghost btn-sm" data-nf="receipt-smartstore">스마트스토어</button>
+                <span style="flex:1"></span>
+                <button type="button" class="tg" id="notifyReceiptTg" data-notifytg="receipt">활성</button>
+              </div>
             </div>
             <div class="stat">
               <div class="l">확정 시</div>
@@ -261,6 +268,37 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--gold)}
               <div class="row-tools" style="margin-top:14px;margin-bottom:0"><button type="button" class="btn ghost btn-sm" data-nf="confirm">내용 보기</button><span style="flex:1"></span><button type="button" class="tg" id="notifyConfirmTg" data-notifytg="confirm">활성</button></div>
             </div>
           </div>
+        </div>
+      </div>
+
+      <div class="panel" id="panel-payment">
+        <div class="box">
+          <h3>결제수단 활성화</h3>
+          <div class="desc">신청 결제 단계에서 고객에게 보여줄 결제수단을 켜고 끌 수 있습니다. 비활성화하면 해당 옵션이 신청 화면에서 보이지 않습니다.</div>
+          <div class="stat-grid" style="grid-template-columns:repeat(3,1fr)">
+            <div class="stat">
+              <div class="l">계좌이체</div>
+              <div class="row-tools" style="margin-top:10px;margin-bottom:0"><span style="flex:1"></span><button type="button" class="tg" id="payTransferTg" data-paymenttg="transfer">활성</button></div>
+            </div>
+            <div class="stat">
+              <div class="l">스마트스토어 카드결제</div>
+              <div class="row-tools" style="margin-top:10px;margin-bottom:0"><span style="flex:1"></span><button type="button" class="tg" id="paySmartstoreTg" data-paymenttg="smartstore">활성</button></div>
+            </div>
+            <div class="stat">
+              <div class="l">현장 카드결제(예약금)</div>
+              <div class="row-tools" style="margin-top:10px;margin-bottom:0"><span style="flex:1"></span><button type="button" class="tg" id="payOnsiteTg" data-paymenttg="onsite">활성</button></div>
+            </div>
+          </div>
+        </div>
+        <div class="box">
+          <div class="row-tools"><h3 style="flex:1">지점별 결제 링크</h3><span class="saved" id="paymentLinksSaved">저장됨 ✓</span><button class="btn gold" id="savePaymentLinks">저장</button></div>
+          <div class="desc">계좌이체·현장결제(예약금)는 동일한 링크를 사용합니다. 스마트스토어는 네이버 스마트스토어 상품 링크를 등록해 주세요.</div>
+          <div id="paymentLinksForm"></div>
+        </div>
+        <div class="box">
+          <h3>예약금 설정</h3>
+          <div class="desc">현장 카드결제 선택 시 안내되는 예약금 금액입니다.</div>
+          <div id="payForm"></div>
         </div>
       </div>
 
@@ -321,7 +359,6 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--gold)}
 
         <div class="subpanel" id="sub-legal">
           <div class="box"><h3>사업자 정보 (푸터 · 법적 표기)</h3><div class="desc">전자상거래법에 따라 사이트 하단에 표기되는 사업자 정보입니다. 상호·대표자·사업자등록번호·통신판매업신고번호·주소·연락처는 필수 항목입니다.</div><div id="legalForm"></div></div>
-          <div class="box"><h3>결제 설정</h3><div class="desc">계좌이체(무통장입금) 계좌와 네이버페이(포트원) 연동 키를 등록합니다. 포트원 Store ID·채널 키는 결제창을 여는 공개키입니다. (가맹 심사 후 발급)</div><div id="payForm"></div></div>
         </div>
 
         <div class="subpanel" id="sub-space">
@@ -367,7 +404,7 @@ window.UUHEE_SB={url:'https://ybfwnmgnledlumppfjbh.supabase.co',key:'sb_publisha
       var cm=r[11].data||[],cb=r[12].data||[];
       if(!site&&!legal&&!br.length&&!cl.length&&!de.length&&!sl.length&&!pa.length&&!ph.length&&!pf.length&&!sc.length&&!ho.length&&!cm.length&&!cb.length)return null;
       var S={};
-      if(site)S.site={brand:s(site.brand),est:s(site.est),copyYear:s(site.copy_year),heroImg:s(site.hero_img),conceptImg:s(site.concept_img),notifyReceiptOn:(site.notify_receipt_on!==false),notifyConfirmOn:(site.notify_confirm_on!==false)};
+      if(site)S.site={brand:s(site.brand),est:s(site.est),copyYear:s(site.copy_year),heroImg:s(site.hero_img),conceptImg:s(site.concept_img),notifyReceiptOn:(site.notify_receipt_on!==false),notifyConfirmOn:(site.notify_confirm_on!==false),payTransferOn:(site.pay_transfer_on!==false),paySmartstoreOn:(site.pay_smartstore_on!==false),payOnsiteOn:(site.pay_onsite_on!==false)};
       S.conceptMedia=cm.map(function(m){return {id:m.id,url:s(m.url)};});
       if(site)S.pay={depositAmount:(site.deposit_amount==null?'':String(site.deposit_amount))};
       if(legal)S.legal={company:s(legal.company),ceo:s(legal.ceo),bizno:s(legal.bizno),mailorder:s(legal.mailorder),privacy:s(legal.privacy),addr:s(legal.addr),tel:s(legal.tel),email:s(legal.email),kakao:s(legal.kakao),hosting:s(legal.hosting),termsUrl:s(legal.terms_url),privacyUrl:s(legal.privacy_url),refundUrl:s(legal.refund_url)};
@@ -474,7 +511,7 @@ window.UUHEE_SB={url:'https://ybfwnmgnledlumppfjbh.supabase.co',key:'sb_publisha
     var want=function(k){if(scope==null||scope==='all')return true;if(Array.isArray(scope))return scope.indexOf(k)>=0;return scope===k;};
     var cnById=function(id){if(id==null||id==='')return '';var c=(S.classes||[]).filter(function(x){return String(x.id)===String(id);})[0];return c?c.name:'';}; // 표시/참고용 이름 캐시(매칭에는 안 씀)
     var st=S.site||{},lg=S.legal||{},pay=S.pay||{};var jobs=[];
-    if(want('site'))jobs.push(sb.from('site').upsert({id:'uuhee',brand:s(st.brand),est:s(st.est),copy_year:s(st.copyYear),hero_img:noD(st.heroImg),concept_img:noD(st.conceptImg),deposit_amount:N(pay.depositAmount),notify_receipt_on:(st.notifyReceiptOn!==false),notify_confirm_on:(st.notifyConfirmOn!==false)}));
+    if(want('site'))jobs.push(sb.from('site').upsert({id:'uuhee',brand:s(st.brand),est:s(st.est),copy_year:s(st.copyYear),hero_img:noD(st.heroImg),concept_img:noD(st.conceptImg),deposit_amount:N(pay.depositAmount),notify_receipt_on:(st.notifyReceiptOn!==false),notify_confirm_on:(st.notifyConfirmOn!==false),pay_transfer_on:(st.payTransferOn!==false),pay_smartstore_on:(st.paySmartstoreOn!==false),pay_onsite_on:(st.payOnsiteOn!==false)}));
     if(want('legal'))jobs.push(sb.from('legal').upsert({id:'uuhee',company:s(lg.company),ceo:s(lg.ceo),bizno:s(lg.bizno),mailorder:s(lg.mailorder),privacy:s(lg.privacy),addr:s(lg.addr),tel:s(lg.tel),email:s(lg.email),kakao:s(lg.kakao),hosting:s(lg.hosting),terms_url:s(lg.termsUrl),privacy_url:s(lg.privacyUrl),refund_url:s(lg.refundUrl)}));
     if(want('branches'))jobs.push(replUpsert('branches',S.branches||[],function(b,i){return {ord:i,name:s(b.name),phone:s(b.phone),addr:s(b.addr),map:s(b.map),hours:s(b.hours),ig:s(b.ig),fb:s(b.fb),lt:s(b.lt),space_desc:s(b.spaceDesc),transfer_link:s(b.transferLink),smartstore_link:s(b.smartstoreLink)};}));
     if(want('classes'))jobs.push(replClasses(S.classes||[]));
@@ -667,6 +704,7 @@ $$('#nav a').forEach(a=>a.addEventListener('click',()=>{$$('#nav a').forEach(x=>
   const p=a.dataset.p;$$('.panel').forEach(x=>x.classList.remove('active'));$('#panel-'+p).classList.add('active');$('#ptitle').textContent=a.textContent;
   if(p==='accounts')renderAccounts();
   if(p==='notify')renderNotify();
+  if(p==='payment'){renderPaymentLinks();renderPaymentToggles();}
   try{sessionStorage.setItem('uuhee_panel',p);}catch(e){}}));
 function applyMenuVisibility(){
   var firstVisible=null;
@@ -694,6 +732,8 @@ const CRUD_MAP=[
   {sel:'#seConfirm',menu:'list',action:'update'},
   {sel:'#msgPrimary',menu:'list',action:'update'},
   {sel:'[data-notifytg]',menu:'notify',action:'update'},
+  {sel:'[data-paymenttg]',menu:'payment',action:'update'},
+  {sel:'#savePaymentLinks',menu:'payment',action:'update'},
   {sel:'#bulkNotify',menu:'list',action:'update'},
   {sel:'#bnSend',menu:'list',action:'update'},
   {sel:'#schedAdd',menu:'schedule',action:'create'},
@@ -880,14 +920,20 @@ $('#subEdit')&&$('#subEdit').addEventListener('click',function(e){if(e.target.id
    결제/입금을 관리자가 수동으로 확인한 뒤 이 문구를 복사해 카카오톡으로 전달한다.
    확정 안내의 '복사 & 확정 처리'는 문구 복사와 동시에 해당 신청 건의 상태를 '확정'(3)으로 변경한다.
    접수 안내는 신청 건마다 이름·일정 등이 다르므로 {{토큰}}을 실제 값으로 채워서 보여준다. */
-var RECEIPT_TEMPLATE="안녕하세요. #{지점명}입니다.\n예약 접수 안내드립니다.\n\n결제완료 시, 빠른 시일 내 확정 문자 드리겠습니다.\n\n이름 : #{이름}\n연락처 : #{연락처}\n지점 : #{지점명}\n일자 : #{일자}\n시간 : #{시간}\n클래스 : #{클래스명}\n인원 : #{인원}인\n신청내용 : #{신청내용}\n\n결제금액 : #{결제금액}원\n결제방법 : #{결제방법}\n예약금 : #{예약금}\n\n*안내 & 주의사항\n\n▫문의 순번이 아닌 수업료 입금 내역 기준으로 예약 확정 도와드리고 있습니다.\n\n▫예약은 예약문의-예약안내-입금-확정의 순서대로 진행됩니다.\n\n▫문의 후 24시간 이내 미입금 시 기존 문의내용은 불발되는 점 양해 부탁드립니다.\n\n▫예약 확정 후 예약 변경 및 취소 시 네이버 규정에 따라 진행됩니다.";
-var CONFIRM_MSG="예약 확정 되셨습니다:)\n\n**** 꼭 읽어주세요 ! ****\n\n<안내 & 주의사항>\n\n▫매 시간마다 정각 클래스를 운영하기 때문에 정각에 맞춰 입장부탁드립니다. \n\n▫예약제 특성상 당일변경이 불가하며, 예약시간 기준 20분 이상 미방문 시 수업진행 불가한점 양해부탁드립니다.\n\n▫방문 시 신분증을 꼭 지참해주세요.\n\n▫담금주 시음과정이 있어 차량보단 대중교통 이용을 추천드립니다.\n(주차 시 인근공영주차장을 이용해주세요.)\n\n▫️음식물 및 음료는 반입 어려우신점 미리 안내드립니다.\n\n▫예약일 기준 3일 이내 예약 취소시 네이버 환불규정에 따른 수수료가 발생될 수 있습니다. \n(3일전 50%, 2일전 70%, 1일&당일 변경 및 취소 불가)\n\n감사합니다.";
-function qtyText(qty){if(!qty)return '-';var parts=[];Object.keys(qty).forEach(function(k){var v=qty[k];if(v)parts.push(k+'×'+v+'병');});return parts.length?parts.join(', '):'-';}
-function buildReceiptMsg(r){
+var RECEIPT_TEMPLATE_TRANSFER="안녕하세요, 유유히입니다. \n예약제 공방으로 운영되어 입금 확인 후 예약 확정 처리를 도와드리고 있습니다.\n발송되는 예약 확정 안내 문자를 확인해주세요. :)\n\n[접수 내역]\n이름 : #{이름}\n연락처 : #{연락처}\n지점 : #{지점명}\n일자 : #{일자}\n시간 : #{시간}\n클래스 : #{클래스명}\n인원 : #{인원}인\n신청 내용 : #{신청내용}\n결제 금액 : #{결제금액}원\n결제 방법 : 계좌 선입금\n\n\n[안내 및 유의사항]\n\n▫ 문의 순서가 아닌 수업료 입금 내역을 기준으로 예약을 확정해드리고 있습니다.\n\n▫ 예약은 예약 접수 → 결제안내 → 결제확인 → 예약 확정 순으로 진행됩니다.\n\n▫ 문의 후 24시간 이내 미입금 시 기존 예약 문의는 자동 취소되는 점 양해 부탁드립니다.\n\n▫ 예약 확정 후 예약 변경 및 취소는 아래 환불 규정에 따라 처리됩니다.\n* 3일 전 취소 : 50% 환불\n* 2일 전 취소 : 70% 환불\n* 1일 전 및 당일 : 변경 및 취소 불가";
+var RECEIPT_TEMPLATE_ONSITE="안녕하세요, 유유히입니다. \n\n예약제 공방으로 운영되어 현장 결제를 원하시더라도 예약금 입금 후 예약이 확정됩니다.\n\n예약금은 수업 당일 수업료에서 차감하여 차액만 결제하시거나, 예약금을 환불받으신 후 카드로 전체 결제하시는 방법 중 편하신 방법으로 진행을 도와드리겠습니다.\n\n[접수 내역]\n이름 : #{이름}\n연락처 : #{연락처}\n지점 : #{지점명}\n일자 : #{일자}\n시간 : #{시간}\n클래스 : #{클래스명}\n인원 : #{인원}인\n신청 내용 : #{신청내용}\n총 결제 금액 : #{결제금액}원\n결제 방법 : 예약금 결제\n\n[안내 및 유의사항]\n\n▫ 문의 순서가 아닌 수업료 입금 내역을 기준으로 예약을 확정해드리고 있습니다.\n\n▫ 예약은 예약 접수 → 결제안내 → 결제확인 → 예약 확정 순으로 진행됩니다.\n\n▫ 문의 후 24시간 이내 미입금 시 기존 예약 문의는 자동 취소되는 점 양해 부탁드립니다.\n\n▫ 예약 확정 후 예약 변경 및 취소는 아래 환불 규정에 따라 처리됩니다.\n* 3일 전 취소 : 50% 환불\n* 2일 전 취소 : 70% 환불\n* 1일 전 및 당일 : 변경 및 취소 불가";
+var RECEIPT_TEMPLATE_SMARTSTORE="안녕하세요, 유유히입니다. \n예약제 공방으로 스토어 결제 후 확정처리 도와드리고 있습니다.\n\n[접수 내역]\n이름 : #{이름}\n연락처 : #{연락처}\n지점 : #{지점명}\n일자 : #{일자}\n시간 : #{시간}\n클래스 : #{클래스명}\n인원 : #{인원}인\n신청 내용 : #{신청내용}\n총 결제 금액 : #{결제금액}원\n결제 방법 : 스토어 결제\n\n[안내 & 유의사항]\n\n▫1인 1클래스로 진행되고 있어, 인원 수 대로 결제 부탁드립니다.\nex) 2인 예약시 총 2병 70,000원 결제 필요\n\n▫취소처리는 따로 요청주시지 않으시면 처리되지 않습니다. \n* 취소 관련 문의는 별도로 연락 주세요 :)  \n\n▫ 예약은 예약 접수 → 결제안내 → 결제확인 → 예약 확정 순으로 진행됩니다.\n\n▫ 문의 후 24시간 이내 미입금 시 기존 예약 문의는 자동 취소되는 점 양해 부탁드립니다.\n\n▫ 예약 확정 후 예약 변경 및 취소는 아래 환불 규정에 따라 처리됩니다.\n* 3일 전 취소 : 50% 환불\n* 2일 전 취소 : 70% 환불\n* 1일 전 및 당일 : 변경 및 취소 불가";
+var CONFIRM_MSG="예약 확정 되셨습니다:)\n\n**** 꼭 읽어주세요 ! ****\n\n<안내 & 주의사항>\n\n▫매 시간마다 정각 클래스를 운영하기 때문에 정각에 맞춰 입장부탁드립니다. \n\n▫예약제 특성상 당일변경이 불가하며, 예약시간 기준 20분 이상 미방문 시 수업진행 불가한점 양해부탁드립니다.\n\n▫방문 시 신분증을 꼭 지참해주세요.\n\n▫담금주 시음과정이 있어 차량보단 대중교통 이용을 추천드립니다.\n(주차 시 인근공영주차장을 이용해주세요.)\n\n▫️음식물 및 음료는 반입 어려우신점 미리 안내드립니다.\n\n▫예약일 기준 3일 이내 예약 취소시 환불규정에 따른 수수료가 발생될 수 있습니다. \n* 3일 전 취소 : 50% 환불\n* 2일 전 취소 : 70% 환불\n* 1일 전 및 당일 : 변경 및 취소 불가\n\n감사합니다.";
+function qtyText(qty){if(!qty)return '-';var parts=[];Object.keys(qty).forEach(function(k){var v=qty[k];if(v)parts.push(k+' × '+v+'병');});return parts.length?parts.join(', '):'-';}
+function receiptTemplateFor(payMethod){
+  var pm=payMethod||'';
+  if(/스마트스토어/.test(pm))return RECEIPT_TEMPLATE_SMARTSTORE;
+  if(/현장/.test(pm))return RECEIPT_TEMPLATE_ONSITE;
+  return RECEIPT_TEMPLATE_TRANSFER;
+}
+function fillReceiptTemplate(tpl,r){
   var amt=(r.estimate==null||r.estimate==='')?0:Math.round(Number(r.estimate))||0;
-  var isOnsite=/현장/.test(r.payMethod||'');
-  var dep=isOnsite?(parseInt((S.pay||{}).depositAmount||'0',10)||0):0;
-  return RECEIPT_TEMPLATE
+  return tpl
     .replace(/#{지점명}/g,r.branch||'-')
     .replace(/#{이름}/g,r.name||'-')
     .replace(/#{연락처}/g,r.phone||'-')
@@ -896,9 +942,10 @@ function buildReceiptMsg(r){
     .replace(/#{클래스명}/g,r.class||'-')
     .replace(/#{인원}/g,r.people||'-')
     .replace(/#{신청내용}/g,qtyText(r.qty))
-    .replace(/#{결제금액}/g,amt.toLocaleString())
-    .replace(/#{결제방법}/g,r.payMethod||'-')
-    .replace(/#{예약금}/g,dep>0?(dep.toLocaleString()+'원'):'0원');
+    .replace(/#{결제금액}/g,amt.toLocaleString());
+}
+function buildReceiptMsg(r){
+  return fillReceiptTemplate(receiptTemplateFor(r.payMethod),r);
 }
 var MSG_MODE=null; // 'receipt' | 'confirm'
 function openMsgModal(mode){
@@ -917,9 +964,11 @@ function openMsgModal(mode){
     $('#msgNote').innerHTML="⚠️ 카카오톡 자동 발송 기능은 없습니다. 복사하기로 문구를 복사해 카카오톡에서 직접 전달한 뒤, '발송 완료로 표시'를 누르면 상태가 '확정'으로 변경됩니다.";
     $('#msgPrimary').style.display='';
     $('#msgPrimary').textContent='발송 완료로 표시';
-  }else if(mode==='previewReceipt'){
-    $('#msgTitle').textContent='접수 시 안내 문구 (미리보기)';
-    $('#msgText').value=RECEIPT_TEMPLATE;
+  }else if(mode==='previewReceiptTransfer'||mode==='previewReceiptOnsite'||mode==='previewReceiptSmartstore'){
+    var tplLabel={previewReceiptTransfer:'계좌이체',previewReceiptOnsite:'현장결제',previewReceiptSmartstore:'스마트스토어'}[mode];
+    var tpl={previewReceiptTransfer:RECEIPT_TEMPLATE_TRANSFER,previewReceiptOnsite:RECEIPT_TEMPLATE_ONSITE,previewReceiptSmartstore:RECEIPT_TEMPLATE_SMARTSTORE}[mode];
+    $('#msgTitle').textContent='접수 시 안내 문구 — '+tplLabel+' (미리보기)';
+    $('#msgText').value=tpl;
     $('#msgNote').textContent='실제 발송 시 #{ } 로 표시된 부분이 신청자 정보로 채워집니다. 이 화면에서는 수정할 수 없습니다 — 문구 변경은 솔라피에서 새 템플릿 승인 후 진행해 주세요.';
     $('#msgPrimary').style.display='none';
   }else if(mode==='previewConfirm'){
@@ -933,7 +982,8 @@ function openMsgModal(mode){
 }
 function closeMsgModal(){$('#msgModal').style.display='none';MSG_MODE=null;}
 function copyMsgText(){var ta=$('#msgText');if(!ta)return;ta.select();var t=ta.value;if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(t).catch(function(){try{document.execCommand('copy');}catch(_){}});}else{try{document.execCommand('copy');}catch(_){}}}
-document.addEventListener('click',function(e){var b=e.target.closest('[data-nf]');if(b)openMsgModal(b.getAttribute('data-nf')==='receipt'?'previewReceipt':'previewConfirm');});
+var NF_PREVIEW_MODE={'receipt-transfer':'previewReceiptTransfer','receipt-onsite':'previewReceiptOnsite','receipt-smartstore':'previewReceiptSmartstore',confirm:'previewConfirm'};
+document.addEventListener('click',function(e){var b=e.target.closest('[data-nf]');if(b)openMsgModal(NF_PREVIEW_MODE[b.getAttribute('data-nf')]||'previewConfirm');});
 function renderNotify(){
   var st=S.site||{};
   var rOn=st.notifyReceiptOn!==false,cOn=st.notifyConfirmOn!==false;
@@ -948,6 +998,38 @@ document.addEventListener('click',function(e){
   S.site[k]=!(S.site[k]!==false);
   try{save('site');}catch(_){}
   renderNotify();
+});
+/* ---------- 결제수단 관리(활성화 토글 + 지점별 결제 링크) ---------- */
+function renderPaymentToggles(){
+  var st=S.site||{};
+  var tOn=st.payTransferOn!==false,sOn=st.paySmartstoreOn!==false,oOn=st.payOnsiteOn!==false;
+  var tt=$('#payTransferTg'),st2=$('#paySmartstoreTg'),ot=$('#payOnsiteTg');
+  if(tt){tt.classList.toggle('on',tOn);tt.textContent=tOn?'활성':'비활성';}
+  if(st2){st2.classList.toggle('on',sOn);st2.textContent=sOn?'활성':'비활성';}
+  if(ot){ot.classList.toggle('on',oOn);ot.textContent=oOn?'활성':'비활성';}
+}
+document.addEventListener('click',function(e){
+  var b=e.target.closest('[data-paymenttg]');if(!b)return;
+  if(!S.site)S.site={};
+  var map={transfer:'payTransferOn',smartstore:'paySmartstoreOn',onsite:'payOnsiteOn'};
+  var k=map[b.getAttribute('data-paymenttg')];if(!k)return;
+  S.site[k]=!(S.site[k]!==false);
+  try{save('site');}catch(_){}
+  renderPaymentToggles();
+});
+function renderPaymentLinks(){
+  var box=$('#paymentLinksForm');if(!box)return;
+  var branches=S.branches||[];
+  box.innerHTML=branches.length?branches.map(function(b,i){
+    return '<div class="fgrid" style="margin-bottom:14px"><div class="field"><label>'+esc(b.name||('지점 '+(i+1)))+' — 계좌이체·예약금 링크</label><input data-plink="transferLink" data-pi="'+i+'" value="'+esc(b.transferLink||'')+'"></div><div class="field"><label>'+esc(b.name||('지점 '+(i+1)))+' — 스마트스토어 링크</label><input data-plink="smartstoreLink" data-pi="'+i+'" value="'+esc(b.smartstoreLink||'')+'"></div></div>';
+  }).join(''):'<div class="muted">등록된 지점이 없습니다. 지점설정 탭에서 먼저 지점을 추가해 주세요.</div>';
+}
+document.addEventListener('input',function(e){
+  var t=e.target;if(t.dataset.plink==null||t.dataset.pi==null)return;
+  var i=+t.dataset.pi;if(S.branches&&S.branches[i])S.branches[i][t.dataset.plink]=t.value;
+});
+$('#savePaymentLinks')&&$('#savePaymentLinks').addEventListener('click',function(){
+  try{save('branches');flash($('#paymentLinksSaved'));}catch(e){alert('저장 실패');}
 });
 $('#seReceipt')&&$('#seReceipt').addEventListener('click',function(){openMsgModal('receipt');});
 $('#seConfirm')&&$('#seConfirm').addEventListener('click',function(){if(EW!=='apps'||EI===-1)return;openMsgModal('confirm');});
@@ -1106,7 +1188,7 @@ let T={};
 function buildTables(){
   T.branches=makeTable('#tbl-branches','branches',[
     {k:'name',l:'지점명'},{k:'nameEn',l:'지점명(EN)'},{k:'phone',l:'연락처'},{k:'addr',l:'주소'},{k:'addrEn',l:'주소(EN)'},{k:'map',l:'네이버 지도 링크'},{k:'hours',l:'운영시간'},
-    {k:'ig',l:'Instagram'},{k:'fb',l:'Facebook'},{k:'lt',l:'Linktree'},{k:'transferLink',l:'계좌이체·예약금 링크'},{k:'smartstoreLink',l:'스마트스토어 링크'}],
+    {k:'ig',l:'Instagram'},{k:'fb',l:'Facebook'},{k:'lt',l:'Linktree'}],
     ()=>({name:'',nameEn:'',phone:'',addr:'',addrEn:'',map:'',hours:'',ig:'',fb:'',lt:'',transferLink:'',smartstoreLink:''}),'지점 추가');
   T.classes=makeTable('#tbl-classes','classes',[
     {k:'branches',l:'지점(복수선택)',type:'multi',options:branchNames},{k:'order',l:'순서',type:'num'},{k:'tag',l:'라벨(EN)'},{k:'name',l:'이름'},{k:'nameEn',l:'이름(EN)'},{k:'desc',l:'클래스 설명'},{k:'descEn',l:'설명(EN)'},
@@ -1375,8 +1457,8 @@ function renderAll(){renderOverview();renderLists();renderSite();buildTables();b
 
 /* ---------- 계정 관리(마스터 전용) ---------- */
 var ACCTS=[],EDIT_ACCT_EMAIL=null,acctWired=false;
-var MENU_KEYS=['list','notify','schedule','settings'];
-var MENU_LABELS={list:'신청관리',notify:'알림관리',schedule:'클래스설정',settings:'환경설정'};
+var MENU_KEYS=['list','notify','payment','schedule','settings'];
+var MENU_LABELS={list:'신청관리',notify:'알림관리',payment:'결제수단',schedule:'클래스설정',settings:'환경설정'};
 var VERB_KEYS=['view','create','update','delete'];
 var VERB_LABELS={view:'조회',create:'생성',update:'수정',delete:'삭제'};
 function callAdminAccounts(payload){

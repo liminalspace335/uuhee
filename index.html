@@ -827,7 +827,7 @@ window.UUHEE_SB={url:'https://ybfwnmgnledlumppfjbh.supabase.co',key:'sb_publisha
       var S={};
       if(site)S.site={brand:s(site.brand),est:s(site.est),copyYear:s(site.copy_year),heroImg:s(site.hero_img),conceptImg:s(site.concept_img)};
       S.conceptMedia=cm.map(function(m){return s(m.url);});
-      if(site)S.pay={depositAmount:(site.deposit_amount==null?'':String(site.deposit_amount))};
+      if(site)S.pay={depositAmount:(site.deposit_amount==null?'':String(site.deposit_amount)),transferOn:(site.pay_transfer_on!==false),smartstoreOn:(site.pay_smartstore_on!==false),onsiteOn:(site.pay_onsite_on!==false)};
       if(legal)S.legal={company:s(legal.company),ceo:s(legal.ceo),bizno:s(legal.bizno),mailorder:s(legal.mailorder),privacy:s(legal.privacy),addr:s(legal.addr),tel:s(legal.tel),email:s(legal.email),kakao:s(legal.kakao),hosting:s(legal.hosting),termsUrl:s(legal.terms_url),privacyUrl:s(legal.privacy_url),refundUrl:s(legal.refund_url)};
       S.branches=br.map(function(b){return {name:s(b.name),nameEn:s(b.name_en),phone:s(b.phone),addr:s(b.addr),addrEn:s(b.addr_en),map:s(b.map),hours:s(b.hours),ig:s(b.ig),fb:s(b.fb),lt:s(b.lt),spaceDesc:s(b.space_desc),transferLink:s(b.transfer_link),smartstoreLink:s(b.smartstore_link)};});
       S.classes=cl.map(function(x){var brs=cb.filter(function(b){return b.class_id===x.id;}).map(function(b){return s(b.branch_name);});return {id:x.id,order:x.ord,tag:s(x.tag),name:s(x.name),nameEn:s(x.name_en),desc:s(x.descr),descEn:s(x.desc_en),active:!!x.active,inquiryOnly:!!x.inquiry_only,branches:brs};});
@@ -1383,8 +1383,18 @@ window.UUHEE_SB={url:'https://ybfwnmgnledlumppfjbh.supabase.co',key:'sb_publisha
       var amt=parseInt(data.estimate||'0',10)||0;
       return amt>0?(amt.toLocaleString()+'원 결제하기'):'결제 페이지로 이동';
     }
+    function applyPayOptionVisibility(){
+      var S2=SET();var pay=S2.pay||{};
+      var list=modal.querySelector('.opt-list[data-field="pay"]');if(!list)return;
+      var vis={transfer:pay.transferOn!==false,smartstore:pay.smartstoreOn!==false,onsite:pay.onsiteOn!==false};
+      list.querySelectorAll('.opt').forEach(function(o){
+        var v=vis[o.dataset.val];
+        o.style.display=v?'':'none';
+        if(!v&&o.classList.contains('sel')){o.classList.remove('sel');data.pay='';}
+      });
+    }
     function onPaySelected(){data.payLinkOpened=false;var btn=document.getElementById('payGo');if(btn)btn.textContent=payButtonLabel();renderPayBox();}
-    function preparePay(){var amt=parseInt(data.estimate||'0',10)||0;var el=document.getElementById('payAmt');if(el)el.textContent=amt>0?('\u20a9'+amt.toLocaleString()):'가격 협의';data.payLinkOpened=false;var btn=document.getElementById('payGo');if(btn)btn.textContent=payButtonLabel();renderPayBox();}
+    function preparePay(){applyPayOptionVisibility();var amt=parseInt(data.estimate||'0',10)||0;var el=document.getElementById('payAmt');if(el)el.textContent=amt>0?('\u20a9'+amt.toLocaleString()):'가격 협의';data.payLinkOpened=false;var btn=document.getElementById('payGo');if(btn)btn.textContent=payButtonLabel();renderPayBox();}
     // finalizeApp()은 항상 {ok, message} 형태로 resolve된다(reject하지 않음) — 호출부에서
     // 성공/실패를 분기해 화면을 다르게 보여줄 수 있도록(정원마감 등 서버 거부를 조용히 삼키지 않기 위함).
     function finalizeApp(){var rec=Object.assign({},data,{ts:Date.now()});try{var all=JSON.parse(localStorage.getItem('uuhee_apps')||'[]');all.push(rec);localStorage.setItem('uuhee_apps',JSON.stringify(all));}catch(e){}
