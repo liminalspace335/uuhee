@@ -385,7 +385,7 @@ window.UUHEE_SB={url:'https://ybfwnmgnledlumppfjbh.supabase.co',key:'sb_publisha
   function pullSubs(){
     return Promise.all([sb.from('applications').select('*').order('id'),sb.from('inquiries').select('*').order('id'),sb.from('application_items').select('*')]).then(function(r){
       var itemsBy={};(r[2].data||[]).forEach(function(it){var k=it.application_id;(itemsBy[k]=itemsBy[k]||{})[s(it.size)]=it.qty;});
-      var apps=(r[0].data||[]).map(function(a){return {id:a.id,status:(a.status||1),memo:s(a.memo),branch:s(a.branch),class:s(a.cls),size:s(a.size),date:s(a.sdate),time:s(a.stime),people:(a.people==null?'':String(a.people)),name:s(a.name),phone:s(a.phone),email:s(a.email),msg:s(a.msg),estimate:a.estimate,payMethod:s(a.pay_method),kakaoNotice:s(a.kakao_notice),qty:itemsBy[a.id]||null,ts:a.created_at?Date.parse(a.created_at):Date.now()};});
+      var apps=(r[0].data||[]).map(function(a){return {id:a.id,status:(a.status||1),memo:s(a.memo),branch:s(a.branch),class:s(a.cls),size:s(a.size),date:s(a.sdate),time:s(a.stime),people:(a.people==null?'':String(a.people)),name:s(a.name),phone:s(a.phone),email:s(a.email),msg:s(a.msg),estimate:a.estimate,payMethod:s(a.pay_method),kakaoNotice:(a.kakao_notice==null?null:+a.kakao_notice),qty:itemsBy[a.id]||null,ts:a.created_at?Date.parse(a.created_at):Date.now()};});
       var grp=(r[1].data||[]).map(function(g){return {type:s(g.itype),volume:s(g.volume),branch:s(g.branch),company:s(g.company),name:s(g.name),phone:s(g.phone),email:s(g.email),size:s(g.isize),msg:s(g.msg),ts:g.created_at?Date.parse(g.created_at):Date.now()};});
       return {apps:apps,grp:grp};
     });
@@ -788,6 +788,8 @@ function renderOverview(){
 }
 var SUBTAB='class';
 var STLAB={1:'신청',2:'대기',3:'확정',4:'완료',5:'취소',6:'환불요청',7:'환불완료'};
+var KN_RECEIPT=1,KN_CONFIRM=2;
+var KNLAB={1:'접수',2:'확정'};
 function stColor(c){return {1:'#8a8a82',2:'#c98a2e',3:'#3c7d4f',4:'#4a4a44',5:'#c0392b',6:'#d35400',7:'#2e6da4'}[+c]||'#8a8a82';}
 function stOpts(cur){var o='';for(var k=1;k<=7;k++){o+='<option value="'+k+'"'+(+cur===k?' selected':'')+'>'+k+'. '+STLAB[k]+'</option>';}return o;}
 function stBadge(c){c=c||1;return '<span class="stbadge" style="color:'+stColor(c)+';border-color:'+stColor(c)+'">'+STLAB[c]+'</span>';}
@@ -828,7 +830,7 @@ function renderSubs(){
     head='<th>구분</th><th>이름</th><th>연락처</th><th>내용</th><th>상세</th>';
     rowf=function(r,w){return '<td>'+(w==='apps'?'클래스':'단체·기업')+'</td><td>'+esc(r.name||'')+'</td><td>'+esc(r.phone||'')+'</td><td>'+esc(contentText(w,r))+'</td><td class="cdetail">'+esc(detailText(w,r))+'</td>';};
   }
-  var body=list.length?list.map(function(o){var r=o.row;return '<tr><td><input type="checkbox" class="subck" data-w="'+o.w+'" data-i="'+o.i+'"></td>'+rowf(r,o.w)+'<td class="cmemo">'+esc(r.memo||'')+'</td><td class="mono">'+fmt(r.ts)+'</td><td>'+(o.w==='apps'?esc(r.kakaoNotice||'-'):'-')+'</td><td>'+stBadge(r.status)+'</td><td><button class="btn ghost btn-sm" data-edit="'+o.w+'" data-i="'+o.i+'">상세</button></td></tr>';}).join(''):'<tr><td colspan="20" class="empty">접수된 내역이 없습니다.</td></tr>';
+  var body=list.length?list.map(function(o){var r=o.row;return '<tr><td><input type="checkbox" class="subck" data-w="'+o.w+'" data-i="'+o.i+'"></td>'+rowf(r,o.w)+'<td class="cmemo">'+esc(r.memo||'')+'</td><td class="mono">'+fmt(r.ts)+'</td><td>'+(o.w==='apps'?esc(KNLAB[r.kakaoNotice]||'-'):'-')+'</td><td>'+stBadge(r.status)+'</td><td><button class="btn ghost btn-sm" data-edit="'+o.w+'" data-i="'+o.i+'">상세</button></td></tr>';}).join(''):'<tr><td colspan="20" class="empty">접수된 내역이 없습니다.</td></tr>';
   box.innerHTML='<table class="subs"><thead><tr><th><input type="checkbox" id="subAll"></th>'+head+'<th>메모</th><th>신청일시</th><th>카톡알림</th><th>상태</th><th>작업</th></tr></thead><tbody>'+body+'</tbody></table>';
 }
 $$('#subTabs .subtab').forEach(function(t){t.addEventListener('click',function(){$$('#subTabs .subtab').forEach(function(x){x.classList.remove('active');});t.classList.add('active');SUBTAB=t.dataset.st;renderSubs();});});
@@ -906,8 +908,8 @@ function openMsgModal(mode){
     $('#msgText').value=buildReceiptMsg(r);
     $('#msgNote').textContent='복사하기로 내용을 복사한 뒤 카카오톡으로 전달해 주세요.';
     $('#msgPrimary').style.display='none';
-    r.kakaoNotice='접수';
-    if(window.__sb&&r.id)window.__sb.from('applications').update({kakao_notice:'접수'}).eq('id',r.id).then(function(res){if(res.error)console.warn(res.error);});
+    r.kakaoNotice=KN_RECEIPT;
+    if(window.__sb&&r.id)window.__sb.from('applications').update({kakao_notice:KN_RECEIPT}).eq('id',r.id).then(function(res){if(res.error)console.warn(res.error);});
     try{localStorage.setItem('uuhee_apps',JSON.stringify(apps));}catch(_){}
     renderSubs();
   }else if(mode==='confirm'){
@@ -959,9 +961,9 @@ $('#msgPrimary')&&$('#msgPrimary').addEventListener('click',function(){
     var r=apps[EI];
     if(r){
       r.status=3;
-      r.kakaoNotice='확정';
+      r.kakaoNotice=KN_CONFIRM;
       var id=r.id;
-      if(window.__sb&&id)window.__sb.from('applications').update({status:3,kakao_notice:'확정'}).eq('id',id).then(function(res){if(res.error)alert('상태 저장 실패: '+res.error.message);});
+      if(window.__sb&&id)window.__sb.from('applications').update({status:3,kakao_notice:KN_CONFIRM}).eq('id',id).then(function(res){if(res.error)alert('상태 저장 실패: '+res.error.message);});
       try{localStorage.setItem('uuhee_apps',JSON.stringify(apps));}catch(_){}
       renderSubs();renderOverview();
     }
@@ -987,7 +989,7 @@ function renderBulkNotifyList(){
   box.innerHTML=BULK_NOTIFY_PICKS.map(function(p,idx){
     var r=p.rec;
     if(p.w!=='apps')return '<div class="row-tools" style="border-bottom:1px solid var(--line);padding:8px 0;margin-bottom:0"><span style="flex:1">'+esc(r.name||r.company||'-')+' ('+esc(r.phone||'-')+')</span><span class="muted">클래스 신청이 아니라 안내 대상이 아닙니다</span></div>';
-    var sentLabel=r.kakaoNotice?(' · 발송됨: '+esc(r.kakaoNotice)):'';
+    var sentLabel=r.kakaoNotice?(' · 발송됨: '+esc(KNLAB[r.kakaoNotice]||'')):'';
     return '<div class="row-tools" style="border-bottom:1px solid var(--line);padding:8px 0;margin-bottom:0"><span style="flex:1">'+esc(r.name||'-')+' ('+esc(r.phone||'-')+')'+sentLabel+'</span><button type="button" class="btn ghost btn-sm" data-bncopy="'+idx+'">복사</button></div>';
   }).join('');
 }
@@ -997,8 +999,8 @@ document.addEventListener('click',function(e){
   var r=p.rec;var type=$('#bnTypeConfirm').checked?'confirm':'receipt';
   var text=type==='confirm'?CONFIRM_MSG:buildReceiptMsg(r);
   if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(text).catch(function(){});}
-  r.kakaoNotice=type==='confirm'?'확정':'접수';
-  var patch=type==='confirm'?{status:3,kakao_notice:'확정'}:{kakao_notice:'접수'};
+  r.kakaoNotice=type==='confirm'?KN_CONFIRM:KN_RECEIPT;
+  var patch=type==='confirm'?{status:3,kakao_notice:KN_CONFIRM}:{kakao_notice:KN_RECEIPT};
   if(type==='confirm')r.status=3;
   if(window.__sb&&r.id)window.__sb.from('applications').update(patch).eq('id',r.id).then(function(res){if(res.error)console.warn(res.error);});
   try{localStorage.setItem('uuhee_apps',JSON.stringify(apps));}catch(_){}
@@ -1473,7 +1475,7 @@ function refreshSubmissionsFromCloud(){
   Promise.all([window.__sb.from('applications').select('*').order('id'),window.__sb.from('inquiries').select('*').order('id'),window.__sb.from('application_items').select('*')]).then(function(r){
     if(r[0].error||r[1].error){console.warn('subs load',r[0].error||r[1].error);return;}
     var itemsBy={};(r[2].data||[]).forEach(function(it){var k=it.application_id;(itemsBy[k]=itemsBy[k]||{})[s(it.size)]=it.qty;});
-    apps=(r[0].data||[]).map(function(a){return {id:a.id,status:(a.status||1),memo:s(a.memo),branch:s(a.branch),class:s(a.cls),size:s(a.size),date:s(a.sdate),time:s(a.stime),people:(a.people==null?'':String(a.people)),name:s(a.name),phone:s(a.phone),email:s(a.email),msg:s(a.msg),estimate:a.estimate,payMethod:s(a.pay_method),kakaoNotice:s(a.kakao_notice),qty:itemsBy[a.id]||null,ts:a.created_at?Date.parse(a.created_at):Date.now()};});
+    apps=(r[0].data||[]).map(function(a){return {id:a.id,status:(a.status||1),memo:s(a.memo),branch:s(a.branch),class:s(a.cls),size:s(a.size),date:s(a.sdate),time:s(a.stime),people:(a.people==null?'':String(a.people)),name:s(a.name),phone:s(a.phone),email:s(a.email),msg:s(a.msg),estimate:a.estimate,payMethod:s(a.pay_method),kakaoNotice:(a.kakao_notice==null?null:+a.kakao_notice),qty:itemsBy[a.id]||null,ts:a.created_at?Date.parse(a.created_at):Date.now()};});
     group=(r[1].data||[]).map(function(g){return {id:g.id,status:(g.status||1),memo:s(g.memo),type:s(g.itype),volume:s(g.volume),branch:s(g.branch),company:s(g.company),name:s(g.name),phone:s(g.phone),email:s(g.email),size:s(g.isize),msg:s(g.msg),ts:g.created_at?Date.parse(g.created_at):Date.now()};});
     try{localStorage.setItem('uuhee_apps',JSON.stringify(apps));localStorage.setItem('uuhee_group',JSON.stringify(group));}catch(e){}
     renderLists();renderOverview();
