@@ -233,11 +233,11 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--gold)}
                   <span style="display:inline-flex;align-items:center;gap:6px"><input type="radio" name="bnType" id="bnTypeReceipt" checked style="width:auto"> 접수 안내</span>
                   <span style="display:inline-flex;align-items:center;gap:6px"><input type="radio" name="bnType" id="bnTypeConfirm" style="width:auto"> 확정 안내</span>
                 </label>
-                <div class="muted">건마다 '복사'를 눌러 문구를 복사한 뒤 카카오톡으로 전달해 주세요. 전달을 모두 마쳤다면 아래 '카톡알림 발송'을 눌러 처리해 주세요('확정 안내'는 상태도 '확정'으로 변경됩니다).</div>
+                <div class="muted">⚠️ 카카오톡 자동 발송 기능은 없습니다. 건마다 '복사'로 문구를 복사해 카카오톡 앱에서 직접 전달해 주세요. 모두 보내셨다면 아래 '발송 완료로 표시'를 눌러 기록해 주세요('확정 안내'는 상태도 '확정'으로 변경됩니다). 이 버튼은 실제 발송을 하지 않고, 이미 보내셨다는 걸 기록만 합니다.</div>
                 <div id="bnList" style="margin-top:4px"></div>
                 <div class="muted" id="bnResult" style="margin-top:4px;white-space:pre-line"></div>
               </div>
-              <div class="amodal-f"><button type="button" class="btn gold" id="bnSend">카톡알림 발송</button><span style="flex:1"></span><button type="button" class="btn ghost" id="bnCloseBtn">닫기</button></div>
+              <div class="amodal-f"><button type="button" class="btn gold" id="bnSend">발송 완료로 표시</button><span style="flex:1"></span><button type="button" class="btn ghost" id="bnCloseBtn">닫기</button></div>
             </div>
           </div>
         </div>
@@ -908,15 +908,15 @@ function openMsgModal(mode){
     var r=apps[EI];if(!r)return;
     $('#msgTitle').textContent='예약 접수 안내';
     $('#msgText').value=buildReceiptMsg(r);
-    $('#msgNote').textContent="복사하기로 내용을 복사한 뒤 카카오톡으로 전달해 주세요. 전달을 마쳤다면 '발송 완료 처리'를 눌러주세요.";
+    $('#msgNote').textContent="⚠️ 카카오톡 자동 발송 기능은 없습니다. 복사하기로 문구를 복사해 카카오톡에서 직접 전달한 뒤, '발송 완료로 표시'를 눌러 기록해 주세요.";
     $('#msgPrimary').style.display='';
-    $('#msgPrimary').textContent='발송 완료 처리';
+    $('#msgPrimary').textContent='발송 완료로 표시';
   }else if(mode==='confirm'){
     $('#msgTitle').textContent='예약 확정 안내';
     $('#msgText').value=CONFIRM_MSG;
-    $('#msgNote').innerHTML="복사하기로 내용을 복사한 뒤 카카오톡으로 전달해 주세요. 전달을 마쳤다면 '발송 완료 처리'를 누르면 상태가 '확정'으로 변경됩니다.";
+    $('#msgNote').innerHTML="⚠️ 카카오톡 자동 발송 기능은 없습니다. 복사하기로 문구를 복사해 카카오톡에서 직접 전달한 뒤, '발송 완료로 표시'를 누르면 상태가 '확정'으로 변경됩니다.";
     $('#msgPrimary').style.display='';
-    $('#msgPrimary').textContent='발송 완료 처리';
+    $('#msgPrimary').textContent='발송 완료로 표시';
   }else if(mode==='previewReceipt'){
     $('#msgTitle').textContent='접수 시 안내 문구 (미리보기)';
     $('#msgText').value=RECEIPT_TEMPLATE;
@@ -970,8 +970,10 @@ $('#msgPrimary')&&$('#msgPrimary').addEventListener('click',function(){
     closeSubEdit();
   }
   if(!window.__sb||!id){applyLocal();return;}
+  // TODO: 솔라피(카카오 알림톡) 연동 시 이 지점에서 실제 발송 API를 먼저 호출하고,
+  // 성공한 건에 한해 아래 DB 기록(kakao_notice/status)을 진행하도록 확장한다.
   window.__sb.from('applications').update(patch).eq('id',id).then(function(res){
-    if(res.error){$('#msgResult').textContent='발송 완료 처리 실패: '+res.error.message;return;}
+    if(res.error){$('#msgResult').textContent='기록 저장 실패: '+res.error.message;return;}
     applyLocal();
   });
 });
@@ -994,7 +996,7 @@ function renderBulkNotifyList(){
   box.innerHTML=BULK_NOTIFY_PICKS.map(function(p,idx){
     var r=p.rec;
     if(p.w!=='apps')return '<div class="row-tools" style="border-bottom:1px solid var(--line);padding:8px 0;margin-bottom:0"><span style="flex:1">'+esc(r.name||r.company||'-')+' ('+esc(r.phone||'-')+')</span><span class="muted">클래스 신청이 아니라 안내 대상이 아닙니다</span></div>';
-    var sentLabel=r.kakaoNotice?(' · 발송됨: '+esc(KNLAB[r.kakaoNotice]||'')):'';
+    var sentLabel=r.kakaoNotice?(' · 기록됨: '+esc(KNLAB[r.kakaoNotice]||'')):'';
     return '<div class="row-tools" style="border-bottom:1px solid var(--line);padding:8px 0;margin-bottom:0"><span style="flex:1">'+esc(r.name||'-')+' ('+esc(r.phone||'-')+')'+sentLabel+'</span><button type="button" class="btn ghost btn-sm" data-bncopy="'+idx+'">복사</button></div>';
   }).join('');
 }
@@ -1008,10 +1010,12 @@ document.addEventListener('click',function(e){
 function bulkSendNotify(){
   var type=$('#bnTypeConfirm').checked?'confirm':'receipt';
   var targets=BULK_NOTIFY_PICKS.filter(function(p){return p.w==='apps';});
-  if(!targets.length){$('#bnResult').textContent='발송 대상(클래스 신청 건)이 없습니다.';return;}
+  if(!targets.length){$('#bnResult').textContent='기록할 대상(클래스 신청 건)이 없습니다.';return;}
   var patch=type==='confirm'?{status:3,kakao_notice:KN_CONFIRM}:{kakao_notice:KN_RECEIPT};
-  $('#bnResult').textContent=targets.length+'건 발송 처리 중...';
+  $('#bnResult').textContent=targets.length+'건 기록 처리 중...';
   var fails=[];
+  // TODO: 솔라피(카카오 알림톡) 연동 시 각 건마다 실제 발송 API를 먼저 호출하고,
+  // 그 성공/실패 결과에 따라 fails 사유를 채운 뒤에만 아래 DB 기록을 진행하도록 확장한다.
   Promise.all(targets.map(function(p){
     var r=p.rec;
     if(!window.__sb||!r.id){
@@ -1028,7 +1032,7 @@ function bulkSendNotify(){
   })).then(function(results){
     var okCount=results.filter(Boolean).length;
     var failCount=results.length-okCount;
-    var summary=targets.length+'건 발송 · 성공 '+okCount+'건 · 실패 '+failCount+'건';
+    var summary=targets.length+'건 처리 · 기록 성공 '+okCount+'건 · 기록 실패 '+failCount+'건 (실제 카카오톡 발송 여부와는 무관하며, 저장 성공/실패만 나타냅니다)';
     if(fails.length)summary+='\n실패 사유:\n'+fails.join('\n');
     $('#bnResult').textContent=summary;
     try{localStorage.setItem('uuhee_apps',JSON.stringify(apps));}catch(_){}
