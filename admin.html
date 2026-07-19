@@ -189,6 +189,7 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--gold)}
             <button class="btn ghost" id="subDateAll">전체날짜</button>
             <span style="flex:1"></span>
             <button class="btn ghost" id="bulkApply">상태변경</button>
+            <button class="btn ghost" id="bulkNotify">안내</button>
             <button class="btn ghost" id="subAdd">+ 추가</button>
             <button class="del" id="bulkDel">삭제</button>
             <span class="muted" id="subCount" style="margin-left:6px"></span>
@@ -223,6 +224,20 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--gold)}
               <div class="amodal-f"><span style="flex:1"></span><button type="button" class="btn ghost" id="bkCancel">취소</button><button type="button" class="btn gold" id="bkApply">적용</button></div>
             </div>
           </div>
+          <div class="amodal-ov" id="bulkNotifyModal" style="display:none">
+            <div class="amodal" style="max-width:520px">
+              <div class="amodal-h"><b>선택 신청 건 안내</b><button type="button" id="bnClose" class="amodal-x">×</button></div>
+              <div class="amodal-b" style="grid-template-columns:1fr">
+                <label class="se-f" style="flex-direction:row;align-items:center;gap:20px">
+                  <span style="display:inline-flex;align-items:center;gap:6px"><input type="radio" name="bnType" id="bnTypeReceipt" checked style="width:auto"> 접수 안내</span>
+                  <span style="display:inline-flex;align-items:center;gap:6px"><input type="radio" name="bnType" id="bnTypeConfirm" style="width:auto"> 확정 안내</span>
+                </label>
+                <div class="muted">건마다 '복사'를 눌러 문구를 복사한 뒤 카카오톡으로 전달해 주세요. '확정 안내'는 복사 시 해당 건 상태가 '확정'으로 변경됩니다.</div>
+                <div id="bnList" style="margin-top:4px"></div>
+              </div>
+              <div class="amodal-f"><span style="flex:1"></span><button type="button" class="btn ghost" id="bnCloseBtn">닫기</button></div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -231,15 +246,17 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--gold)}
           <h3>알림 발송 문구</h3>
           <div class="desc">신청 접수 시 · 예약 확정 시 고객에게 전달되는 카카오톡 안내 문구입니다. 아래 항목을 클릭하면 실제 발송되는 내용을 확인·복사할 수 있습니다. 이 화면에서는 내용을 수정할 수 없으며, 문구 변경은 솔라피(Solapi)에서 새 알림톡 템플릿을 승인받은 뒤에만 반영됩니다.</div>
           <div class="stat-grid" style="grid-template-columns:repeat(2,1fr)">
-            <div class="stat" data-nf="receipt" style="cursor:pointer">
+            <div class="stat">
               <div class="l">접수 시</div>
               <div class="v" style="font-size:16px;margin-top:10px">신청 접수 안내</div>
               <div class="muted" style="margin-top:6px">신청 접수 직후 전달하는 문구</div>
+              <div class="row-tools" style="margin-top:14px;margin-bottom:0"><button type="button" class="btn ghost btn-sm" data-nf="receipt">내용 보기</button><span style="flex:1"></span><button type="button" class="tg" id="notifyReceiptTg" data-notifytg="receipt">활성</button></div>
             </div>
-            <div class="stat" data-nf="confirm" style="cursor:pointer">
+            <div class="stat">
               <div class="l">확정 시</div>
               <div class="v" style="font-size:16px;margin-top:10px">예약 확정 안내</div>
               <div class="muted" style="margin-top:6px">입금 확인 후 확정을 알리는 문구</div>
+              <div class="row-tools" style="margin-top:14px;margin-bottom:0"><button type="button" class="btn ghost btn-sm" data-nf="confirm">내용 보기</button><span style="flex:1"></span><button type="button" class="tg" id="notifyConfirmTg" data-notifytg="confirm">활성</button></div>
             </div>
           </div>
         </div>
@@ -348,7 +365,7 @@ window.UUHEE_SB={url:'https://ybfwnmgnledlumppfjbh.supabase.co',key:'sb_publisha
       var cm=r[11].data||[],cb=r[12].data||[];
       if(!site&&!legal&&!br.length&&!cl.length&&!de.length&&!sl.length&&!pa.length&&!ph.length&&!pf.length&&!sc.length&&!ho.length&&!cm.length&&!cb.length)return null;
       var S={};
-      if(site)S.site={brand:s(site.brand),est:s(site.est),copyYear:s(site.copy_year),heroImg:s(site.hero_img),conceptImg:s(site.concept_img)};
+      if(site)S.site={brand:s(site.brand),est:s(site.est),copyYear:s(site.copy_year),heroImg:s(site.hero_img),conceptImg:s(site.concept_img),notifyReceiptOn:(site.notify_receipt_on!==false),notifyConfirmOn:(site.notify_confirm_on!==false)};
       S.conceptMedia=cm.map(function(m){return {id:m.id,url:s(m.url)};});
       if(site)S.pay={depositAmount:(site.deposit_amount==null?'':String(site.deposit_amount))};
       if(legal)S.legal={company:s(legal.company),ceo:s(legal.ceo),bizno:s(legal.bizno),mailorder:s(legal.mailorder),privacy:s(legal.privacy),addr:s(legal.addr),tel:s(legal.tel),email:s(legal.email),kakao:s(legal.kakao),hosting:s(legal.hosting),termsUrl:s(legal.terms_url),privacyUrl:s(legal.privacy_url),refundUrl:s(legal.refund_url)};
@@ -368,7 +385,7 @@ window.UUHEE_SB={url:'https://ybfwnmgnledlumppfjbh.supabase.co',key:'sb_publisha
   function pullSubs(){
     return Promise.all([sb.from('applications').select('*').order('id'),sb.from('inquiries').select('*').order('id'),sb.from('application_items').select('*')]).then(function(r){
       var itemsBy={};(r[2].data||[]).forEach(function(it){var k=it.application_id;(itemsBy[k]=itemsBy[k]||{})[s(it.size)]=it.qty;});
-      var apps=(r[0].data||[]).map(function(a){return {id:a.id,status:(a.status||1),memo:s(a.memo),branch:s(a.branch),class:s(a.cls),size:s(a.size),date:s(a.sdate),time:s(a.stime),people:(a.people==null?'':String(a.people)),name:s(a.name),phone:s(a.phone),email:s(a.email),msg:s(a.msg),estimate:a.estimate,payMethod:s(a.pay_method),qty:itemsBy[a.id]||null,ts:a.created_at?Date.parse(a.created_at):Date.now()};});
+      var apps=(r[0].data||[]).map(function(a){return {id:a.id,status:(a.status||1),memo:s(a.memo),branch:s(a.branch),class:s(a.cls),size:s(a.size),date:s(a.sdate),time:s(a.stime),people:(a.people==null?'':String(a.people)),name:s(a.name),phone:s(a.phone),email:s(a.email),msg:s(a.msg),estimate:a.estimate,payMethod:s(a.pay_method),kakaoNotice:s(a.kakao_notice),qty:itemsBy[a.id]||null,ts:a.created_at?Date.parse(a.created_at):Date.now()};});
       var grp=(r[1].data||[]).map(function(g){return {type:s(g.itype),volume:s(g.volume),branch:s(g.branch),company:s(g.company),name:s(g.name),phone:s(g.phone),email:s(g.email),size:s(g.isize),msg:s(g.msg),ts:g.created_at?Date.parse(g.created_at):Date.now()};});
       return {apps:apps,grp:grp};
     });
@@ -455,7 +472,7 @@ window.UUHEE_SB={url:'https://ybfwnmgnledlumppfjbh.supabase.co',key:'sb_publisha
     var want=function(k){if(scope==null||scope==='all')return true;if(Array.isArray(scope))return scope.indexOf(k)>=0;return scope===k;};
     var cnById=function(id){if(id==null||id==='')return '';var c=(S.classes||[]).filter(function(x){return String(x.id)===String(id);})[0];return c?c.name:'';}; // 표시/참고용 이름 캐시(매칭에는 안 씀)
     var st=S.site||{},lg=S.legal||{},pay=S.pay||{};var jobs=[];
-    if(want('site'))jobs.push(sb.from('site').upsert({id:'uuhee',brand:s(st.brand),est:s(st.est),copy_year:s(st.copyYear),hero_img:noD(st.heroImg),concept_img:noD(st.conceptImg),deposit_amount:N(pay.depositAmount)}));
+    if(want('site'))jobs.push(sb.from('site').upsert({id:'uuhee',brand:s(st.brand),est:s(st.est),copy_year:s(st.copyYear),hero_img:noD(st.heroImg),concept_img:noD(st.conceptImg),deposit_amount:N(pay.depositAmount),notify_receipt_on:(st.notifyReceiptOn!==false),notify_confirm_on:(st.notifyConfirmOn!==false)}));
     if(want('legal'))jobs.push(sb.from('legal').upsert({id:'uuhee',company:s(lg.company),ceo:s(lg.ceo),bizno:s(lg.bizno),mailorder:s(lg.mailorder),privacy:s(lg.privacy),addr:s(lg.addr),tel:s(lg.tel),email:s(lg.email),kakao:s(lg.kakao),hosting:s(lg.hosting),terms_url:s(lg.termsUrl),privacy_url:s(lg.privacyUrl),refund_url:s(lg.refundUrl)}));
     if(want('branches'))jobs.push(replUpsert('branches',S.branches||[],function(b,i){return {ord:i,name:s(b.name),phone:s(b.phone),addr:s(b.addr),map:s(b.map),hours:s(b.hours),ig:s(b.ig),fb:s(b.fb),lt:s(b.lt),space_desc:s(b.spaceDesc),transfer_link:s(b.transferLink),smartstore_link:s(b.smartstoreLink)};}));
     if(want('classes'))jobs.push(replClasses(S.classes||[]));
@@ -647,6 +664,7 @@ $('#logout').addEventListener('click',()=>{(window.__sb?window.__sb.auth.signOut
 $$('#nav a').forEach(a=>a.addEventListener('click',()=>{$$('#nav a').forEach(x=>x.classList.remove('active'));a.classList.add('active');
   const p=a.dataset.p;$$('.panel').forEach(x=>x.classList.remove('active'));$('#panel-'+p).classList.add('active');$('#ptitle').textContent=a.textContent;
   if(p==='accounts')renderAccounts();
+  if(p==='notify')renderNotify();
   try{sessionStorage.setItem('uuhee_panel',p);}catch(e){}}));
 function applyMenuVisibility(){
   var firstVisible=null;
@@ -673,6 +691,9 @@ const CRUD_MAP=[
   {sel:'#seReceipt',menu:'list',action:'update'},
   {sel:'#seConfirm',menu:'list',action:'update'},
   {sel:'#msgPrimary',menu:'list',action:'update'},
+  {sel:'[data-notifytg]',menu:'notify',action:'update'},
+  {sel:'#bulkNotify',menu:'list',action:'update'},
+  {sel:'[data-bncopy]',menu:'list',action:'update'},
   {sel:'#schedAdd',menu:'schedule',action:'create'},
   {sel:'#schedDefault',menu:'schedule',action:'update'},
   {sel:'[data-srm]',menu:'schedule',action:'delete'},
@@ -807,8 +828,8 @@ function renderSubs(){
     head='<th>구분</th><th>이름</th><th>연락처</th><th>내용</th><th>상세</th>';
     rowf=function(r,w){return '<td>'+(w==='apps'?'클래스':'단체·기업')+'</td><td>'+esc(r.name||'')+'</td><td>'+esc(r.phone||'')+'</td><td>'+esc(contentText(w,r))+'</td><td class="cdetail">'+esc(detailText(w,r))+'</td>';};
   }
-  var body=list.length?list.map(function(o){var r=o.row;return '<tr><td><input type="checkbox" class="subck" data-w="'+o.w+'" data-i="'+o.i+'"></td>'+rowf(r,o.w)+'<td class="cmemo">'+esc(r.memo||'')+'</td><td class="mono">'+fmt(r.ts)+'</td><td>'+stBadge(r.status)+'</td><td><button class="btn ghost btn-sm" data-edit="'+o.w+'" data-i="'+o.i+'">상세</button></td></tr>';}).join(''):'<tr><td colspan="20" class="empty">접수된 내역이 없습니다.</td></tr>';
-  box.innerHTML='<table class="subs"><thead><tr><th><input type="checkbox" id="subAll"></th>'+head+'<th>메모</th><th>신청일시</th><th>상태</th><th>작업</th></tr></thead><tbody>'+body+'</tbody></table>';
+  var body=list.length?list.map(function(o){var r=o.row;return '<tr><td><input type="checkbox" class="subck" data-w="'+o.w+'" data-i="'+o.i+'"></td>'+rowf(r,o.w)+'<td class="cmemo">'+esc(r.memo||'')+'</td><td class="mono">'+fmt(r.ts)+'</td><td>'+(o.w==='apps'?esc(r.kakaoNotice||'-'):'-')+'</td><td>'+stBadge(r.status)+'</td><td><button class="btn ghost btn-sm" data-edit="'+o.w+'" data-i="'+o.i+'">상세</button></td></tr>';}).join(''):'<tr><td colspan="20" class="empty">접수된 내역이 없습니다.</td></tr>';
+  box.innerHTML='<table class="subs"><thead><tr><th><input type="checkbox" id="subAll"></th>'+head+'<th>메모</th><th>신청일시</th><th>카톡알림</th><th>상태</th><th>작업</th></tr></thead><tbody>'+body+'</tbody></table>';
 }
 $$('#subTabs .subtab').forEach(function(t){t.addEventListener('click',function(){$$('#subTabs .subtab').forEach(function(x){x.classList.remove('active');});t.classList.add('active');SUBTAB=t.dataset.st;renderSubs();});});
 ['subSearch'].forEach(function(id){var el=$('#'+id);if(el)el.addEventListener('input',renderSubs);});
@@ -836,7 +857,7 @@ function buildSeBody(w,r){var h=seField('상태','status',r.status||1,'st');
   if(w==='apps'){h+=seField('지점','branch',r.branch);h+=seField('클래스','class',r.class);h+=seField('용량','size',r.size);h+=seField('날짜','date',r.date);h+=seField('시간','time',r.time);h+=seField('인원','people',r.people);h+=seField('결제금액','estimate',r.estimate);h+=seField('이름','name',r.name);h+=seField('연락처','phone',r.phone);h+=seField('이메일','email',r.email);h+=seField('남길 말','msg',r.msg,'ta');}
   else{h+=seField('유형','type',r.type);h+=seField('신청 용량','volume',r.volume);h+=seField('지점','branch',r.branch);h+=seField('회사/단체','company',r.company);h+=seField('담당자','name',r.name);h+=seField('연락처','phone',r.phone);h+=seField('이메일','email',r.email);h+=seField('문의 내용','msg',r.msg,'ta');}
   h+=seField('메모','memo',r.memo,'ta');return h;}
-function openSubEdit(w,i){EW=w;EI=i;ENEW=null;var r=(w==='apps')?apps[i]:group[i];if(!r)return;$('#seBody').innerHTML=buildSeBody(w,r);$('#seTitle').textContent=(w==='apps'?'클래스 신청':'단체·기업 문의')+' 수정';$('#seDelete').style.display='';$('#seReceipt').style.display=(w==='apps')?'':'none';$('#seConfirm').style.display=(w==='apps')?'':'none';$('#subEdit').style.display='flex';}
+function openSubEdit(w,i){EW=w;EI=i;ENEW=null;var r=(w==='apps')?apps[i]:group[i];if(!r)return;$('#seBody').innerHTML=buildSeBody(w,r);$('#seTitle').textContent=(w==='apps'?'클래스 신청':'단체·기업 문의')+' 수정';$('#seDelete').style.display='';var st=S.site||{};$('#seReceipt').style.display=(w==='apps'&&st.notifyReceiptOn!==false)?'':'none';$('#seConfirm').style.display=(w==='apps'&&st.notifyConfirmOn!==false)?'':'none';$('#subEdit').style.display='flex';}
 function openSubEditNew(w){EW=w;EI=-1;ENEW={status:1};if(w==='apps')ENEW.people='1';$('#seBody').innerHTML=buildSeBody(w,ENEW);$('#seTitle').textContent=(w==='apps'?'클래스 신청':'단체·기업 문의')+' 추가';$('#seDelete').style.display='none';$('#seReceipt').style.display='none';$('#seConfirm').style.display='none';$('#subEdit').style.display='flex';}
 function closeSubEdit(){$('#subEdit').style.display='none';EW=null;EI=null;ENEW=null;}
 function collectSe(r){$$('#seBody [data-fk]').forEach(function(el){var k=el.getAttribute('data-fk');var v=el.value;if(k==='status')v=+v||1;r[k]=v;});}
@@ -885,6 +906,10 @@ function openMsgModal(mode){
     $('#msgText').value=buildReceiptMsg(r);
     $('#msgNote').textContent='복사하기로 내용을 복사한 뒤 카카오톡으로 전달해 주세요.';
     $('#msgPrimary').style.display='none';
+    r.kakaoNotice='접수';
+    if(window.__sb&&r.id)window.__sb.from('applications').update({kakao_notice:'접수'}).eq('id',r.id).then(function(res){if(res.error)console.warn(res.error);});
+    try{localStorage.setItem('uuhee_apps',JSON.stringify(apps));}catch(_){}
+    renderSubs();
   }else if(mode==='confirm'){
     $('#msgTitle').textContent='예약 확정 안내';
     $('#msgText').value=CONFIRM_MSG;
@@ -907,6 +932,21 @@ function openMsgModal(mode){
 function closeMsgModal(){$('#msgModal').style.display='none';MSG_MODE=null;}
 function copyMsgText(){var ta=$('#msgText');if(!ta)return;ta.select();var t=ta.value;if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(t).catch(function(){try{document.execCommand('copy');}catch(_){}});}else{try{document.execCommand('copy');}catch(_){}}}
 document.addEventListener('click',function(e){var b=e.target.closest('[data-nf]');if(b)openMsgModal(b.getAttribute('data-nf')==='receipt'?'previewReceipt':'previewConfirm');});
+function renderNotify(){
+  var st=S.site||{};
+  var rOn=st.notifyReceiptOn!==false,cOn=st.notifyConfirmOn!==false;
+  var rt=$('#notifyReceiptTg'),ct=$('#notifyConfirmTg');
+  if(rt){rt.classList.toggle('on',rOn);rt.textContent=rOn?'활성':'비활성';}
+  if(ct){ct.classList.toggle('on',cOn);ct.textContent=cOn?'활성':'비활성';}
+}
+document.addEventListener('click',function(e){
+  var b=e.target.closest('[data-notifytg]');if(!b)return;
+  if(!S.site)S.site={};
+  var k=b.getAttribute('data-notifytg')==='receipt'?'notifyReceiptOn':'notifyConfirmOn';
+  S.site[k]=!(S.site[k]!==false);
+  try{save('site');}catch(_){}
+  renderNotify();
+});
 $('#seReceipt')&&$('#seReceipt').addEventListener('click',function(){openMsgModal('receipt');});
 $('#seConfirm')&&$('#seConfirm').addEventListener('click',function(){if(EW!=='apps'||EI===-1)return;openMsgModal('confirm');});
 $('#msgClose')&&$('#msgClose').addEventListener('click',closeMsgModal);
@@ -919,8 +959,9 @@ $('#msgPrimary')&&$('#msgPrimary').addEventListener('click',function(){
     var r=apps[EI];
     if(r){
       r.status=3;
+      r.kakaoNotice='확정';
       var id=r.id;
-      if(window.__sb&&id)window.__sb.from('applications').update({status:3}).eq('id',id).then(function(res){if(res.error)alert('상태 저장 실패: '+res.error.message);});
+      if(window.__sb&&id)window.__sb.from('applications').update({status:3,kakao_notice:'확정'}).eq('id',id).then(function(res){if(res.error)alert('상태 저장 실패: '+res.error.message);});
       try{localStorage.setItem('uuhee_apps',JSON.stringify(apps));}catch(_){}
       renderSubs();renderOverview();
     }
@@ -928,6 +969,47 @@ $('#msgPrimary')&&$('#msgPrimary').addEventListener('click',function(){
   closeMsgModal();
   closeSubEdit();
 });
+/* ---------- 선택 신청 건 일괄 안내 ---------- */
+var BULK_NOTIFY_PICKS=[];
+function openBulkNotify(){
+  var recs=checkedRecs();
+  if(!recs.length){alert('안내를 보낼 신청 건을 먼저 선택해 주세요.');return;}
+  BULK_NOTIFY_PICKS=recs;
+  var st=S.site||{};var rOn=st.notifyReceiptOn!==false,cOn=st.notifyConfirmOn!==false;
+  $('#bnTypeReceipt').disabled=!rOn;$('#bnTypeConfirm').disabled=!cOn;
+  if(!rOn&&cOn)$('#bnTypeConfirm').checked=true;else if(rOn&&!cOn)$('#bnTypeReceipt').checked=true;else if(rOn)$('#bnTypeReceipt').checked=true;
+  renderBulkNotifyList();
+  $('#bulkNotifyModal').style.display='flex';
+}
+function closeBulkNotify(){$('#bulkNotifyModal').style.display='none';}
+function renderBulkNotifyList(){
+  var box=$('#bnList');if(!box)return;
+  box.innerHTML=BULK_NOTIFY_PICKS.map(function(p,idx){
+    var r=p.rec;
+    if(p.w!=='apps')return '<div class="row-tools" style="border-bottom:1px solid var(--line);padding:8px 0;margin-bottom:0"><span style="flex:1">'+esc(r.name||r.company||'-')+' ('+esc(r.phone||'-')+')</span><span class="muted">클래스 신청이 아니라 안내 대상이 아닙니다</span></div>';
+    var sentLabel=r.kakaoNotice?(' · 발송됨: '+esc(r.kakaoNotice)):'';
+    return '<div class="row-tools" style="border-bottom:1px solid var(--line);padding:8px 0;margin-bottom:0"><span style="flex:1">'+esc(r.name||'-')+' ('+esc(r.phone||'-')+')'+sentLabel+'</span><button type="button" class="btn ghost btn-sm" data-bncopy="'+idx+'">복사</button></div>';
+  }).join('');
+}
+document.addEventListener('click',function(e){
+  var t=e.target.closest('[data-bncopy]');if(!t)return;
+  var idx=+t.getAttribute('data-bncopy');var p=BULK_NOTIFY_PICKS[idx];if(!p||p.w!=='apps')return;
+  var r=p.rec;var type=$('#bnTypeConfirm').checked?'confirm':'receipt';
+  var text=type==='confirm'?CONFIRM_MSG:buildReceiptMsg(r);
+  if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(text).catch(function(){});}
+  r.kakaoNotice=type==='confirm'?'확정':'접수';
+  var patch=type==='confirm'?{status:3,kakao_notice:'확정'}:{kakao_notice:'접수'};
+  if(type==='confirm')r.status=3;
+  if(window.__sb&&r.id)window.__sb.from('applications').update(patch).eq('id',r.id).then(function(res){if(res.error)console.warn(res.error);});
+  try{localStorage.setItem('uuhee_apps',JSON.stringify(apps));}catch(_){}
+  renderSubs();renderOverview();renderBulkNotifyList();
+});
+$('#bulkNotify')&&$('#bulkNotify').addEventListener('click',openBulkNotify);
+$('#bnClose')&&$('#bnClose').addEventListener('click',closeBulkNotify);
+$('#bnCloseBtn')&&$('#bnCloseBtn').addEventListener('click',closeBulkNotify);
+$('#bulkNotifyModal')&&$('#bulkNotifyModal').addEventListener('click',function(e){if(e.target.id==='bulkNotifyModal')closeBulkNotify();});
+$('#bnTypeReceipt')&&$('#bnTypeReceipt').addEventListener('change',renderBulkNotifyList);
+$('#bnTypeConfirm')&&$('#bnTypeConfirm').addEventListener('change',renderBulkNotifyList);
 document.addEventListener('keydown',function(e){if(e.key==='Escape'&&$('#subEdit')&&$('#subEdit').style.display==='flex')closeSubEdit();});
 function toCSV(rows){return rows.map(r=>r.map(c=>'"'+String(c==null?'':c).replace(/"/g,'""')+'"').join(',')).join('\r\n');}
 function download(name,text){const b=new Blob(['﻿'+text],{type:'text/csv;charset=utf-8'});const u=URL.createObjectURL(b);const a=document.createElement('a');a.href=u;a.download=name;a.click();URL.revokeObjectURL(u);}
@@ -1391,7 +1473,7 @@ function refreshSubmissionsFromCloud(){
   Promise.all([window.__sb.from('applications').select('*').order('id'),window.__sb.from('inquiries').select('*').order('id'),window.__sb.from('application_items').select('*')]).then(function(r){
     if(r[0].error||r[1].error){console.warn('subs load',r[0].error||r[1].error);return;}
     var itemsBy={};(r[2].data||[]).forEach(function(it){var k=it.application_id;(itemsBy[k]=itemsBy[k]||{})[s(it.size)]=it.qty;});
-    apps=(r[0].data||[]).map(function(a){return {id:a.id,status:(a.status||1),memo:s(a.memo),branch:s(a.branch),class:s(a.cls),size:s(a.size),date:s(a.sdate),time:s(a.stime),people:(a.people==null?'':String(a.people)),name:s(a.name),phone:s(a.phone),email:s(a.email),msg:s(a.msg),estimate:a.estimate,payMethod:s(a.pay_method),qty:itemsBy[a.id]||null,ts:a.created_at?Date.parse(a.created_at):Date.now()};});
+    apps=(r[0].data||[]).map(function(a){return {id:a.id,status:(a.status||1),memo:s(a.memo),branch:s(a.branch),class:s(a.cls),size:s(a.size),date:s(a.sdate),time:s(a.stime),people:(a.people==null?'':String(a.people)),name:s(a.name),phone:s(a.phone),email:s(a.email),msg:s(a.msg),estimate:a.estimate,payMethod:s(a.pay_method),kakaoNotice:s(a.kakao_notice),qty:itemsBy[a.id]||null,ts:a.created_at?Date.parse(a.created_at):Date.now()};});
     group=(r[1].data||[]).map(function(g){return {id:g.id,status:(g.status||1),memo:s(g.memo),type:s(g.itype),volume:s(g.volume),branch:s(g.branch),company:s(g.company),name:s(g.name),phone:s(g.phone),email:s(g.email),size:s(g.isize),msg:s(g.msg),ts:g.created_at?Date.parse(g.created_at):Date.now()};});
     try{localStorage.setItem('uuhee_apps',JSON.stringify(apps));localStorage.setItem('uuhee_group',JSON.stringify(group));}catch(e){}
     renderLists();renderOverview();
