@@ -268,6 +268,12 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--gold)}
               <div class="muted" style="margin-top:6px">입금 확인 후 확정을 알리는 문구</div>
               <div class="row-tools" style="margin-top:14px;margin-bottom:0"><button type="button" class="btn ghost btn-sm" data-nf="confirm">내용 보기</button><span style="flex:1"></span><button type="button" class="tg" id="notifyConfirmTg" data-notifytg="confirm">활성</button></div>
             </div>
+            <div class="stat">
+              <div class="l">문의 접수 시</div>
+              <div class="v" style="font-size:16px;margin-top:10px">단체·기업 문의 접수 안내</div>
+              <div class="muted" style="margin-top:6px">문의전용상품(기업 협업·단체·출강·특강) 접수 직후 전달하는 문구</div>
+              <div class="row-tools" style="margin-top:14px;margin-bottom:0"><button type="button" class="btn ghost btn-sm" data-nf="inquiry">내용 보기</button></div>
+            </div>
           </div>
         </div>
       </div>
@@ -925,6 +931,7 @@ var RECEIPT_TEMPLATE_TRANSFER="안녕하세요, 유유히입니다. \n예약제 
 var RECEIPT_TEMPLATE_ONSITE="안녕하세요, 유유히입니다. \n\n예약제 공방으로 운영되어 현장 결제를 원하시더라도 예약금 입금 후 예약이 확정됩니다.\n\n예약금은 수업 당일 수업료에서 차감하여 차액만 결제하시거나, 예약금을 환불받으신 후 카드로 전체 결제하시는 방법 중 편하신 방법으로 진행을 도와드리겠습니다.\n\n[접수 내역]\n이름 : #{이름}\n연락처 : #{연락처}\n지점 : #{지점명}\n일자 : #{일자}\n시간 : #{시간}\n클래스 : #{클래스명}\n인원 : #{인원}인\n신청 내용 : #{신청내용}\n총 결제 금액 : #{결제금액}원\n결제 방법 : 예약금 결제\n\n[안내 및 유의사항]\n\n▫ 문의 순서가 아닌 수업료 입금 내역을 기준으로 예약을 확정해드리고 있습니다.\n\n▫ 예약은 예약 접수 → 결제안내 → 결제확인 → 예약 확정 순으로 진행됩니다.\n\n▫ 문의 후 24시간 이내 미입금 시 기존 예약 문의는 자동 취소되는 점 양해 부탁드립니다.\n\n▫ 예약 확정 후 예약 변경 및 취소는 아래 환불 규정에 따라 처리됩니다.\n* 3일 전 취소 : 50% 환불\n* 2일 전 취소 : 70% 환불\n* 1일 전 및 당일 : 변경 및 취소 불가";
 var RECEIPT_TEMPLATE_SMARTSTORE="안녕하세요, 유유히입니다. \n예약제 공방으로 스토어 결제 후 확정처리 도와드리고 있습니다.\n\n[접수 내역]\n이름 : #{이름}\n연락처 : #{연락처}\n지점 : #{지점명}\n일자 : #{일자}\n시간 : #{시간}\n클래스 : #{클래스명}\n인원 : #{인원}인\n신청 내용 : #{신청내용}\n총 결제 금액 : #{결제금액}원\n결제 방법 : 스토어 결제\n\n[안내 & 유의사항]\n\n▫1인 1클래스로 진행되고 있어, 인원 수 대로 결제 부탁드립니다.\nex) 2인 예약시 총 2병 70,000원 결제 필요\n\n▫취소처리는 따로 요청주시지 않으시면 처리되지 않습니다. \n* 취소 관련 문의는 별도로 연락 주세요 :)  \n\n▫ 예약은 예약 접수 → 결제안내 → 결제확인 → 예약 확정 순으로 진행됩니다.\n\n▫ 문의 후 24시간 이내 미입금 시 기존 예약 문의는 자동 취소되는 점 양해 부탁드립니다.\n\n▫ 예약 확정 후 예약 변경 및 취소는 아래 환불 규정에 따라 처리됩니다.\n* 3일 전 취소 : 50% 환불\n* 2일 전 취소 : 70% 환불\n* 1일 전 및 당일 : 변경 및 취소 불가";
 var CONFIRM_MSG="예약 확정 되셨습니다:)\n\n**** 꼭 읽어주세요 ! ****\n\n<안내 & 주의사항>\n\n▫매 시간마다 정각 클래스를 운영하기 때문에 정각에 맞춰 입장부탁드립니다. \n\n▫예약제 특성상 당일변경이 불가하며, 예약시간 기준 20분 이상 미방문 시 수업진행 불가한점 양해부탁드립니다.\n\n▫방문 시 신분증을 꼭 지참해주세요.\n\n▫담금주 시음과정이 있어 차량보단 대중교통 이용을 추천드립니다.\n(주차 시 인근공영주차장을 이용해주세요.)\n\n▫️음식물 및 음료는 반입 어려우신점 미리 안내드립니다.\n\n▫예약일 기준 3일 이내 예약 취소시 환불규정에 따른 수수료가 발생될 수 있습니다. \n* 3일 전 취소 : 50% 환불\n* 2일 전 취소 : 70% 환불\n* 1일 전 및 당일 : 변경 및 취소 불가\n\n감사합니다.";
+var INQUIRY_TEMPLATE="안녕하세요, 유유히 입니다 :)\n문의해 주신 내용은 담당 부서로 전달 완료되었습니다.\n\n확인 후 담당자가 최대한 빠르게 연락드릴 예정입니다.\n조금만 기다려 주시면 빠르게 안내 도와드리겠습니다.\n감사합니다.\n\n[접수 내역]\n회사/단체명 : #{회사단체명}\n담당자명 : #{담당자명}\n연락처 : #{연락처}\n지점 : #{지점명}\n인원 : #{인원}\n문의내용 : #{문의내용}";
 function qtyText(qty){if(!qty)return '-';var parts=[];Object.keys(qty).forEach(function(k){var v=qty[k];if(v)parts.push(k+' × '+v+'병');});return parts.length?parts.join(', '):'-';}
 function receiptTemplateFor(payMethod){
   var pm=payMethod||'';
@@ -977,13 +984,18 @@ function openMsgModal(mode){
     $('#msgText').value=CONFIRM_MSG;
     $('#msgNote').textContent='모든 신청자에게 동일하게 발송되는 문구입니다. 이 화면에서는 수정할 수 없습니다 — 문구 변경은 솔라피에서 새 템플릿 승인 후 진행해 주세요.';
     $('#msgPrimary').style.display='none';
+  }else if(mode==='previewInquiry'){
+    $('#msgTitle').textContent='문의 접수 시 안내 문구 (미리보기)';
+    $('#msgText').value=INQUIRY_TEMPLATE;
+    $('#msgNote').textContent='실제 발송 시 #{ } 로 표시된 부분이 문의자 정보로 채워집니다. 이 화면에서는 수정할 수 없습니다 — 문구 변경은 솔라피에서 새 템플릿 승인 후 진행해 주세요.';
+    $('#msgPrimary').style.display='none';
   }
   $('#msgResult').textContent='';
   $('#msgModal').style.display='flex';
 }
 function closeMsgModal(){$('#msgModal').style.display='none';MSG_MODE=null;}
 function copyMsgText(){var ta=$('#msgText');if(!ta)return;ta.select();var t=ta.value;if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(t).catch(function(){try{document.execCommand('copy');}catch(_){}});}else{try{document.execCommand('copy');}catch(_){}}}
-var NF_PREVIEW_MODE={'receipt-transfer':'previewReceiptTransfer','receipt-onsite':'previewReceiptOnsite','receipt-smartstore':'previewReceiptSmartstore',confirm:'previewConfirm'};
+var NF_PREVIEW_MODE={'receipt-transfer':'previewReceiptTransfer','receipt-onsite':'previewReceiptOnsite','receipt-smartstore':'previewReceiptSmartstore',confirm:'previewConfirm',inquiry:'previewInquiry'};
 document.addEventListener('click',function(e){var b=e.target.closest('[data-nf]');if(b)openMsgModal(NF_PREVIEW_MODE[b.getAttribute('data-nf')]||'previewConfirm');});
 function renderNotify(){
   var st=S.site||{};
