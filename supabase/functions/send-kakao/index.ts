@@ -4,11 +4,14 @@
 // 환경변수(Supabase 비밀값)로 읽어 서버 쪽에서 솔라피로 발송한다.
 //
 // kind:
-//  - 'app-receipt'    : 클래스 신청 접수 안내(결제수단별 템플릿 자동 선택) — 고객이 결제수단
+//  - 'app-receipt'     : 클래스 신청 접수 안내(결제수단별 템플릿 자동 선택) — 고객이 결제수단
 //                        선택 후 신청을 마치면 index.html에서 인증 없이 호출한다(공개 흐름).
 //                        이미 카톡알림이 기록된 건은 중복 발송하지 않고 그대로 성공 처리한다.
 //  - 'app-confirm'     : 예약 확정 안내 — 관리자만 호출 가능(로그인 세션 필요).
-//  - 'inquiry-receipt' : 단체·기업 문의 접수 안내 — 관리자만 호출 가능(로그인 세션 필요).
+//  - 'inquiry-receipt' : 단체·기업 문의 접수 안내 — 고객이 문의를 접수하면 index.html에서
+//                        인증 없이 호출한다(공개 흐름). app-receipt와 마찬가지로 이미 카톡알림이
+//                        기록된 건은 중복 발송하지 않는다.
+//  - 'inquiry-confirm' : 문의 확정 안내 — 관리자만 호출 가능(로그인 세션 필요).
 //
 // 배포: supabase functions deploy send-kakao --project-ref <project-ref>
 // 사전 준비(비밀값 등록, 터미널에서 직접 실행):
@@ -130,7 +133,7 @@ Deno.serve(async (req) => {
     const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
     // 관리자 전용 트리거는 로그인 세션 + admin_accounts 권한을 확인한다.
-    if (kind === "app-confirm" || kind === "inquiry-receipt") {
+    if (kind === "app-confirm" || kind === "inquiry-confirm") {
       const authHeader = req.headers.get("Authorization") || "";
       if (!authHeader) return json({ error: "인증 정보가 없습니다." }, 401);
       const caller = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
@@ -197,21 +200,34 @@ Deno.serve(async (req) => {
       return json({ ok: true });
     }
 
-    if (kind === "inquiry-receipt") {
+    if (kind === "inquiry-receipt" || kind === "inquiry-confirm") {
       const { data: g, error: gerr } = await admin.from("inquiries").select("*").eq("id", id).maybeSingle();
       if (gerr || !g) return json({ error: "문의 건을 찾을 수 없습니다." }, 404);
       const to = String(g.phone || "").replace(/[^0-9]/g, "");
       if (!to) return json({ error: "수신자 연락처가 없습니다." }, 400);
-      const variables = {
-        "#{회사단체명}": g.company || "-",
-        "#{담당자명}": g.name || "-",
-        "#{연락처}": g.phone || "-",
-        "#{지점명}": g.branch || "-",
-        "#{인원}": g.isize || "-",
-        "#{문의내용}": g.msg || "-",
-      };
-      await sendAlimtalk(to, TEMPLATES["inquiry-receipt"], variables);
-      const { error: updErr } = await admin.from("inquiries").update({ kakao_notice: 1 }).eq("id", id);
+
+      if (kind === "inquiry-receipt") {
+        if (g.kakao_notice) return json({ ok: true, alreadySent: true });
+        const variables = {
+          "#{회사단체명}": g.company || "-",
+          "#{담당자명}": g.name || "-",
+          "#{연락처}": g.phone || "-",
+          "#{지점명}": g.branch || "-",
+          "#{인원}": g.isize || "-",
+          "#{문의내용}": g.msg || "-",
+        };
+        await sendAlimtalk(to, TEMPLATES["inquiry-receipt"], variables);
+        const { error: updErr } = await admin.from("inquiries").update({ kakao_notice: 1 }).eq("id", id);
+        if (updErr) return json({ error: "발송은 성공했지만 기록 저장에 실패했습니다: " + updErr.message }, 500);
+        return json({ ok: true });
+      }
+
+      // inquiry-confirm
+      await sendAlimtalk(to, TEMPLATES["app-confirm"], {});
+      const { error: updErr } = await admin
+        .from("inquiries")
+        .update({ kakao_notice: 2, status: 3 })
+        .eq("id", id);
       if (updErr) return json({ error: "발송은 성공했지만 기록 저장에 실패했습니다: " + updErr.message }, 500);
       return json({ ok: true });
     }

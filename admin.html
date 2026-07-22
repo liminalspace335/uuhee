@@ -212,7 +212,7 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--gold)}
             <div class="amodal">
               <div class="amodal-h"><b id="seTitle">수정</b><button type="button" id="seClose" class="amodal-x">×</button></div>
               <div class="amodal-b" id="seBody"></div>
-              <div class="amodal-f"><button type="button" class="del" id="seDelete">삭제</button><button type="button" class="btn ghost" id="seReceipt" style="display:none">접수안내</button><button type="button" class="btn ghost" id="seConfirm" style="display:none">확정안내</button><button type="button" class="btn ghost" id="seInquiry" style="display:none">문의접수안내</button><span style="flex:1"></span><button type="button" class="btn gold" id="seSave">저장</button></div>
+              <div class="amodal-f"><button type="button" class="del" id="seDelete">삭제</button><button type="button" class="btn ghost" id="seReceipt" style="display:none">접수안내</button><button type="button" class="btn ghost" id="seConfirm" style="display:none">확정안내</button><button type="button" class="btn ghost" id="seInquiry" style="display:none">문의접수안내(수동)</button><button type="button" class="btn ghost" id="seGroupConfirm" style="display:none">확정안내</button><span style="flex:1"></span><button type="button" class="btn gold" id="seSave">저장</button></div>
             </div>
           </div>
           <div class="amodal-ov" id="bulkModal" style="display:none">
@@ -726,6 +726,7 @@ const CRUD_MAP=[
   {sel:'#seReceipt',menu:'list',action:'update'},
   {sel:'#seConfirm',menu:'list',action:'update'},
   {sel:'#seInquiry',menu:'list',action:'update'},
+  {sel:'#seGroupConfirm',menu:'list',action:'update'},
   {sel:'#msgPrimary',menu:'list',action:'update'},
   {sel:'[data-notifytg]',menu:'notify',action:'update'},
   {sel:'[data-paymenttg]',menu:'payment',action:'update'},
@@ -897,8 +898,8 @@ function buildSeBody(w,r){var h=seField('상태','status',r.status||1,'st');
   if(w==='apps'){h+=seField('지점','branch',r.branch);h+=seField('클래스','class',r.class);h+=seField('용량','size',r.size);h+=seField('날짜','date',r.date);h+=seField('시간','time',r.time);h+=seField('인원','people',r.people);h+=seField('결제금액','estimate',r.estimate);h+=seField('이름','name',r.name);h+=seField('연락처','phone',r.phone);h+=seField('이메일','email',r.email);h+=seField('남길 말','msg',r.msg,'ta');}
   else{h+=seField('유형','type',r.type);h+=seField('신청 용량','volume',r.volume);h+=seField('지점','branch',r.branch);h+=seField('회사/단체','company',r.company);h+=seField('담당자','name',r.name);h+=seField('연락처','phone',r.phone);h+=seField('이메일','email',r.email);h+=seField('문의 내용','msg',r.msg,'ta');}
   h+=seField('메모','memo',r.memo,'ta');return h;}
-function openSubEdit(w,i){EW=w;EI=i;ENEW=null;var r=(w==='apps')?apps[i]:group[i];if(!r)return;$('#seBody').innerHTML=buildSeBody(w,r);$('#seTitle').textContent=(w==='apps'?'클래스 신청':'단체·기업 문의')+' 수정';$('#seDelete').style.display='';var st=S.site||{};$('#seReceipt').style.display=(w==='apps'&&st.notifyReceiptOn!==false)?'':'none';$('#seConfirm').style.display=(w==='apps'&&st.notifyConfirmOn!==false)?'':'none';$('#seInquiry').style.display=(w==='group'&&st.notifyInquiryOn!==false)?'':'none';$('#subEdit').style.display='flex';}
-function openSubEditNew(w){EW=w;EI=-1;ENEW={status:1};if(w==='apps')ENEW.people='1';$('#seBody').innerHTML=buildSeBody(w,ENEW);$('#seTitle').textContent=(w==='apps'?'클래스 신청':'단체·기업 문의')+' 추가';$('#seDelete').style.display='none';$('#seReceipt').style.display='none';$('#seConfirm').style.display='none';$('#seInquiry').style.display='none';$('#subEdit').style.display='flex';}
+function openSubEdit(w,i){EW=w;EI=i;ENEW=null;var r=(w==='apps')?apps[i]:group[i];if(!r)return;$('#seBody').innerHTML=buildSeBody(w,r);$('#seTitle').textContent=(w==='apps'?'클래스 신청':'단체·기업 문의')+' 수정';$('#seDelete').style.display='';var st=S.site||{};$('#seReceipt').style.display=(w==='apps'&&st.notifyReceiptOn!==false)?'':'none';$('#seConfirm').style.display=(w==='apps'&&st.notifyConfirmOn!==false)?'':'none';$('#seInquiry').style.display=(w==='group'&&st.notifyInquiryOn!==false)?'':'none';$('#seGroupConfirm').style.display=(w==='group'&&st.notifyConfirmOn!==false)?'':'none';$('#subEdit').style.display='flex';}
+function openSubEditNew(w){EW=w;EI=-1;ENEW={status:1};if(w==='apps')ENEW.people='1';$('#seBody').innerHTML=buildSeBody(w,ENEW);$('#seTitle').textContent=(w==='apps'?'클래스 신청':'단체·기업 문의')+' 추가';$('#seDelete').style.display='none';$('#seReceipt').style.display='none';$('#seConfirm').style.display='none';$('#seInquiry').style.display='none';$('#seGroupConfirm').style.display='none';$('#subEdit').style.display='flex';}
 function closeSubEdit(){$('#subEdit').style.display='none';EW=null;EI=null;ENEW=null;}
 function collectSe(r){$$('#seBody [data-fk]').forEach(function(el){var k=el.getAttribute('data-fk');var v=el.value;if(k==='status')v=+v||1;r[k]=v;});}
 function payloadOf(w,r){if(w==='apps')return {status:r.status,branch:r.branch,cls:r.class,size:r.size,sdate:r.date,stime:r.time,people:(r.people===''||r.people==null?null:parseInt(r.people,10)),name:r.name,phone:r.phone,email:r.email,msg:r.msg,estimate:(r.estimate===''||r.estimate==null||isNaN(+r.estimate)?null:Number(r.estimate)),memo:r.memo};return {status:r.status,itype:r.type,volume:r.volume,branch:r.branch,company:r.company,name:r.name,phone:r.phone,email:r.email,msg:r.msg,memo:r.memo};}
@@ -953,7 +954,7 @@ function buildInquiryMsg(r){
     .replace(/#{인원}/g,r.size||'-')
     .replace(/#{문의내용}/g,r.msg||'-');
 }
-var MSG_MODE=null; // 'receipt' | 'confirm' | 'inquiry'
+var MSG_MODE=null; // 'receipt' | 'confirm' | 'inquiry' | 'groupConfirm'
 function openMsgModal(mode){
   MSG_MODE=mode;
   if(mode==='receipt'){
@@ -973,9 +974,17 @@ function openMsgModal(mode){
   }else if(mode==='inquiry'){
     if(EW!=='group'||EI===-1)return;
     var r=group[EI];if(!r)return;
-    $('#msgTitle').textContent='문의 접수 안내';
+    $('#msgTitle').textContent='문의 접수 안내(수동 재발송)';
     $('#msgText').value=buildInquiryMsg(r);
-    $('#msgNote').textContent="'카카오톡 발송'을 누르면 이 문구가 실제 카카오톡 알림톡으로 발송됩니다. '복사하기'는 미리 확인·복사용입니다.";
+    $('#msgNote').textContent="문의 접수 시 이 문구는 자동으로 발송됩니다. 이 버튼은 자동 발송이 실패했을 때 수동으로 다시 보내기 위한 것입니다. '복사하기'는 미리 확인·복사용입니다.";
+    $('#msgPrimary').style.display='';
+    $('#msgPrimary').textContent='카카오톡 발송';
+  }else if(mode==='groupConfirm'){
+    if(EW!=='group'||EI===-1)return;
+    var r=group[EI];if(!r)return;
+    $('#msgTitle').textContent='문의 확정 안내';
+    $('#msgText').value=CONFIRM_MSG;
+    $('#msgNote').innerHTML="'카카오톡 발송'을 누르면 이 문구가 실제 카카오톡 알림톡으로 발송되고, 상태가 '확정'으로 변경됩니다.";
     $('#msgPrimary').style.display='';
     $('#msgPrimary').textContent='카카오톡 발송';
   }else if(mode==='previewReceiptTransfer'||mode==='previewReceiptOnsite'||mode==='previewReceiptSmartstore'){
@@ -1060,20 +1069,23 @@ $('#savePaymentLinks')&&$('#savePaymentLinks').addEventListener('click',function
 $('#seReceipt')&&$('#seReceipt').addEventListener('click',function(){openMsgModal('receipt');});
 $('#seConfirm')&&$('#seConfirm').addEventListener('click',function(){if(EW!=='apps'||EI===-1)return;openMsgModal('confirm');});
 $('#seInquiry')&&$('#seInquiry').addEventListener('click',function(){if(EW!=='group'||EI===-1)return;openMsgModal('inquiry');});
+$('#seGroupConfirm')&&$('#seGroupConfirm').addEventListener('click',function(){if(EW!=='group'||EI===-1)return;openMsgModal('groupConfirm');});
 $('#msgClose')&&$('#msgClose').addEventListener('click',closeMsgModal);
 $('#msgModal')&&$('#msgModal').addEventListener('click',function(e){if(e.target.id==='msgModal')closeMsgModal();});
 $('#msgCopy')&&$('#msgCopy').addEventListener('click',copyMsgText);
 $('#msgPrimary')&&$('#msgPrimary').addEventListener('click',function(){
-  if(MSG_MODE!=='receipt'&&MSG_MODE!=='confirm'&&MSG_MODE!=='inquiry')return;
+  if(MSG_MODE!=='receipt'&&MSG_MODE!=='confirm'&&MSG_MODE!=='inquiry'&&MSG_MODE!=='groupConfirm')return;
   var btn=this;
-  if(MSG_MODE==='inquiry'){
+  if(MSG_MODE==='inquiry'||MSG_MODE==='groupConfirm'){
     if(EW!=='group'||EI===-1)return;
     var gr=group[EI];if(!gr)return;
     var gid=gr.id;if(!gid)return;
+    var isGroupConfirm=MSG_MODE==='groupConfirm';
     btn.disabled=true;$('#msgResult').textContent='발송 중...';
-    callSendKakao({kind:'inquiry-receipt',id:gid}).then(function(){
+    callSendKakao({kind:isGroupConfirm?'inquiry-confirm':'inquiry-receipt',id:gid}).then(function(){
       btn.disabled=false;
-      gr.kakaoNotice=KN_RECEIPT;
+      gr.kakaoNotice=isGroupConfirm?KN_CONFIRM:KN_RECEIPT;
+      if(isGroupConfirm)gr.status=3;
       try{localStorage.setItem('uuhee_group',JSON.stringify(group));}catch(_){}
       renderSubs();renderOverview();
       closeMsgModal();

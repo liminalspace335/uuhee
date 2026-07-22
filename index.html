@@ -918,7 +918,10 @@ window.UUHEE_SB={url:'https://ybfwnmgnledlumppfjbh.supabase.co',key:'sb_publisha
     // RETURNING(방금 넣은 행 id 조회)이 필요한데 익명 사용자에겐 applications SELECT가 막혀있어
     // 직접 insert하면 저장 자체가 거부됨 — SECURITY DEFINER RPC로 저장(관리자 권한으로 우회)한다.
     insertApplication:function(rec){var qty=rec.qty||{},keys=Object.keys(qty);var items=keys.map(function(k){return {size:k,qty:N(qty[k])||0};});return sb.rpc('uuhee_submit_application',{p_branch:s(rec.branch),p_cls:s(rec.class),p_size:s(rec.size),p_sdate:s(rec.date),p_stime:s(rec.time),p_people:N(rec.people),p_name:s(rec.name),p_phone:s(rec.phone),p_email:s(rec.email),p_msg:s(rec.msg),p_estimate:N(rec.estimate),p_pay_method:s(rec.payMethod),p_status:(rec.status||1),p_items:items});},
-    insertInquiry:function(rec){return sb.from('inquiries').insert({status:1,itype:s(rec.type),volume:s(rec.volume),branch:s(rec.branch),company:s(rec.company),name:s(rec.name),phone:s(rec.phone),email:s(rec.email),isize:s(rec.size),msg:s(rec.msg)});},
+    // inquiries도 익명 사용자에겐 SELECT가 막혀있어 direct insert로는 새 id를 돌려받을 수
+    // 없다(카톡 접수 안내 발송에 필요) — applications와 동일하게 RPC로 우회한다.
+    insertInquiry:function(rec){return sb.rpc('uuhee_submit_inquiry',{p_itype:s(rec.type),p_volume:s(rec.volume),p_branch:s(rec.branch),p_company:s(rec.company),p_name:s(rec.name),p_phone:s(rec.phone),p_email:s(rec.email),p_isize:s(rec.size),p_msg:s(rec.msg)});},
+    sendKakaoInquiryReceipt:function(inqId){return sb.functions.invoke('send-kakao',{body:{kind:'inquiry-receipt',id:inqId}});},
     // 신청 접수 직후 카카오 알림톡 발송(결제수단별 템플릿은 서버에서 자동 선택). 실패해도 신청 자체는
     // 이미 저장된 상태이므로 화면 흐름을 막지 않고 콘솔에만 남긴다(호출부에서 catch로 처리).
     sendKakaoReceipt:function(appId){return sb.functions.invoke('send-kakao',{body:{kind:'app-receipt',id:appId}});}
@@ -1461,7 +1464,7 @@ window.UUHEE_SB={url:'https://ybfwnmgnledlumppfjbh.supabase.co',key:'sb_publisha
       var grec={type:st.dataset.val,branch:sb.dataset.val,company:c,name:n,phone:p,email:gm.querySelector('[data-field="gemail"]').value,size:gm.querySelector('[data-field="gsize"]').value,msg:gm.querySelector('[data-field="gmsg"]').value,ts:Date.now()};try{const all=JSON.parse(localStorage.getItem('uuhee_group')||'[]');all.push(grec);localStorage.setItem('uuhee_group',JSON.stringify(all));}catch(e){}
       var done=function(){document.getElementById('groupForm').style.display='none';document.getElementById('groupFoot').style.display='none';document.getElementById('groupDone').style.display='block';gsBtn.disabled=false;};
       if(window.__cloud){
-        try{window.__cloud.insertInquiry(grec).then(function(r){if(r&&r.error){console.warn(r.error);alert('문의 접수 중 서버 저장에 문제가 발생했습니다. 확인을 위해 매장으로 연락해 주세요.');}done();}).catch(function(e){console.warn(e);alert('문의 접수 중 오류가 발생했습니다. 확인을 위해 매장으로 연락해 주세요.');done();});}catch(e){done();}
+        try{window.__cloud.insertInquiry(grec).then(function(r){if(r&&r.error){console.warn(r.error);alert('문의 접수 중 서버 저장에 문제가 발생했습니다. 확인을 위해 매장으로 연락해 주세요.');}else if(r&&r.data!=null){try{window.__cloud.sendKakaoInquiryReceipt(r.data).catch(function(e){console.warn('카톡 문의접수안내 발송 실패',e);});}catch(e){console.warn(e);}}done();}).catch(function(e){console.warn(e);alert('문의 접수 중 오류가 발생했습니다. 확인을 위해 매장으로 연락해 주세요.');done();});}catch(e){done();}
       }else{done();}
     });
     window.__openGroup=function(presetType,presetBranch){
@@ -1490,7 +1493,7 @@ window.UUHEE_SB={url:'https://ybfwnmgnledlumppfjbh.supabase.co',key:'sb_publisha
       var irec={type:type,volume:vol.value||'',branch:sb.dataset.val,company:c,name:n,phone:p,email:f.querySelector('[data-field="iemail"]').value,msg:f.querySelector('[data-field="imsg"]').value,ts:Date.now()};try{const all=JSON.parse(localStorage.getItem('uuhee_group')||'[]');all.push(irec);localStorage.setItem('uuhee_group',JSON.stringify(all));}catch(e){}
       var done=function(){f.style.display='none';document.getElementById('inqDone').style.display='block';inqBtn.disabled=false;};
       if(window.__cloud){
-        try{window.__cloud.insertInquiry(irec).then(function(r){if(r&&r.error){console.warn(r.error);alert('문의 접수 중 서버 저장에 문제가 발생했습니다. 확인을 위해 매장으로 연락해 주세요.');}done();}).catch(function(e){console.warn(e);alert('문의 접수 중 오류가 발생했습니다. 확인을 위해 매장으로 연락해 주세요.');done();});}catch(e){done();}
+        try{window.__cloud.insertInquiry(irec).then(function(r){if(r&&r.error){console.warn(r.error);alert('문의 접수 중 서버 저장에 문제가 발생했습니다. 확인을 위해 매장으로 연락해 주세요.');}else if(r&&r.data!=null){try{window.__cloud.sendKakaoInquiryReceipt(r.data).catch(function(e){console.warn('카톡 문의접수안내 발송 실패',e);});}catch(e){console.warn(e);}}done();}).catch(function(e){console.warn(e);alert('문의 접수 중 오류가 발생했습니다. 확인을 위해 매장으로 연락해 주세요.');done();});}catch(e){done();}
       }else{done();}
     });
   })();
