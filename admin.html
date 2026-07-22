@@ -1249,7 +1249,7 @@ function renderSpaceUploader(){
     box.addEventListener('click',function(e){var t=e.target;
       if(t.dataset.padd!=null){S.photos.push({img:'',category:'공간',folder:t.dataset.padd,title:'',desc:'',cover:false,order:S.photos.length+1,link:''});renderSpaceUploader();}
       else if(t.dataset.prm!=null){S.photos.splice(+t.dataset.prm,1);renderSpaceUploader();}
-      else if(t.dataset.psave!=null){try{save('photos');flash(box.querySelector('.saved'));}catch(err){alert('저장 실패: 이미지 용량이 큽니다. 더 작게 줄여 올려주세요.');}}});
+      else if(t.dataset.psave!=null){try{save(['photos','branches']);flash(box.querySelector('.saved'));}catch(err){alert('저장 실패: 이미지 용량이 큽니다. 더 작게 줄여 올려주세요.');}}});
   }
   var branches=[];(S.branches||[]).forEach(function(b,oi){if(b&&b.name)branches.push({b:b,oi:oi});});
   if(!branches.length){box.innerHTML='<div class="empty">먼저 지점설정 탭에서 지점을 등록해 주세요.</div>';return;}
