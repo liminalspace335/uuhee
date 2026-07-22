@@ -918,7 +918,10 @@ window.UUHEE_SB={url:'https://ybfwnmgnledlumppfjbh.supabase.co',key:'sb_publisha
     // RETURNING(방금 넣은 행 id 조회)이 필요한데 익명 사용자에겐 applications SELECT가 막혀있어
     // 직접 insert하면 저장 자체가 거부됨 — SECURITY DEFINER RPC로 저장(관리자 권한으로 우회)한다.
     insertApplication:function(rec){var qty=rec.qty||{},keys=Object.keys(qty);var items=keys.map(function(k){return {size:k,qty:N(qty[k])||0};});return sb.rpc('uuhee_submit_application',{p_branch:s(rec.branch),p_cls:s(rec.class),p_size:s(rec.size),p_sdate:s(rec.date),p_stime:s(rec.time),p_people:N(rec.people),p_name:s(rec.name),p_phone:s(rec.phone),p_email:s(rec.email),p_msg:s(rec.msg),p_estimate:N(rec.estimate),p_pay_method:s(rec.payMethod),p_status:(rec.status||1),p_items:items});},
-    insertInquiry:function(rec){return sb.from('inquiries').insert({status:1,itype:s(rec.type),volume:s(rec.volume),branch:s(rec.branch),company:s(rec.company),name:s(rec.name),phone:s(rec.phone),email:s(rec.email),isize:s(rec.size),msg:s(rec.msg)});}
+    insertInquiry:function(rec){return sb.from('inquiries').insert({status:1,itype:s(rec.type),volume:s(rec.volume),branch:s(rec.branch),company:s(rec.company),name:s(rec.name),phone:s(rec.phone),email:s(rec.email),isize:s(rec.size),msg:s(rec.msg)});},
+    // 신청 접수 직후 카카오 알림톡 발송(결제수단별 템플릿은 서버에서 자동 선택). 실패해도 신청 자체는
+    // 이미 저장된 상태이므로 화면 흐름을 막지 않고 콘솔에만 남긴다(호출부에서 catch로 처리).
+    sendKakaoReceipt:function(appId){return sb.functions.invoke('send-kakao',{body:{kind:'app-receipt',id:appId}});}
   };
   var isAdmin=/admin\.html$/i.test(location.pathname);
   var tasks=[ pullSettings().then(function(S){if(!S)return false;var j=JSON.stringify(S);if(j!==(localStorage.getItem('uuhee_settings')||'')){localStorage.setItem('uuhee_settings',j);return true;}return false;}) ];
@@ -1399,7 +1402,10 @@ window.UUHEE_SB={url:'https://ybfwnmgnledlumppfjbh.supabase.co',key:'sb_publisha
     // 성공/실패를 분기해 화면을 다르게 보여줄 수 있도록(정원마감 등 서버 거부를 조용히 삼키지 않기 위함).
     function finalizeApp(){var rec=Object.assign({},data,{ts:Date.now()});try{var all=JSON.parse(localStorage.getItem('uuhee_apps')||'[]');all.push(rec);localStorage.setItem('uuhee_apps',JSON.stringify(all));}catch(e){}
       if(!window.__cloud)return Promise.resolve({ok:true});
-      try{return window.__cloud.insertApplication(rec).then(function(r){if(r&&r.error){console.warn(r.error);return {ok:false,message:r.error.message};}return {ok:true};}).catch(function(e){console.warn(e);return {ok:false,message:(e&&e.message)||''};});}catch(e){console.warn(e);return Promise.resolve({ok:false,message:(e&&e.message)||''});}}
+      try{return window.__cloud.insertApplication(rec).then(function(r){if(r&&r.error){console.warn(r.error);return {ok:false,message:r.error.message};}
+        // 접수 카카오 알림톡 발송은 신청 저장에 영향 없는 부가 동작이라 실패해도 화면 흐름은 막지 않는다.
+        if(r&&r.data!=null){try{window.__cloud.sendKakaoReceipt(r.data).catch(function(e){console.warn('카톡 접수안내 발송 실패',e);});}catch(e){console.warn(e);}}
+        return {ok:true};}).catch(function(e){console.warn(e);return {ok:false,message:(e&&e.message)||''};});}catch(e){console.warn(e);return Promise.resolve({ok:false,message:(e&&e.message)||''});}}
     const render=()=>showStep(step);
     document.getElementById('btnNext').addEventListener('click',()=>{
       if(step<=4&&!validate(step))return;

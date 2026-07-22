@@ -235,11 +235,11 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--gold)}
                   <span style="display:inline-flex;align-items:center;gap:6px"><input type="radio" name="bnType" id="bnTypeReceipt" checked style="width:auto"> 접수 안내</span>
                   <span style="display:inline-flex;align-items:center;gap:6px"><input type="radio" name="bnType" id="bnTypeConfirm" style="width:auto"> 확정 안내</span>
                 </label>
-                <div class="muted">⚠️ 카카오톡 자동 발송 기능은 없습니다. 건마다 '복사'로 문구를 복사해 카카오톡 앱에서 직접 전달해 주세요. 모두 보내셨다면 아래 '발송 완료로 표시'를 눌러 기록해 주세요('확정 안내'는 상태도 '확정'으로 변경됩니다). 이 버튼은 실제 발송을 하지 않고, 이미 보내셨다는 걸 기록만 합니다.</div>
+                <div class="muted">아래 '카카오톡 발송'을 누르면 목록의 건들에 실제 카카오톡 알림톡이 발송됩니다('확정 안내'는 상태도 '확정'으로 변경됩니다). 건마다 '복사'는 미리 확인·복사용입니다.</div>
                 <div id="bnList" style="margin-top:4px"></div>
                 <div class="muted" id="bnResult" style="margin-top:4px;white-space:pre-line"></div>
               </div>
-              <div class="amodal-f"><button type="button" class="btn gold" id="bnSend">발송 완료로 표시</button><span style="flex:1"></span><button type="button" class="btn ghost" id="bnCloseBtn">닫기</button></div>
+              <div class="amodal-f"><button type="button" class="btn gold" id="bnSend">카카오톡 발송</button><span style="flex:1"></span><button type="button" class="btn ghost" id="bnCloseBtn">닫기</button></div>
             </div>
           </div>
         </div>
@@ -973,23 +973,23 @@ function openMsgModal(mode){
     var r=apps[EI];if(!r)return;
     $('#msgTitle').textContent='예약 접수 안내';
     $('#msgText').value=buildReceiptMsg(r);
-    $('#msgNote').textContent="⚠️ 카카오톡 자동 발송 기능은 없습니다. 복사하기로 문구를 복사해 카카오톡에서 직접 전달한 뒤, '발송 완료로 표시'를 눌러 기록해 주세요.";
+    $('#msgNote').textContent="'카카오톡 발송'을 누르면 이 문구가 실제 카카오톡 알림톡으로 발송됩니다. '복사하기'는 미리 확인·복사용입니다.";
     $('#msgPrimary').style.display='';
-    $('#msgPrimary').textContent='발송 완료로 표시';
+    $('#msgPrimary').textContent='카카오톡 발송';
   }else if(mode==='confirm'){
     $('#msgTitle').textContent='예약 확정 안내';
     $('#msgText').value=CONFIRM_MSG;
-    $('#msgNote').innerHTML="⚠️ 카카오톡 자동 발송 기능은 없습니다. 복사하기로 문구를 복사해 카카오톡에서 직접 전달한 뒤, '발송 완료로 표시'를 누르면 상태가 '확정'으로 변경됩니다.";
+    $('#msgNote').innerHTML="'카카오톡 발송'을 누르면 이 문구가 실제 카카오톡 알림톡으로 발송되고, 상태가 '확정'으로 변경됩니다.";
     $('#msgPrimary').style.display='';
-    $('#msgPrimary').textContent='발송 완료로 표시';
+    $('#msgPrimary').textContent='카카오톡 발송';
   }else if(mode==='inquiry'){
     if(EW!=='group'||EI===-1)return;
     var r=group[EI];if(!r)return;
     $('#msgTitle').textContent='문의 접수 안내';
     $('#msgText').value=buildInquiryMsg(r);
-    $('#msgNote').textContent="⚠️ 카카오톡 자동 발송 기능은 없습니다. 복사하기로 문구를 복사해 카카오톡에서 직접 전달한 뒤, '발송 완료로 표시'를 눌러 기록해 주세요.";
+    $('#msgNote').textContent="'카카오톡 발송'을 누르면 이 문구가 실제 카카오톡 알림톡으로 발송됩니다. '복사하기'는 미리 확인·복사용입니다.";
     $('#msgPrimary').style.display='';
-    $('#msgPrimary').textContent='발송 완료로 표시';
+    $('#msgPrimary').textContent='카카오톡 발송';
   }else if(mode==='previewReceiptTransfer'||mode==='previewReceiptOnsite'||mode==='previewReceiptSmartstore'){
     var tplLabel={previewReceiptTransfer:'계좌이체',previewReceiptOnsite:'현장결제',previewReceiptSmartstore:'스마트스토어'}[mode];
     var tpl={previewReceiptTransfer:RECEIPT_TEMPLATE_TRANSFER,previewReceiptOnsite:RECEIPT_TEMPLATE_ONSITE,previewReceiptSmartstore:RECEIPT_TEMPLATE_SMARTSTORE}[mode];
@@ -1072,46 +1072,36 @@ $('#msgModal')&&$('#msgModal').addEventListener('click',function(e){if(e.target.
 $('#msgCopy')&&$('#msgCopy').addEventListener('click',copyMsgText);
 $('#msgPrimary')&&$('#msgPrimary').addEventListener('click',function(){
   if(MSG_MODE!=='receipt'&&MSG_MODE!=='confirm'&&MSG_MODE!=='inquiry')return;
+  var btn=this;
   if(MSG_MODE==='inquiry'){
     if(EW!=='group'||EI===-1)return;
     var gr=group[EI];if(!gr)return;
-    var gid=gr.id;
-    function applyLocalInquiry(){
+    var gid=gr.id;if(!gid)return;
+    btn.disabled=true;$('#msgResult').textContent='발송 중...';
+    callSendKakao({kind:'inquiry-receipt',id:gid}).then(function(){
+      btn.disabled=false;
       gr.kakaoNotice=KN_RECEIPT;
       try{localStorage.setItem('uuhee_group',JSON.stringify(group));}catch(_){}
       renderSubs();renderOverview();
       closeMsgModal();
       closeSubEdit();
-    }
-    if(!window.__sb||!gid){applyLocalInquiry();return;}
-    // TODO: 솔라피(카카오 알림톡) 연동 시 이 지점에서 실제 발송 API를 먼저 호출하고,
-    // 성공한 건에 한해 아래 DB 기록(kakao_notice)을 진행하도록 확장한다.
-    window.__sb.from('inquiries').update({kakao_notice:KN_RECEIPT}).eq('id',gid).then(function(res){
-      if(res.error){$('#msgResult').textContent='기록 저장 실패: '+res.error.message;return;}
-      applyLocalInquiry();
-    });
+    }).catch(function(e){btn.disabled=false;$('#msgResult').textContent='발송 실패: '+((e&&e.message)||e);});
     return;
   }
   if(EW!=='apps'||EI===-1)return;
   var r=apps[EI];if(!r)return;
   var isConfirm=MSG_MODE==='confirm';
-  var patch=isConfirm?{status:3,kakao_notice:KN_CONFIRM}:{kakao_notice:KN_RECEIPT};
-  var id=r.id;
-  function applyLocal(){
+  var id=r.id;if(!id)return;
+  btn.disabled=true;$('#msgResult').textContent='발송 중...';
+  callSendKakao({kind:isConfirm?'app-confirm':'app-receipt',id:id}).then(function(){
+    btn.disabled=false;
     r.kakaoNotice=isConfirm?KN_CONFIRM:KN_RECEIPT;
     if(isConfirm)r.status=3;
     try{localStorage.setItem('uuhee_apps',JSON.stringify(apps));}catch(_){}
     renderSubs();renderOverview();
     closeMsgModal();
     closeSubEdit();
-  }
-  if(!window.__sb||!id){applyLocal();return;}
-  // TODO: 솔라피(카카오 알림톡) 연동 시 이 지점에서 실제 발송 API를 먼저 호출하고,
-  // 성공한 건에 한해 아래 DB 기록(kakao_notice/status)을 진행하도록 확장한다.
-  window.__sb.from('applications').update(patch).eq('id',id).then(function(res){
-    if(res.error){$('#msgResult').textContent='기록 저장 실패: '+res.error.message;return;}
-    applyLocal();
-  });
+  }).catch(function(e){btn.disabled=false;$('#msgResult').textContent='발송 실패: '+((e&&e.message)||e);});
 });
 /* ---------- 선택 신청 건 일괄 안내 ---------- */
 var BULK_NOTIFY_PICKS=[];
@@ -1146,21 +1136,13 @@ document.addEventListener('click',function(e){
 function bulkSendNotify(){
   var type=$('#bnTypeConfirm').checked?'confirm':'receipt';
   var targets=BULK_NOTIFY_PICKS.filter(function(p){return p.w==='apps';});
-  if(!targets.length){$('#bnResult').textContent='기록할 대상(클래스 신청 건)이 없습니다.';return;}
-  var patch=type==='confirm'?{status:3,kakao_notice:KN_CONFIRM}:{kakao_notice:KN_RECEIPT};
-  $('#bnResult').textContent=targets.length+'건 기록 처리 중...';
+  if(!targets.length){$('#bnResult').textContent='발송할 대상(클래스 신청 건)이 없습니다.';return;}
+  $('#bnResult').textContent=targets.length+'건 발송 중...';
   var fails=[];
-  // TODO: 솔라피(카카오 알림톡) 연동 시 각 건마다 실제 발송 API를 먼저 호출하고,
-  // 그 성공/실패 결과에 따라 fails 사유를 채운 뒤에만 아래 DB 기록을 진행하도록 확장한다.
   Promise.all(targets.map(function(p){
     var r=p.rec;
-    if(!window.__sb||!r.id){
-      r.kakaoNotice=type==='confirm'?KN_CONFIRM:KN_RECEIPT;
-      if(type==='confirm')r.status=3;
-      return true;
-    }
-    return window.__sb.from('applications').update(patch).eq('id',r.id).then(function(res){
-      if(res.error){fails.push((r.name||'-')+': '+res.error.message);return false;}
+    if(!r.id){fails.push((r.name||'-')+': id 없음(로컬 임시 저장 건)');return false;}
+    return callSendKakao({kind:type==='confirm'?'app-confirm':'app-receipt',id:r.id}).then(function(){
       r.kakaoNotice=type==='confirm'?KN_CONFIRM:KN_RECEIPT;
       if(type==='confirm')r.status=3;
       return true;
@@ -1168,7 +1150,7 @@ function bulkSendNotify(){
   })).then(function(results){
     var okCount=results.filter(Boolean).length;
     var failCount=results.length-okCount;
-    var summary=targets.length+'건 처리 · 기록 성공 '+okCount+'건 · 기록 실패 '+failCount+'건 (실제 카카오톡 발송 여부와는 무관하며, 저장 성공/실패만 나타냅니다)';
+    var summary=targets.length+'건 발송 · 성공 '+okCount+'건 · 실패 '+failCount+'건';
     if(fails.length)summary+='\n실패 사유:\n'+fails.join('\n');
     $('#bnResult').textContent=summary;
     try{localStorage.setItem('uuhee_apps',JSON.stringify(apps));}catch(_){}
@@ -1523,6 +1505,18 @@ function callAdminAccounts(payload){
       var ctx=res.error.context;
       if(ctx&&typeof ctx.json==='function')return ctx.json().then(function(b){throw new Error((b&&b.error)||res.error.message||'요청 실패');}).catch(function(e){throw (e instanceof Error?e:new Error(res.error.message||'요청 실패'));});
       throw new Error(res.error.message||'요청 실패');
+    }
+    return res.data;
+  });
+}
+function callSendKakao(payload){
+  if(!window.__sb)return Promise.reject(new Error('서버 연결에 실패했습니다.'));
+  return window.__sb.functions.invoke('send-kakao',{body:payload}).then(function(res){
+    if(res.data&&res.data.error)throw new Error(res.data.error);
+    if(res.error){
+      var ctx=res.error.context;
+      if(ctx&&typeof ctx.json==='function')return ctx.json().then(function(b){throw new Error((b&&b.error)||res.error.message||'발송 실패');}).catch(function(e){throw (e instanceof Error?e:new Error(res.error.message||'발송 실패'));});
+      throw new Error(res.error.message||'발송 실패');
     }
     return res.data;
   });
