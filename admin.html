@@ -1083,14 +1083,13 @@ $('#msgPrimary')&&$('#msgPrimary').addEventListener('click',function(){
     var gid=gr.id;if(!gid)return;
     var isGroupConfirm=MSG_MODE==='groupConfirm';
     btn.disabled=true;$('#msgResult').textContent='발송 중...';
-    callSendKakao({kind:isGroupConfirm?'inquiry-confirm':'inquiry-receipt',id:gid}).then(function(){
+    callSendKakao({kind:isGroupConfirm?'inquiry-confirm':'inquiry-receipt',id:gid}).then(function(res){
       btn.disabled=false;
       gr.kakaoNotice=isGroupConfirm?KN_CONFIRM:KN_RECEIPT;
       if(isGroupConfirm)gr.status=3;
       try{localStorage.setItem('uuhee_group',JSON.stringify(group));}catch(_){}
       renderSubs();renderOverview();
-      closeMsgModal();
-      closeSubEdit();
+      $('#msgResult').textContent=(res&&res.alreadySent)?'이미 발송된 건입니다.':'발송 성공 ✓';
     }).catch(function(e){btn.disabled=false;$('#msgResult').textContent='발송 실패: '+((e&&e.message)||e);});
     return;
   }
@@ -1099,14 +1098,13 @@ $('#msgPrimary')&&$('#msgPrimary').addEventListener('click',function(){
   var isConfirm=MSG_MODE==='confirm';
   var id=r.id;if(!id)return;
   btn.disabled=true;$('#msgResult').textContent='발송 중...';
-  callSendKakao({kind:isConfirm?'app-confirm':'app-receipt',id:id}).then(function(){
+  callSendKakao({kind:isConfirm?'app-confirm':'app-receipt',id:id}).then(function(res){
     btn.disabled=false;
     r.kakaoNotice=isConfirm?KN_CONFIRM:KN_RECEIPT;
     if(isConfirm)r.status=3;
     try{localStorage.setItem('uuhee_apps',JSON.stringify(apps));}catch(_){}
     renderSubs();renderOverview();
-    closeMsgModal();
-    closeSubEdit();
+    $('#msgResult').textContent=(res&&res.alreadySent)?'이미 발송된 건입니다.':'발송 성공 ✓';
   }).catch(function(e){btn.disabled=false;$('#msgResult').textContent='발송 실패: '+((e&&e.message)||e);});
 });
 /* ---------- 선택 신청 건 일괄 안내 ---------- */
