@@ -1082,6 +1082,8 @@ $('#msgPrimary')&&$('#msgPrimary').addEventListener('click',function(){
     var gr=group[EI];if(!gr)return;
     var gid=gr.id;if(!gid)return;
     var isGroupConfirm=MSG_MODE==='groupConfirm';
+    var gAlready=gr.kakaoNotice===(isGroupConfirm?KN_CONFIRM:KN_RECEIPT);
+    if(gAlready&&!confirm('이미 발송에 성공한 건입니다. 다시 발송하시겠습니까?'))return;
     btn.disabled=true;$('#msgResult').textContent='발송 중...';
     callSendKakao({kind:isGroupConfirm?'inquiry-confirm':'inquiry-receipt',id:gid}).then(function(res){
       btn.disabled=false;
@@ -1097,6 +1099,8 @@ $('#msgPrimary')&&$('#msgPrimary').addEventListener('click',function(){
   var r=apps[EI];if(!r)return;
   var isConfirm=MSG_MODE==='confirm';
   var id=r.id;if(!id)return;
+  var rAlready=r.kakaoNotice===(isConfirm?KN_CONFIRM:KN_RECEIPT);
+  if(rAlready&&!confirm('이미 발송에 성공한 건입니다. 다시 발송하시겠습니까?'))return;
   btn.disabled=true;$('#msgResult').textContent='발송 중...';
   callSendKakao({kind:isConfirm?'app-confirm':'app-receipt',id:id}).then(function(res){
     btn.disabled=false;
