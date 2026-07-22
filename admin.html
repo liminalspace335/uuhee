@@ -1126,39 +1126,39 @@ function renderBulkNotifyList(){
   var box=$('#bnList');if(!box)return;
   box.innerHTML=BULK_NOTIFY_PICKS.map(function(p,idx){
     var r=p.rec;
-    if(p.w!=='apps')return '<div class="row-tools" style="border-bottom:1px solid var(--line);padding:8px 0;margin-bottom:0"><span style="flex:1">'+esc(r.name||r.company||'-')+' ('+esc(r.phone||'-')+')</span><span class="muted">클래스 신청이 아니라 안내 대상이 아닙니다</span></div>';
     var sentLabel=r.kakaoNotice?(' · 기록됨: '+esc(KNLAB[r.kakaoNotice]||'')):'';
-    return '<div class="row-tools" style="border-bottom:1px solid var(--line);padding:8px 0;margin-bottom:0"><span style="flex:1">'+esc(r.name||'-')+' ('+esc(r.phone||'-')+')'+sentLabel+'</span><button type="button" class="btn ghost btn-sm" data-bncopy="'+idx+'">복사</button></div>';
+    return '<div class="row-tools" style="border-bottom:1px solid var(--line);padding:8px 0;margin-bottom:0"><span style="flex:1">'+esc(r.name||r.company||'-')+' ('+esc(r.phone||'-')+')'+(p.w==='group'?' · 단체·기업 문의':'')+sentLabel+'</span><button type="button" class="btn ghost btn-sm" data-bncopy="'+idx+'">복사</button></div>';
   }).join('');
 }
 document.addEventListener('click',function(e){
   var t=e.target.closest('[data-bncopy]');if(!t)return;
-  var idx=+t.getAttribute('data-bncopy');var p=BULK_NOTIFY_PICKS[idx];if(!p||p.w!=='apps')return;
+  var idx=+t.getAttribute('data-bncopy');var p=BULK_NOTIFY_PICKS[idx];if(!p)return;
   var r=p.rec;var type=$('#bnTypeConfirm').checked?'confirm':'receipt';
-  var text=type==='confirm'?CONFIRM_MSG:buildReceiptMsg(r);
+  var text=type==='confirm'?CONFIRM_MSG:(p.w==='group'?buildInquiryMsg(r):buildReceiptMsg(r));
   if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(text).catch(function(){});}
 });
 function bulkSendNotify(){
   var type=$('#bnTypeConfirm').checked?'confirm':'receipt';
-  var targets=BULK_NOTIFY_PICKS.filter(function(p){return p.w==='apps';});
-  if(!targets.length){$('#bnResult').textContent='발송할 대상(클래스 신청 건)이 없습니다.';return;}
+  var targets=BULK_NOTIFY_PICKS;
+  if(!targets.length){$('#bnResult').textContent='발송할 대상이 없습니다.';return;}
   $('#bnResult').textContent=targets.length+'건 발송 중...';
   var fails=[];
   Promise.all(targets.map(function(p){
     var r=p.rec;
-    if(!r.id){fails.push((r.name||'-')+': id 없음(로컬 임시 저장 건)');return false;}
-    return callSendKakao({kind:type==='confirm'?'app-confirm':'app-receipt',id:r.id}).then(function(){
+    if(!r.id){fails.push((r.name||r.company||'-')+': id 없음(로컬 임시 저장 건)');return false;}
+    var kind=p.w==='group'?(type==='confirm'?'inquiry-confirm':'inquiry-receipt'):(type==='confirm'?'app-confirm':'app-receipt');
+    return callSendKakao({kind:kind,id:r.id}).then(function(){
       r.kakaoNotice=type==='confirm'?KN_CONFIRM:KN_RECEIPT;
       if(type==='confirm')r.status=3;
       return true;
-    }).catch(function(e){fails.push((r.name||'-')+': '+((e&&e.message)||e));return false;});
+    }).catch(function(e){fails.push((r.name||r.company||'-')+': '+((e&&e.message)||e));return false;});
   })).then(function(results){
     var okCount=results.filter(Boolean).length;
     var failCount=results.length-okCount;
     var summary=targets.length+'건 발송 · 성공 '+okCount+'건 · 실패 '+failCount+'건';
     if(fails.length)summary+='\n실패 사유:\n'+fails.join('\n');
     $('#bnResult').textContent=summary;
-    try{localStorage.setItem('uuhee_apps',JSON.stringify(apps));}catch(_){}
+    try{localStorage.setItem('uuhee_apps',JSON.stringify(apps));localStorage.setItem('uuhee_group',JSON.stringify(group));}catch(_){}
     renderSubs();renderOverview();renderBulkNotifyList();
   });
 }
