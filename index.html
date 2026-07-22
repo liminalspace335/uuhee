@@ -1445,6 +1445,7 @@ window.UUHEE_SB={url:'https://ybfwnmgnledlumppfjbh.supabase.co',key:'sb_publisha
   /* ---------- 기업·단체 문의 모달 ---------- */
   (function(){
     const gm=document.getElementById('groupModal');if(!gm)return;
+    const formatPhone=function(v){var d=(v||'').replace(/\D/g,'').slice(0,11);if(d.length<4)return d;if(d.length<8)return d.slice(0,3)+'-'+d.slice(3);return d.slice(0,3)+'-'+d.slice(3,7)+'-'+d.slice(7);};
     const open=()=>{gm.classList.add('open');document.body.style.overflow='hidden';
       document.getElementById('groupForm').style.display='';document.getElementById('groupFoot').style.display='flex';document.getElementById('groupDone').style.display='none';};
     const close=()=>{gm.classList.remove('open');document.body.style.overflow='';};
@@ -1453,11 +1454,13 @@ window.UUHEE_SB={url:'https://ybfwnmgnledlumppfjbh.supabase.co',key:'sb_publisha
     document.querySelectorAll('[data-open-group]').forEach(b=>b.addEventListener('click',e=>{e.preventDefault();collapsibles.forEach(function(l){if(l)l.classList.remove('collapsed');});open();}));
     document.getElementById('groupClose').addEventListener('click',close);
     document.addEventListener('keydown',e=>{if(e.key==='Escape'&&gm.classList.contains('open'))close();});
+    const gPhoneInp=gm.querySelector('[data-field="gphone"]');
+    if(gPhoneInp)gPhoneInp.addEventListener('input',function(){gPhoneInp.value=formatPhone(gPhoneInp.value);});
     const gsBtn=document.getElementById('groupSubmit');
     gsBtn.addEventListener('click',()=>{
       if(gsBtn.disabled)return; // 중복 클릭으로 문의가 두 번 접수되는 것을 방지
       const st=gm.querySelector('.gtype .opt.sel'),sb=gm.querySelector('.gbranch .opt.sel');
-      const c=gm.querySelector('[data-field="gcompany"]').value.trim(),n=gm.querySelector('[data-field="gname"]').value.trim(),p=gm.querySelector('[data-field="gphone"]').value.trim();
+      const c=gm.querySelector('[data-field="gcompany"]').value.trim(),n=gm.querySelector('[data-field="gname"]').value.trim(),p=formatPhone(gm.querySelector('[data-field="gphone"]').value.trim());
       const er=gm.querySelector('[data-err="group"]');
       if(!st||!sb||!c||!n||!p){er.style.display='block';return;}er.style.display='none';
       gsBtn.disabled=true;
@@ -1478,14 +1481,17 @@ window.UUHEE_SB={url:'https://ybfwnmgnledlumppfjbh.supabase.co',key:'sb_publisha
   /* ---------- 페이지 내 인라인 문의 폼 (홈 단체 섹션) ---------- */
   (function(){
     const f=document.getElementById('inqForm');if(!f)return;
+    const formatPhone=function(v){var d=(v||'').replace(/\D/g,'').slice(0,11);if(d.length<4)return d;if(d.length<8)return d.slice(0,3)+'-'+d.slice(3);return d.slice(0,3)+'-'+d.slice(3,7)+'-'+d.slice(7);};
     const typeBox=document.getElementById('inqType');
     const vol=document.getElementById('inqVol');
     typeBox.addEventListener('change',function(){var v=typeBox.value;if(/단체|출강/.test(v)){vol.classList.add('show');}else{vol.classList.remove('show');vol.value='';}});
+    const iPhoneInp=f.querySelector('[data-field="iphone"]');
+    if(iPhoneInp)iPhoneInp.addEventListener('input',function(){iPhoneInp.value=formatPhone(iPhoneInp.value);});
     const inqBtn=document.getElementById('inqSubmit');
     inqBtn.addEventListener('click',()=>{
       if(inqBtn.disabled)return; // 중복 클릭으로 문의가 두 번 접수되는 것을 방지
       const type=typeBox.value,sb=f.querySelector('.gbranch .opt.sel');
-      const c=f.querySelector('[data-field="icompany"]').value.trim(),n=f.querySelector('[data-field="iname"]').value.trim(),p=f.querySelector('[data-field="iphone"]').value.trim();
+      const c=f.querySelector('[data-field="icompany"]').value.trim(),n=f.querySelector('[data-field="iname"]').value.trim(),p=formatPhone(f.querySelector('[data-field="iphone"]').value.trim());
       const needVol=vol.classList.contains('show');
       const er=f.querySelector('[data-err="inq"]');
       if(!type||!sb||!c||!n||!p||(needVol&&!vol.value)){er.style.display='block';return;}er.style.display='none';

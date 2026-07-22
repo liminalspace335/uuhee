@@ -48,6 +48,19 @@ const TEMPLATES: Record<string, string> = {
   "inquiry-receipt": "KA01TP260721095352213nbtPJ5jNnXG",
 };
 
+function fmtPhone(v: string | null | undefined): string {
+  const d = String(v || "").replace(/\D/g, "");
+  if (!d) return "-";
+  if (/^02/.test(d)) {
+    if (d.length === 9) return d.slice(0, 2) + "-" + d.slice(2, 5) + "-" + d.slice(5);
+    if (d.length === 10) return d.slice(0, 2) + "-" + d.slice(2, 6) + "-" + d.slice(6);
+    return d;
+  }
+  if (d.length === 10) return d.slice(0, 3) + "-" + d.slice(3, 6) + "-" + d.slice(6);
+  if (d.length === 11) return d.slice(0, 3) + "-" + d.slice(3, 7) + "-" + d.slice(7);
+  return d;
+}
+
 function qtyText(qty: Record<string, unknown> | null | undefined) {
   if (!qty) return "-";
   const parts: string[] = [];
@@ -175,7 +188,7 @@ Deno.serve(async (req) => {
         const amt = a.estimate == null ? 0 : Math.round(Number(a.estimate));
         const variables = {
           "#{이름}": a.name || "-",
-          "#{연락처}": a.phone || "-",
+          "#{연락처}": fmtPhone(a.phone),
           "#{지점명}": a.branch || "-",
           "#{일자}": a.sdate || "-",
           "#{시간}": a.stime || "-",
@@ -211,7 +224,7 @@ Deno.serve(async (req) => {
         const variables = {
           "#{회사단체명}": g.company || "-",
           "#{담당자명}": g.name || "-",
-          "#{연락처}": g.phone || "-",
+          "#{연락처}": fmtPhone(g.phone),
           "#{지점명}": g.branch || "-",
           "#{인원}": g.isize || "-",
           "#{문의내용}": g.msg || "-",
