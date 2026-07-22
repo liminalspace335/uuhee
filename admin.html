@@ -281,21 +281,8 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--gold)}
       <div class="panel" id="panel-payment">
         <div class="box">
           <div class="row-tools"><h3 style="flex:1">결제수단 활성화</h3><span class="saved" id="paymentTogglesSaved">저장됨 ✓</span></div>
-          <div class="desc">신청 결제 단계에서 고객에게 보여줄 결제수단을 켜고 끌 수 있습니다. 토글을 누르면 즉시 저장됩니다. 비활성화하면 해당 옵션이 신청 화면에서 보이지 않습니다.</div>
-          <div class="stat-grid" style="grid-template-columns:repeat(3,1fr)">
-            <div class="stat">
-              <div class="l">계좌이체</div>
-              <div class="row-tools" style="margin-top:10px;margin-bottom:0"><span style="flex:1"></span><button type="button" class="tg" id="payTransferTg" data-paymenttg="transfer">활성</button></div>
-            </div>
-            <div class="stat">
-              <div class="l">스마트스토어 카드결제</div>
-              <div class="row-tools" style="margin-top:10px;margin-bottom:0"><span style="flex:1"></span><button type="button" class="tg" id="paySmartstoreTg" data-paymenttg="smartstore">활성</button></div>
-            </div>
-            <div class="stat">
-              <div class="l">현장 카드결제(예약금)</div>
-              <div class="row-tools" style="margin-top:10px;margin-bottom:0"><span style="flex:1"></span><button type="button" class="tg" id="payOnsiteTg" data-paymenttg="onsite">활성</button></div>
-            </div>
-          </div>
+          <div class="desc">지점별로 신청 결제 단계에서 고객에게 보여줄 결제수단을 켜고 끌 수 있습니다. 토글을 누르면 즉시 저장됩니다. 비활성화하면 해당 지점의 신청 화면에서 그 옵션이 보이지 않습니다.</div>
+          <div id="paymentTogglesForm"></div>
         </div>
         <div class="box">
           <div class="row-tools"><h3 style="flex:1">지점별 결제 링크</h3><span class="saved" id="paymentLinksSaved">저장됨 ✓</span><button class="btn gold" id="savePaymentLinks">저장</button></div>
@@ -415,7 +402,7 @@ window.UUHEE_SB={url:'https://ybfwnmgnledlumppfjbh.supabase.co',key:'sb_publisha
       S.conceptMedia=cm.map(function(m){return {id:m.id,url:s(m.url)};});
       if(site)S.pay={depositAmount:(site.deposit_amount==null?'':String(site.deposit_amount))};
       if(legal)S.legal={company:s(legal.company),ceo:s(legal.ceo),bizno:s(legal.bizno),mailorder:s(legal.mailorder),privacy:s(legal.privacy),addr:s(legal.addr),tel:s(legal.tel),email:s(legal.email),kakao:s(legal.kakao),hosting:s(legal.hosting),termsUrl:s(legal.terms_url),privacyUrl:s(legal.privacy_url),refundUrl:s(legal.refund_url)};
-      S.branches=br.map(function(b){return {id:b.id,name:s(b.name),phone:s(b.phone),addr:s(b.addr),map:s(b.map),hours:s(b.hours),ig:s(b.ig),fb:s(b.fb),lt:s(b.lt),spaceDesc:s(b.space_desc),transferLink:s(b.transfer_link),smartstoreLink:s(b.smartstore_link)};});
+      S.branches=br.map(function(b){return {id:b.id,name:s(b.name),phone:s(b.phone),addr:s(b.addr),map:s(b.map),hours:s(b.hours),ig:s(b.ig),fb:s(b.fb),lt:s(b.lt),spaceDesc:s(b.space_desc),transferLink:s(b.transfer_link),smartstoreLink:s(b.smartstore_link),payTransferOn:(b.pay_transfer_on!==false),paySmartstoreOn:(b.pay_smartstore_on!==false),payOnsiteOn:(b.pay_onsite_on!==false)};});
       S.classes=cl.map(function(x){var brs=cb.filter(function(b){return b.class_id===x.id;}).map(function(b){return s(b.branch_name);});return {id:x.id,order:x.ord,tag:s(x.tag),name:s(x.name),desc:s(x.descr),active:!!x.active,inquiryOnly:!!x.inquiry_only,branches:brs};});
       // 클래스는 이름 문자열이 아니라 classId로 연결(조인)합니다. cls는 참고용으로만 남겨두고 매칭에는 쓰지 않습니다.
       S.details=de.map(function(d){return {id:d.id,classId:d.class_id,branch:s(d.branch),size:s(d.size),price:(d.price==null?'':String(d.price)),discountType:s(d.discount_type),discountVal:(d.discount_val==null?'':String(d.discount_val)),desc:s(d.descr)};});
@@ -520,7 +507,7 @@ window.UUHEE_SB={url:'https://ybfwnmgnledlumppfjbh.supabase.co',key:'sb_publisha
     var st=S.site||{},lg=S.legal||{},pay=S.pay||{};var jobs=[];
     if(want('site'))jobs.push(sb.from('site').upsert({id:'uuhee',brand:s(st.brand),est:s(st.est),copy_year:s(st.copyYear),hero_img:noD(st.heroImg),concept_img:noD(st.conceptImg),deposit_amount:N(pay.depositAmount),notify_receipt_on:(st.notifyReceiptOn!==false),notify_confirm_on:(st.notifyConfirmOn!==false),notify_inquiry_on:(st.notifyInquiryOn!==false),pay_transfer_on:(st.payTransferOn!==false),pay_smartstore_on:(st.paySmartstoreOn!==false),pay_onsite_on:(st.payOnsiteOn!==false)}));
     if(want('legal'))jobs.push(sb.from('legal').upsert({id:'uuhee',company:s(lg.company),ceo:s(lg.ceo),bizno:s(lg.bizno),mailorder:s(lg.mailorder),privacy:s(lg.privacy),addr:s(lg.addr),tel:s(lg.tel),email:s(lg.email),kakao:s(lg.kakao),hosting:s(lg.hosting),terms_url:s(lg.termsUrl),privacy_url:s(lg.privacyUrl),refund_url:s(lg.refundUrl)}));
-    if(want('branches'))jobs.push(replUpsert('branches',S.branches||[],function(b,i){return {ord:i,name:s(b.name),phone:s(b.phone),addr:s(b.addr),map:s(b.map),hours:s(b.hours),ig:s(b.ig),fb:s(b.fb),lt:s(b.lt),space_desc:s(b.spaceDesc),transfer_link:s(b.transferLink),smartstore_link:s(b.smartstoreLink)};}));
+    if(want('branches'))jobs.push(replUpsert('branches',S.branches||[],function(b,i){return {ord:i,name:s(b.name),phone:s(b.phone),addr:s(b.addr),map:s(b.map),hours:s(b.hours),ig:s(b.ig),fb:s(b.fb),lt:s(b.lt),space_desc:s(b.spaceDesc),transfer_link:s(b.transferLink),smartstore_link:s(b.smartstoreLink),pay_transfer_on:(b.payTransferOn!==false),pay_smartstore_on:(b.paySmartstoreOn!==false),pay_onsite_on:(b.payOnsiteOn!==false)};}));
     if(want('classes'))jobs.push(replClasses(S.classes||[]));
     if(want('details'))jobs.push(replUpsert('details',S.details||[],function(d){return {branch:s(d.branch),class_id:(d.classId===''||d.classId==null?null:N(d.classId)),cls:cnById(d.classId),size:s(d.size),price:N(d.price),discount_type:s(d.discountType),discount_val:N(d.discountVal),descr:s(d.desc)};}));
     if(want('slots'))jobs.push(replUpsert('slots',S.slots||[],function(x){return {branch:s(x.branch),class_id:(x.classId===''||x.classId==null?null:N(x.classId)),cls:cnById(x.classId),stime:s(x.time),cap:N(x.cap)};}));
@@ -712,6 +699,7 @@ $$('#nav a').forEach(a=>a.addEventListener('click',()=>{$$('#nav a').forEach(x=>
   if(p==='accounts')renderAccounts();
   if(p==='notify')renderNotify();
   if(p==='payment'){renderPaymentLinks();renderPaymentToggles();}
+  if(p==='schedule')renderSchedule();
   try{sessionStorage.setItem('uuhee_panel',p);}catch(e){}}));
 function applyMenuVisibility(){
   var firstVisible=null;
@@ -1034,20 +1022,25 @@ document.addEventListener('click',function(e){
 });
 /* ---------- 결제수단 관리(활성화 토글 + 지점별 결제 링크) ---------- */
 function renderPaymentToggles(){
-  var st=S.site||{};
-  var tOn=st.payTransferOn!==false,sOn=st.paySmartstoreOn!==false,oOn=st.payOnsiteOn!==false;
-  var tt=$('#payTransferTg'),st2=$('#paySmartstoreTg'),ot=$('#payOnsiteTg');
-  if(tt){tt.classList.toggle('on',tOn);tt.textContent=tOn?'활성':'비활성';}
-  if(st2){st2.classList.toggle('on',sOn);st2.textContent=sOn?'활성':'비활성';}
-  if(ot){ot.classList.toggle('on',oOn);ot.textContent=oOn?'활성':'비활성';}
+  var box=$('#paymentTogglesForm');if(!box)return;
+  var branches=S.branches||[];
+  box.innerHTML=branches.length?branches.map(function(b,i){
+    var tOn=b.payTransferOn!==false,sOn=b.paySmartstoreOn!==false,oOn=b.payOnsiteOn!==false;
+    return '<div class="stat-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:14px">'
+      +'<div class="stat"><div class="l">'+esc(b.name||('지점 '+(i+1)))+' — 계좌이체</div><div class="row-tools" style="margin-top:10px;margin-bottom:0"><span style="flex:1"></span><button type="button" class="tg'+(tOn?' on':'')+'" data-paymenttg="transfer" data-pti="'+i+'">'+(tOn?'활성':'비활성')+'</button></div></div>'
+      +'<div class="stat"><div class="l">'+esc(b.name||('지점 '+(i+1)))+' — 스마트스토어</div><div class="row-tools" style="margin-top:10px;margin-bottom:0"><span style="flex:1"></span><button type="button" class="tg'+(sOn?' on':'')+'" data-paymenttg="smartstore" data-pti="'+i+'">'+(sOn?'활성':'비활성')+'</button></div></div>'
+      +'<div class="stat"><div class="l">'+esc(b.name||('지점 '+(i+1)))+' — 현장결제(예약금)</div><div class="row-tools" style="margin-top:10px;margin-bottom:0"><span style="flex:1"></span><button type="button" class="tg'+(oOn?' on':'')+'" data-paymenttg="onsite" data-pti="'+i+'">'+(oOn?'활성':'비활성')+'</button></div></div>'
+      +'</div>';
+  }).join(''):'<div class="muted">등록된 지점이 없습니다. 지점설정 탭에서 먼저 지점을 추가해 주세요.</div>';
 }
 document.addEventListener('click',function(e){
   var b=e.target.closest('[data-paymenttg]');if(!b)return;
-  if(!S.site)S.site={};
+  var i=+b.getAttribute('data-pti');if(!(S.branches&&S.branches[i]))return;
   var map={transfer:'payTransferOn',smartstore:'paySmartstoreOn',onsite:'payOnsiteOn'};
   var k=map[b.getAttribute('data-paymenttg')];if(!k)return;
-  S.site[k]=!(S.site[k]!==false);
-  try{save('site');flash($('#paymentTogglesSaved'));}catch(_){}
+  var br=S.branches[i];
+  br[k]=!(br[k]!==false);
+  try{save('branches');flash($('#paymentTogglesSaved'));}catch(_){}
   renderPaymentToggles();
 });
 function renderPaymentLinks(){
