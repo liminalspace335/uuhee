@@ -1399,8 +1399,8 @@ window.UUHEE_SB={url:'https://ybfwnmgnledlumppfjbh.supabase.co',key:'sb_publisha
         if(!v&&o.classList.contains('sel')){o.classList.remove('sel');data.pay='';}
       });
     }
-    function onPaySelected(){data.payLinkOpened=false;var btn=document.getElementById('payGo');if(btn)btn.textContent=payButtonLabel();renderPayBox();}
-    function preparePay(){applyPayOptionVisibility();var amt=parseInt(data.estimate||'0',10)||0;var el=document.getElementById('payAmt');if(el)el.textContent=amt>0?('\u20a9'+amt.toLocaleString()):'가격 협의';data.payLinkOpened=false;var btn=document.getElementById('payGo');if(btn)btn.textContent=payButtonLabel();renderPayBox();}
+    function onPaySelected(){var btn=document.getElementById('payGo');if(btn)btn.textContent=payButtonLabel();renderPayBox();}
+    function preparePay(){applyPayOptionVisibility();var amt=parseInt(data.estimate||'0',10)||0;var el=document.getElementById('payAmt');if(el)el.textContent=amt>0?('\u20a9'+amt.toLocaleString()):'가격 협의';var btn=document.getElementById('payGo');if(btn)btn.textContent=payButtonLabel();renderPayBox();}
     // finalizeApp()은 항상 {ok, message} 형태로 resolve된다(reject하지 않음) — 호출부에서
     // 성공/실패를 분기해 화면을 다르게 보여줄 수 있도록(정원마감 등 서버 거부를 조용히 삼키지 않기 위함).
     function finalizeApp(){var rec=Object.assign({},data,{ts:Date.now()});try{var all=JSON.parse(localStorage.getItem('uuhee_apps')||'[]');all.push(rec);localStorage.setItem('uuhee_apps',JSON.stringify(all));}catch(e){}
@@ -1421,16 +1421,10 @@ window.UUHEE_SB={url:'https://ybfwnmgnledlumppfjbh.supabase.co',key:'sb_publisha
       var btn=this;if(btn.disabled)return; // 중복 클릭으로 예약/결제가 두 번 접수되는 것을 방지
       hideErr();if(!data.pay)return err('pay');
       var methodLabel={transfer:'계좌이체',smartstore:'스마트스토어 카드결제',onsite:'현장 카드결제(예약금)'}[data.pay]||data.pay;
-      if(!data.payLinkOpened){
-        var link=payLinkFor(data.pay);
-        if(!link){alert('아직 결제 링크가 준비되지 않았습니다. 매장으로 문의해 주세요.');return;}
-        window.open(link,'_blank');
-        data.payLinkOpened=true;
-        btn.textContent='결제를 완료하셨나요? 다음';
-        var tb=document.getElementById('payTransfer');if(tb)tb.innerHTML+='<div class="pb-note">결제(입금)을 완료하셨다면 위 버튼을 다시 눌러 신청을 완료해 주세요.</div>';
-        return;
-      }
-      // 아직 실제 결제 확인 전이므로, 서버 저장(정원 등 검증 포함)이 성공했을 때만 완료 화면으로 넘어간다.
+      var link=payLinkFor(data.pay);
+      if(!link){alert('아직 결제 링크가 준비되지 않았습니다. 매장으로 문의해 주세요.');return;}
+      // 클릭 이벤트 핸들러 안에서 동기적으로 열어야 브라우저 팝업 차단을 피할 수 있어, 저장(비동기) 전에 먼저 연다.
+      window.open(link,'_blank');
       btn.disabled=true;data.status=2;data.payMethod=methodLabel;
       finalizeApp().then(function(r){
         btn.disabled=false;
