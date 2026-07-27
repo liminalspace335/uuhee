@@ -1140,7 +1140,6 @@ window.UUHEE_SB={url:'https://ybfwnmgnledlumppfjbh.supabase.co',key:'sb_publisha
     const grp=document.querySelectorAll('.socials .soc-group');
     [[br[0],grp[0]],[br[1],grp[1]]].forEach(pair=>{const b=pair[0],g=pair[1];if(!b||!g)return;
       if(b.ig)g.querySelector('.ig').href=b.ig;if(b.fb)g.querySelector('.fb').href=b.fb;if(b.lt)g.querySelector('.lt').href=b.lt;});
-    if(!S.photos||!S.photos.length){var _mp=[];(S.space||[]).forEach(function(p){if(p.img)_mp.push({img:p.img,category:'공간',folder:p.branch||'',title:p.title||'',desc:p.desc||'',order:p.order||0});});(S.gallery||[]).forEach(function(g){if(g.img)_mp.push({img:g.img,category:'갤러리',folder:g.folder||'',title:g.title||'',desc:g.desc||'',cover:g.cover,order:g.order||0});});S.photos=_mp;}
     (S.photos||[]).forEach(function(p){p.category=(p.category==='공간')?'공간':'갤러리';});
     const space=(S.photos||[]).filter(p=>p.img&&(p.category||'')==='공간').sort((a,b)=>(a.order||0)-(b.order||0));
     const spBranches=(S.branches||[]).filter(b=>b&&b.name);
@@ -1208,7 +1207,7 @@ window.UUHEE_SB={url:'https://ybfwnmgnledlumppfjbh.supabase.co',key:'sb_publisha
       (S.photoFolders||[]).filter(function(f){return (f.category||'')==='갤러리'&&f.name;}).sort(function(a,b){return (a.order||0)-(b.order||0);}).forEach(function(f){if(gal.some(function(p){return (p.folder||'')===f.name;})&&folders.indexOf(f.name)<0)folders.push(f.name);});
       var sel='전체',shown=4;
       var filt=function(){return sel==='전체'?gal:gal.filter(function(p){return (p.folder||'기타')===sel;});};
-      var renderChips=function(){if(!chips)return;var arr=[{name:'전체',cover:(gal[0]||{}).img}].concat(folders.map(function(f){var cv=gal.filter(function(p){return (p.folder||'기타')===f;})[0]||{};return {name:f,cover:cv.img};}));chips.innerHTML=arr.map(function(c){var bg=(c.cover&&!isVid(c.cover))?("background-image:url('"+String(c.cover).replace(/'/g,'%27')+"')"):'';return '<button type="button" class="gchip'+(c.name===sel?' active':'')+'" data-f="'+E(c.name)+'"><span class="gchip-img" style="'+bg+'">'+((c.cover&&isVid(c.cover))?'▶':'')+'</span><span class="gchip-n">'+E(c.name)+'</span></button>';}).join('');};
+      var renderChips=function(){if(!chips)return;var arr=[{name:'전체',all:true}].concat(folders.map(function(f){var cv=gal.filter(function(p){return (p.folder||'기타')===f;})[0]||{};return {name:f,cover:cv.img};}));chips.innerHTML=arr.map(function(c){var bg=(!c.all&&c.cover&&!isVid(c.cover))?("background-image:url('"+String(c.cover).replace(/'/g,'%27')+"')"):'';var inner=c.all?'ALL':((c.cover&&isVid(c.cover))?'▶':'');return '<button type="button" class="gchip'+(c.name===sel?' active':'')+'" data-f="'+E(c.name)+'"><span class="gchip-img" style="'+bg+'">'+inner+'</span><span class="gchip-n">'+E(c.name)+'</span></button>';}).join('');};
       var renderGrid=function(){grid.innerHTML=filt().slice(0,shown).map(cell).join('');if(moreBtn)moreBtn.style.display=(filt().length>shown)?'':'none';bindVid(grid);};
       if(chips){renderChips();chips.addEventListener('click',function(e){var b=e.target.closest('.gchip');if(!b)return;sel=b.getAttribute('data-f');shown=4;renderChips();renderGrid();});}
       if(moreBtn)moreBtn.addEventListener('click',function(){shown+=4;renderGrid();});
