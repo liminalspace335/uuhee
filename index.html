@@ -116,7 +116,7 @@ section{padding:110px 0}
 .card:hover{border-color:var(--brass);transform:translateY(-3px)}
 .card .tag{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--brass)}
 .card h3{font-size:21px;margin:12px 0 10px;font-weight:700;font-family:"Nanum Myeongjo",serif}
-.card .desc{font-size:14px;color:var(--ink-soft);flex:1;line-height:1.65}
+.card .desc{font-size:14px;color:var(--ink-soft);flex:1;line-height:1.65;white-space:pre-wrap}
 .card .row{display:flex;justify-content:space-between;font-size:13px;border-top:1px solid var(--line);padding-top:14px;margin-top:18px}
 .card .price{font-weight:700;color:var(--brass)}
 
@@ -127,7 +127,7 @@ section{padding:110px 0}
 .cat-card:hover{border-color:var(--brass);transform:translateY(-3px)}
 .cat-card .tag{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--brass)}
 .cat-card h3{font-size:18px;margin:10px 0 8px;font-weight:700;font-family:"Nanum Myeongjo",serif}
-.cat-card p{font-size:13px;color:var(--ink-soft);line-height:1.65}
+.cat-card p{font-size:13px;color:var(--ink-soft);line-height:1.65;white-space:pre-wrap}
 .cat-cta{text-align:center;margin-top:34px}
 
 /* PROCESS (dark band) */
@@ -363,6 +363,7 @@ section[id],footer[id]{scroll-margin-top:63px}
 .subhero{padding:128px 0 0;text-align:center}
 .subhero .eyebrow{display:block;margin-bottom:14px}
 .subhero h1{font-size:clamp(34px,6vw,64px);font-family:"Nanum Myeongjo",serif;font-weight:700;letter-spacing:.02em;color:var(--ink)}
+.lead{white-space:pre-wrap}
 .subhero p.lead{max-width:620px;margin:18px auto 0;font-size:15px;color:var(--ink-soft);line-height:1.8}
 .subpage section:first-of-type{padding-top:64px}
 
@@ -1154,7 +1155,7 @@ window.UUHEE_SB={url:'https://ybfwnmgnledlumppfjbh.supabase.co',key:'sb_publisha
         const ps=byBranch(b.name);
         const photosHtml=ps.map(p=>'<button class="sph" type="button" data-cap="'+spEsc(p.title||b.name)+'"><img loading="lazy" decoding="async" src="'+p.img+'"></button>').join('');
         return '<section style="background:'+(i%2?'var(--bg)':'var(--paper)')+'"><div class="wrap"><div class="sec-head"><h2>'+spEsc(b.name)+'</h2><p class="coord mono">'+spEsc(b.addr||'')+'</p></div>'
-          +(b.spaceDesc?'<p class="lead" style="margin:-14px 0 26px;white-space:pre-wrap">'+spEsc(b.spaceDesc)+'</p>':'')
+          +(b.spaceDesc?'<p class="lead" style="margin:-14px 0 26px">'+spEsc(b.spaceDesc)+'</p>':'')
           +'<div class="space-photos" data-branch="'+spEsc(b.name)+'" style="grid-template-columns:repeat(3,1fr)">'+photosHtml+'</div></div></section>';
       }).join(''):'';
     }
