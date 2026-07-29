@@ -580,7 +580,7 @@ window.UUHEE_SB={url:'https://ybfwnmgnledlumppfjbh.supabase.co',key:'sb_publisha
   var isAdmin=/admin\.html$/i.test(location.pathname);
   var tasks=[ pullSettings().then(function(S){if(!S)return false;var j=JSON.stringify(S);if(j!==(localStorage.getItem('uuhee_settings')||'')){localStorage.setItem('uuhee_settings',j);return true;}return false;}) ];
   /* 신청/문의는 어드민 스크립트에서 직접 갱신(refreshSubmissionsFromCloud) */
-  Promise.all(tasks).then(function(res){if(res.indexOf(true)>=0){var n=+(sessionStorage.getItem('uuhee_rl')||0);if(n<2){sessionStorage.setItem('uuhee_rl',String(n+1));location.reload();}}else sessionStorage.removeItem('uuhee_rl');}).catch(function(e){console.warn('cloud hydrate fail',e);});
+  Promise.all(tasks).then(function(res){if(res.indexOf(true)>=0){var n=+(sessionStorage.getItem('uuhee_rl')||0);if(n<4){sessionStorage.setItem('uuhee_rl',String(n+1));location.reload();}}else sessionStorage.removeItem('uuhee_rl');}).catch(function(e){console.warn('cloud hydrate fail',e);});
 })();
 </script>
 <script>

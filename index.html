@@ -931,7 +931,7 @@ window.UUHEE_SB={url:'https://ybfwnmgnledlumppfjbh.supabase.co',key:'sb_publisha
   var isAdmin=/admin\.html$/i.test(location.pathname);
   var tasks=[ pullSettings().then(function(S){if(!S)return false;var j=JSON.stringify(S);if(j!==(localStorage.getItem('uuhee_settings')||'')){localStorage.setItem('uuhee_settings',j);return true;}return false;}) ];
   if(isAdmin){tasks.push(pullSubs().then(function(o){var a=JSON.stringify(o.apps),g=JSON.stringify(o.grp),ch=false;if(a!==(localStorage.getItem('uuhee_apps')||'')){localStorage.setItem('uuhee_apps',a);ch=true;}if(g!==(localStorage.getItem('uuhee_group')||'')){localStorage.setItem('uuhee_group',g);ch=true;}return ch;}));}
-  Promise.all(tasks).then(function(res){if(res.indexOf(true)>=0){var n=+(sessionStorage.getItem('uuhee_rl')||0);if(n<2){sessionStorage.setItem('uuhee_rl',String(n+1));location.reload();}}else sessionStorage.removeItem('uuhee_rl');}).catch(function(e){console.warn('cloud hydrate fail',e);});
+  Promise.all(tasks).then(function(res){if(res.indexOf(true)>=0){var n=+(sessionStorage.getItem('uuhee_rl')||0);if(n<4){sessionStorage.setItem('uuhee_rl',String(n+1));location.reload();}}else sessionStorage.removeItem('uuhee_rl');}).catch(function(e){console.warn('cloud hydrate fail',e);});
 })();
 </script>
 <script>
