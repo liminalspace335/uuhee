@@ -1154,7 +1154,7 @@ window.UUHEE_SB={url:'https://ybfwnmgnledlumppfjbh.supabase.co',key:'sb_publisha
         const ps=byBranch(b.name);
         const photosHtml=ps.map(p=>'<button class="sph" type="button" data-cap="'+spEsc(p.title||b.name)+'"><img loading="lazy" decoding="async" src="'+p.img+'"></button>').join('');
         return '<section style="background:'+(i%2?'var(--bg)':'var(--paper)')+'"><div class="wrap"><div class="sec-head"><h2>'+spEsc(b.name)+'</h2><p class="coord mono">'+spEsc(b.addr||'')+'</p></div>'
-          +(b.spaceDesc?'<p class="lead" style="margin:-14px 0 26px">'+spEsc(b.spaceDesc)+'</p>':'')
+          +(b.spaceDesc?'<p class="lead" style="margin:-14px 0 26px;white-space:pre-wrap">'+spEsc(b.spaceDesc)+'</p>':'')
           +'<div class="space-photos" data-branch="'+spEsc(b.name)+'" style="grid-template-columns:repeat(3,1fr)">'+photosHtml+'</div></div></section>';
       }).join(''):'';
     }
