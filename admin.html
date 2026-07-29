@@ -1200,6 +1200,7 @@ function makeTable(sel,key,cols,blank,addLabel){
     if(c.type==='toggle')return `<button class="tg ${v?'on':''}" data-tg="${i}" data-c="${c.k}">${v?(c.on||'활성'):(c.off||'끔')}</button>`;
     if(c.type==='check')return `<input type="checkbox" data-ck="${i}" data-c="${c.k}" ${v?'checked':''} style="width:auto">`;
     if(c.type==='image')return `<span class="thumb" style="${v?`background-image:url('${String(v).replace(/'/g,"%27")}')`:''}"></span><span class="up-row" style="display:inline-flex;width:calc(100% - 64px)"><input data-i="${i}" data-c="${c.k}" value="${esc(String(v)).slice(0,160)}" placeholder="URL 또는 업로드"><label class="upbtn">⬆<input type="file" accept="image/*" data-up="${i}" data-c="${c.k}" hidden></label></span>`;
+    if(c.type==='ta')return `<textarea data-i="${i}" data-c="${c.k}" rows="3" placeholder="${esc(c.l)}" style="min-width:${c.w||'160px'};resize:vertical">${esc(v)}</textarea>`;
     return `<input ${c.type==='num'?'type="number"':''} data-i="${i}" data-c="${c.k}" value="${esc(v)}" placeholder="${esc(c.l)}"${c.w?` style="min-width:${c.w}"`:''}>`;
   }
   function render(){
@@ -1236,7 +1237,7 @@ function buildTables(){
     {k:'ig',l:'Instagram'},{k:'fb',l:'Facebook'},{k:'lt',l:'Linktree'}],
     ()=>({name:'',nameEn:'',phone:'',addr:'',addrEn:'',map:'',hours:'',ig:'',fb:'',lt:'',transferLink:'',smartstoreLink:''}),'지점 추가');
   T.classes=makeTable('#tbl-classes','classes',[
-    {k:'branches',l:'지점(복수선택)',type:'multi',options:branchNames},{k:'order',l:'순서',type:'num'},{k:'tag',l:'라벨(EN)'},{k:'name',l:'이름'},{k:'nameEn',l:'이름(EN)'},{k:'desc',l:'클래스 설명'},{k:'descEn',l:'설명(EN)'},
+    {k:'branches',l:'지점(복수선택)',type:'multi',options:branchNames},{k:'order',l:'순서',type:'num'},{k:'tag',l:'라벨(EN)'},{k:'name',l:'이름'},{k:'nameEn',l:'이름(EN)'},{k:'desc',l:'클래스 설명',type:'ta',w:'220px'},{k:'descEn',l:'설명(EN)',type:'ta',w:'220px'},
     {k:'active',l:'상태',type:'toggle',on:'활성',off:'중지'},{k:'inquiryOnly',l:'문의전용',type:'toggle',on:'문의',off:'일반'}],
     ()=>({branches:branchNames(),order:S.classes.length+1,tag:'',name:'',nameEn:'',desc:'',descEn:'',active:true,inquiryOnly:false}),'클래스 추가');
   T.details=makeTable('#tbl-details','details',[
