@@ -395,6 +395,7 @@ section[id],footer[id]{scroll-margin-top:63px}
 .logo-item{font-family:"Nanum Myeongjo",serif;font-size:19px;letter-spacing:.1em;color:#a7a49c;white-space:nowrap}
 .logo-item img{height:60px;width:auto;max-width:220px;object-fit:contain;vertical-align:middle;display:inline-block}
 @keyframes logoscroll{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+@media(max-width:640px){.logo-track{animation-duration:17.3s!important}}
 
 /* 그룹 그리드 오버플로 방지(로고 띠 max-content가 컬럼을 넓히는 문제) */
 .group-grid>*{min-width:0}
@@ -450,10 +451,11 @@ section[id],footer[id]{scroll-margin-top:63px}
 .view.active{display:block}
 
 
-.ggrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;transition:opacity .4s ease}
-.ggrid.fade{opacity:0}
-.ggrid .gcell{aspect-ratio:1/1;border:1px solid var(--line);border-radius:3px;background:#f1f0ec center/cover no-repeat;transition:background-image .3s ease}
+.ggrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.ggrid .gcell{position:relative;aspect-ratio:1/1;border:1px solid var(--line);border-radius:3px;overflow:hidden;background:#f1f0ec}
 .ggrid .gcell.ph{background:linear-gradient(135deg,#f3f2ee,#e6e5e0)}
+.ggrid .gcell .gc-layer{position:absolute;inset:0;background-position:center;background-size:cover;background-repeat:no-repeat;opacity:0;transition:opacity .8s ease}
+.ggrid .gcell .gc-layer.on{opacity:1}
 .inq-type-row .inq-type-sel{flex:1;width:auto}
 .card[data-open-apply]{cursor:pointer}.card[data-open-apply]:hover{border-color:var(--brass)}/* 인보이스 폼 드롭다운 컨셉 맞춤 */
 .inq-card select{appearance:none;-webkit-appearance:none;-moz-appearance:none;background-color:#fff;background-image:url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23a98c5b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding:11px 34px 11px 14px;border:1px solid var(--line);border-radius:3px;font-size:14px;color:var(--ink);cursor:pointer;height:auto}
@@ -1498,18 +1500,35 @@ window.UUHEE_SB={url:'https://ybfwnmgnledlumppfjbh.supabase.co',key:'sb_publisha
     });
   })();
 
-  /* ---------- 단체 섹션 갤러리 2x2 슬라이드 ---------- */
+  /* ---------- 단체 섹션 갤러리 2x2 슬라이드(크로스페이드) ---------- */
   (function(){
     var box=document.getElementById('groupGallery');if(!box)return;
     var S={};try{S=JSON.parse(localStorage.getItem('uuhee_settings')||'{}');}catch(e){}
     var _ph=(S.photos||[]).filter(function(p){return p.img;});
-    var _grp=_ph.filter(function(p){return (p.category||'')==='갤러리';});
+    var _inv=_ph.filter(function(p){return (p.category||'')==='단체문의';});
+    var _grp=_inv.length?_inv:_ph.filter(function(p){return (p.category||'')==='갤러리';});
     var imgs=(_grp.length?_grp:_ph).map(function(p){return p.img;});
-    var cells=[];for(var k=0;k<4;k++){var c=document.createElement('div');c.className='gcell';box.appendChild(c);cells.push(c);}
-    if(!imgs.length){cells.forEach(function(c){c.classList.add('ph');});return;}
-    var off=0;function paint(){for(var i=0;i<4;i++){cells[i].style.backgroundImage="url('"+imgs[(off+i)%imgs.length]+"')";}}
+    var cells=[];for(var k=0;k<4;k++){
+      var c=document.createElement('div');c.className='gcell';
+      var l0=document.createElement('div');l0.className='gc-layer on';
+      var l1=document.createElement('div');l1.className='gc-layer';
+      c.appendChild(l0);c.appendChild(l1);box.appendChild(c);
+      cells.push({el:c,layers:[l0,l1],cur:0});
+    }
+    if(!imgs.length){cells.forEach(function(c){c.el.classList.add('ph');});return;}
+    var off=0;function paint(){for(var i=0;i<4;i++){cells[i].layers[cells[i].cur].style.backgroundImage="url('"+imgs[(off+i)%imgs.length]+"')";}}
     paint();
-    if(imgs.length>4)setInterval(function(){box.classList.add('fade');setTimeout(function(){off=(off+4)%imgs.length;paint();box.classList.remove('fade');},420);},4000);
+    if(imgs.length>4)setInterval(function(){
+      off=(off+4)%imgs.length;
+      cells.forEach(function(cell,i){
+        var next=1-cell.cur;
+        cell.layers[next].style.backgroundImage="url('"+imgs[(off+i)%imgs.length]+"')";
+        void cell.layers[next].offsetWidth; // 새 배경 반영 후 트랜지션이 걸리도록 리플로우 강제
+        cell.layers[next].classList.add('on');
+        cell.layers[cell.cur].classList.remove('on');
+        cell.cur=next;
+      });
+    },4000);
   })();
 
   /* ---------- 공간 슬라이드쇼 (여러 개 지원) ---------- */

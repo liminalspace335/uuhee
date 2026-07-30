@@ -362,6 +362,7 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--gold)}
         <div class="subpanel" id="sub-gallery">
           <div class="box"><h3>갤러리 — 폴더 관리</h3><div class="desc">갤러리 섹션에 쓸 폴더를 만듭니다.</div><div id="galFolders"></div></div>
           <div class="box"><h3>갤러리 — 사진 업로드</h3><div class="desc">위 폴더별로 사진/영상을 추가해 업로드합니다.<br><b>권장 사이즈</b> · 가로형 4:3, 1600×1200px · JPG/PNG · 2MB 이하 (자동으로 최적화되어 업로드됩니다)<br><b>영상</b> · 30MB 이하만 업로드 가능</div><div id="galUploader"></div></div>
+          <div class="box"><h3>단체·기업·출강 인보이스 — 사진</h3><div class="desc">단체·기업·출강 문의 섹션의 2x2 슬라이드에 표시됩니다. 갤러리 사진과는 별도로 관리됩니다.<br><b>권장 사이즈</b> · 정사각형(1:1), 1200×1200px · JPG/PNG · 2MB 이하</div><div id="invoiceUploader"></div></div>
           <div class="box"><h3>협업·언론 로고</h3><div class="desc">단체·기업 섹션의 '함께한 곳' 로고 띠에 표시됩니다.<br><b>권장 사이즈</b> · 가로형, 배경 투명 PNG, 높이 80px (예: 240×80px) · 1MB 이하</div><div class="tbl-wrap" id="tbl-partners"></div></div>
         </div>
       </div>
@@ -1253,7 +1254,31 @@ function buildTables(){
   renderFoldersAll();renderUploadersAll();renderConceptMedia();renderLegalForm();renderPayForm();
 }
 function renderFoldersAll(){renderFolderMgr('갤러리','galFolders');}
-function renderUploadersAll(){renderUploader('갤러리','galUploader');renderSpaceUploader();}
+function renderUploadersAll(){renderUploader('갤러리','galUploader');renderSpaceUploader();renderInvoiceUploader();}
+function renderInvoiceUploader(){
+  var box=$('#invoiceUploader');if(!box)return;
+  if(!box._wired){box._wired=1;
+    box.addEventListener('input',function(e){var t=e.target;if(t.dataset.pi!=null&&t.dataset.pc&&t.type!=='file'){S.photos[+t.dataset.pi][t.dataset.pc]=t.value;}});
+    box.addEventListener('change',function(e){var t=e.target;
+      if(t.dataset.pup!=null){var f=t.files[0];if(!f)return;var gi=+t.dataset.pup;if(window.__cloud&&window.__cloud.uploadFile){window.__cloud.uploadFile(f).then(function(u){S.photos[gi].img=u;renderInvoiceUploader();}).catch(function(er){alert('업로드 실패: '+(er.message||er));});}else{var r=new FileReader();r.onload=function(){S.photos[gi].img=r.result;renderInvoiceUploader();};r.readAsDataURL(f);}}});
+    box.addEventListener('click',function(e){var t=e.target;
+      if(t.dataset.padd!=null){S.photos.push({img:'',category:'단체문의',folder:'',title:'',desc:'',cover:false,order:S.photos.length+1,link:''});renderInvoiceUploader();}
+      else if(t.dataset.prm!=null){S.photos.splice(+t.dataset.prm,1);renderInvoiceUploader();}
+      else if(t.dataset.psave!=null){try{save('photos');flash(box.querySelector('.saved'));}catch(err){alert('저장 실패: 이미지 용량이 큽니다. 더 작게 줄여 올려주세요.');}}});
+  }
+  var ps=[];(S.photos||[]).forEach(function(p,gi){if((p.category||'')==='단체문의')ps.push({p:p,gi:gi});});
+  ps.sort(function(a,b){return (a.p.order||0)-(b.p.order||0);});
+  var html='<table class="pf-table"><thead><tr><th>이미지</th><th>제목</th><th>순서</th><th></th></tr></thead><tbody>';
+  if(!ps.length)html+='<tr><td colspan="4" class="empty">사진이 없습니다. 아래 + 버튼으로 추가하세요.</td></tr>';
+  ps.forEach(function(o){var p=o.p,gi=o.gi;
+    html+='<tr><td><span class="thumb" style="'+(p.img?("background-image:url('"+String(p.img).replace(/'/g,'%27')+"')"):'')+'"></span><span class="up-row" style="display:inline-flex;width:calc(100% - 64px)"><input data-pi="'+gi+'" data-pc="img" value="'+esc(String(p.img||'').slice(0,160))+'" placeholder="URL 또는 업로드"><label class="upbtn">⬆<input type="file" accept="image/*" data-pup="'+gi+'" hidden></label></span></td>'
+      +'<td><input data-pi="'+gi+'" data-pc="title" value="'+esc(p.title||'')+'"></td>'
+      +'<td><input type="number" data-pi="'+gi+'" data-pc="order" value="'+esc(p.order||'')+'" style="width:68px"></td>'
+      +'<td><button class="del" data-prm="'+gi+'">삭제</button></td></tr>';
+  });
+  html+='</tbody></table><div class="row-tools" style="margin-top:16px"><button class="btn ghost" data-padd>+ 사진 추가</button><span style="flex:1"></span><span class="saved">저장됨 ✓</span><button class="btn gold" data-psave>저장</button></div>';
+  box.innerHTML=html;
+}
 function renderSpaceUploader(){
   var box=document.getElementById('spaceUploader');if(!box)return;
   if(!box._wired){box._wired=1;
