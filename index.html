@@ -1208,7 +1208,7 @@ window.UUHEE_SB={url:'https://ybfwnmgnledlumppfjbh.supabase.co',key:'sb_publisha
     var cgD=document.getElementById('classProgGrid');
     if(cgD&&prog.length){cgD.innerHTML=prog.map(function(c){return '<div class="card" data-open-apply data-aclass="'+E(c.name)+'"><span class="tag">'+E(c.tag||'CLASS')+'</span><h3>'+E(c.name)+'</h3><p class="desc">'+E(c.desc||'')+'</p><div class="row"><span></span><span class="price">'+priceOf(c.id,c.inquiryOnly)+'</span></div></div>';}).join('');}
     var isVid=window.__isVid=function(u){u=String(u||'');return /^data:video/i.test(u)||/\.(mp4|webm|ogg|mov|m4v)(\?|#|$)/i.test(u);};
-    function bindVid(scope){if(!scope)return;Array.prototype.forEach.call(scope.querySelectorAll('video.gv'),function(v){v.onmouseenter=function(){v.pause();};v.onmouseleave=function(){v.play().catch(function(){});};v.play().catch(function(){});});}
+    function bindVid(scope){if(!scope)return;Array.prototype.forEach.call(scope.querySelectorAll('video.gv'),function(v){v.play().catch(function(){});});}
     (function(){
       var gal=(S.photos||[]).filter(function(g){return g.img&&(g.category||'')==='갤러리';}).sort(function(a,b){return ((b.cover?1:0)-(a.cover?1:0))||((a.order||0)-(b.order||0));});
       var cell=function(p){var inner=isVid(p.img)?'<video class="gv" src="'+E(p.img)+'" muted loop playsinline autoplay preload="metadata"></video>':'<img loading="lazy" decoding="async" src="'+E(p.img)+'" alt="">';return '<div class="gitem">'+inner+'<span style="display:none">'+E(p.title||'')+'</span></div>';};
@@ -1233,7 +1233,7 @@ window.UUHEE_SB={url:'https://ybfwnmgnledlumppfjbh.supabase.co',key:'sb_publisha
       function clearT(){if(timer){clearTimeout(timer);timer=null;}}
       function next(){ci=(ci+1)%media.length;render();}
       function render(){clearT();var src=media[ci];fig.innerHTML='';
-        if(isVid(src)){var v=document.createElement('video');v.className='cv';v.muted=true;v.playsInline=true;v.preload='auto';if(media.length>1){v.onended=next;}else{v.loop=true;}v.onmouseenter=function(){v.pause();};v.onmouseleave=function(){v.play().catch(function(){});};
+        if(isVid(src)){var v=document.createElement('video');v.className='cv';v.muted=true;v.playsInline=true;v.preload='auto';if(media.length>1){v.onended=next;}else{v.loop=true;}
           // 페이지가 막 로딩되는 시점엔 버퍼가 비어있어 바로 재생을 시도하면 끊김이 두드러진다.
           // loadeddata(첫 프레임 준비 완료) 이후에 재생을 시작해 초기 버벅임을 줄인다.
           v.addEventListener('loadeddata',function(){v.play().catch(function(){});},{once:true});
