@@ -1233,7 +1233,11 @@ window.UUHEE_SB={url:'https://ybfwnmgnledlumppfjbh.supabase.co',key:'sb_publisha
       function clearT(){if(timer){clearTimeout(timer);timer=null;}}
       function next(){ci=(ci+1)%media.length;render();}
       function render(){clearT();var src=media[ci];fig.innerHTML='';
-        if(isVid(src)){var v=document.createElement('video');v.className='cv';v.src=src;v.muted=true;v.playsInline=true;v.autoplay=true;v.preload='metadata';if(media.length>1){v.onended=next;}else{v.loop=true;}v.onmouseenter=function(){v.pause();};v.onmouseleave=function(){v.play().catch(function(){});};fig.appendChild(v);v.play().catch(function(){});}
+        if(isVid(src)){var v=document.createElement('video');v.className='cv';v.muted=true;v.playsInline=true;v.preload='auto';if(media.length>1){v.onended=next;}else{v.loop=true;}v.onmouseenter=function(){v.pause();};v.onmouseleave=function(){v.play().catch(function(){});};
+          // 페이지가 막 로딩되는 시점엔 버퍼가 비어있어 바로 재생을 시도하면 끊김이 두드러진다.
+          // loadeddata(첫 프레임 준비 완료) 이후에 재생을 시작해 초기 버벅임을 줄인다.
+          v.addEventListener('loadeddata',function(){v.play().catch(function(){});},{once:true});
+          v.src=src;fig.appendChild(v);}
         else{var im=document.createElement('img');im.className='cv';im.src=src;fig.appendChild(im);if(media.length>1)timer=setTimeout(next,5000);}}
       fig.style.cursor='zoom-in';
       fig.onclick=function(){if(window.__lbOpen)window.__lbOpen(media.map(function(s){return {src:s,vid:isVid(s),cap:''};}),ci);};
