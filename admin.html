@@ -49,6 +49,15 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--gold)}
 .btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}
 .btn.gold{background:var(--gold);color:#3a2c11}
 .saved{color:var(--ok);font-size:12px;display:none}
+.saved.saving{color:var(--ink-soft)}
+.saved.failed{color:#c0392b}
+/* 업로드·저장처럼 시간이 걸리는 작업 중에 화면 전체를 덮는 진행 표시 */
+#busyOv{position:fixed;inset:0;background:rgba(20,18,16,.45);z-index:300;display:none;align-items:center;justify-content:center;padding:20px}
+#busyOv .busy-box{background:#fff;border-radius:8px;padding:24px 28px;min-width:280px;max-width:420px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+#busyOv .busy-spin{width:28px;height:28px;margin:0 auto 14px;border:3px solid var(--line);border-top-color:var(--gold);border-radius:50%;animation:busySpin .8s linear infinite}
+@keyframes busySpin{to{transform:rotate(360deg)}}
+#busyText{font-size:14px;color:var(--ink);font-weight:600}
+#busySub{margin-top:8px;font-size:12px;color:var(--ink-soft);line-height:1.6}
 table{width:100%;border-collapse:collapse;font-size:12.5px}
 th,td{text-align:left;padding:8px 7px;border-bottom:1px solid var(--line);vertical-align:middle}
 th{font-size:10.5px;letter-spacing:.04em;text-transform:uppercase;color:var(--ink-soft);font-weight:500}
@@ -138,6 +147,7 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--gold)}
 </head>
 <body>
 
+<div id="busyOv"><div class="busy-box"><div class="busy-spin"></div><div id="busyText">저장 중...</div><div id="busySub"></div></div></div>
 <div class="gate" id="gate" style="display:none">
   <div class="card"><h1>유유히 · Admin</h1><p>유유히 홈페이지 관리 콘솔입니다.</p>
     <input type="email" id="loginEmail" placeholder="이메일" autocomplete="username" style="margin-bottom:12px" />
@@ -637,6 +647,27 @@ window.UUHEE_SB={url:'https://ybfwnmgnledlumppfjbh.supabase.co',key:'sb_publisha
      - classWorkerURL을 넘기면 워커가 module 워커로 생성되는데, module 워커에는 importScripts가 없다.
        그래서 라이브러리가 import()로 코어를 불러오므로 코어는 반드시 default export가 있는 ESM 빌드여야 한다.
        (umd 코어를 주면 "failed to import ffmpeg-core.js"로 실패) */
+  /* 업로드·저장처럼 몇 초 이상 걸리는 작업에 쓰는 전체 화면 진행 표시.
+     경과 시간을 같이 보여줘서 멈춘 것처럼 보이지 않게 한다. */
+  var __busyTimer=null;
+  window.__busy=function(text,sub){
+    var ov=document.getElementById('busyOv');if(!ov)return;
+    document.getElementById('busyText').textContent=text||'처리 중...';
+    var t0=Date.now();
+    function tick(){
+      var el=document.getElementById('busySub');if(!el)return;
+      var sec=Math.floor((Date.now()-t0)/1000);
+      el.textContent=(sub?sub+' · ':'')+sec+'초 경과';
+    }
+    tick();
+    if(__busyTimer)clearInterval(__busyTimer);
+    __busyTimer=setInterval(tick,1000);
+    ov.style.display='flex';
+  };
+  window.__busyDone=function(){
+    if(__busyTimer){clearInterval(__busyTimer);__busyTimer=null;}
+    var ov=document.getElementById('busyOv');if(ov)ov.style.display='none';
+  };
   var FFW_PKG='https://unpkg.com/@ffmpeg/ffmpeg@0.12.10/dist/umd/814.ffmpeg.js';
   var FFW_CORE='https://unpkg.com/@ffmpeg/core@0.12.6/dist/esm/ffmpeg-core.js';
   var FFW_WASM='https://unpkg.com/@ffmpeg/core@0.12.6/dist/esm/ffmpeg-core.wasm';
@@ -719,7 +750,18 @@ window.UUHEE_SB={url:'https://ybfwnmgnledlumppfjbh.supabase.co',key:'sb_publisha
     saveScheduleDate:saveScheduleDate,
     saveHolidayToggle:saveHolidayToggle,
     uploadFile:function(file){if(!file)return Promise.reject(new Error('no file'));
-      function putToStorage(f){var ext=((f.name||'').split('.').pop()||'bin').toLowerCase().replace(/[^a-z0-9]/g,'')||'bin';var path=Date.now()+'_'+Math.random().toString(36).slice(2,8)+'.'+ext;return sb.storage.from('media').upload(path,f,{cacheControl:'3600',upsert:false}).then(function(r){if(r.error)throw r.error;return sb.storage.from('media').getPublicUrl(path).data.publicUrl;});}
+      function putToStorage(f){
+        var ext=((f.name||'').split('.').pop()||'bin').toLowerCase().replace(/[^a-z0-9]/g,'')||'bin';
+        var path=Date.now()+'_'+Math.random().toString(36).slice(2,8)+'.'+ext;
+        var isVideo=(f.type||'').indexOf('video/')===0;
+        if(window.__busy)window.__busy((isVideo?'영상':'사진')+' 저장 중...',(f.size/1024/1024).toFixed(1)+'MB 업로드 중 · 창을 닫지 말아 주세요');
+        function finish(){if(window.__busyDone)window.__busyDone();}
+        return sb.storage.from('media').upload(path,f,{cacheControl:'3600',upsert:false}).then(function(r){
+          finish();
+          if(r.error)throw r.error;
+          return sb.storage.from('media').getPublicUrl(path).data.publicUrl;
+        },function(e){finish();throw e;});
+      }
       if(file.type&&file.type.indexOf('video/')===0){
         var maxVideoMB=30;
         if(file.size>maxVideoMB*1024*1024){return Promise.reject(new Error('영상 용량이 '+(file.size/1024/1024).toFixed(1)+'MB로 너무 큽니다. '+maxVideoMB+'MB 이하로 압축한 뒤 다시 올려주세요. (휴대폰 사진 앱의 "비디오 압축/트림" 기능이나 무료 압축 앱을 이용하시면 됩니다)'));}
@@ -757,7 +799,23 @@ const Jarr=k=>{try{const v=JSON.parse(localStorage.getItem(k)||'[]');return Arra
 const esc=s=>(s==null?'':String(s)).replace(/[<>&"]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c]));
 const fmt=ts=>{if(!ts)return'-';const d=new Date(ts);return (d.getMonth()+1)+'/'+d.getDate()+' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');};
 const fmtPhone=v=>{var d=(v||'').replace(/\D/g,'');if(!d)return '';if(/^02/.test(d)){if(d.length===9)return d.slice(0,2)+'-'+d.slice(2,5)+'-'+d.slice(5);if(d.length===10)return d.slice(0,2)+'-'+d.slice(2,6)+'-'+d.slice(6);return d;}if(d.length===10)return d.slice(0,3)+'-'+d.slice(3,6)+'-'+d.slice(6);if(d.length===11)return d.slice(0,3)+'-'+d.slice(3,7)+'-'+d.slice(7);return d;};
-const flash=el=>{if(!el)return;el.style.display='inline';setTimeout(()=>el.style.display='none',1700);};
+/* flash(el)          → 예전처럼 "저장됨 ✓"을 잠깐 보여준다.
+   flash(el, promise) → 서버 저장이 끝날 때까지 "저장 중..."을 유지하고,
+                        성공하면 "저장됨 ✓", 실패하면 "저장 실패"를 보여준다. */
+const flash=(el,promise)=>{
+  if(!el)return promise;
+  const done=(txt,cls,ms)=>{
+    el.className='saved'+(cls?' '+cls:'');
+    el.textContent=txt;
+    el.style.display='inline';
+    clearTimeout(el.__t);
+    el.__t=setTimeout(()=>{el.style.display='none';el.className='saved';el.textContent='저장됨 ✓';},ms);
+  };
+  if(!promise||typeof promise.then!=='function'){done('저장됨 ✓','',1700);return promise;}
+  el.className='saved saving';el.textContent='저장 중...';el.style.display='inline';
+  clearTimeout(el.__t);
+  return promise.then(r=>{done('저장됨 ✓','',1700);return r;},e=>{done('저장 실패','failed',5000);throw e;});
+};
 
 const DEF={
   branches:[
@@ -810,24 +868,48 @@ if(S.photos&&S.photos.length){if((S.space&&S.space.length)||(S.gallery&&S.galler
   if(changed){try{localStorage.setItem('uuhee_settings',JSON.stringify(S));}catch(e){}}
 })();
 var __cloudSaving=false,__cloudSavePending=null; // null | 'all' | array of scope names
+/* 서버 저장이 언제 끝났는지(또는 실패했는지) 화면에 정확히 알려주기 위해 결과를 Promise로 돌려준다.
+   이전에는 저장 요청만 던져놓고 곧바로 "저장됨 ✓"을 띄워서, 아직 저장 중이거나 실패한 경우에도
+   저장이 끝난 것처럼 보였다. */
+var __cloudPendingDeferred=null;
+function __flushPendingCloud(){
+  if(!__cloudSavePending)return;
+  var p=__cloudSavePending,d=__cloudPendingDeferred;
+  __cloudSavePending=null;__cloudPendingDeferred=null;
+  var r=__pushCloud(p);
+  if(d)r.then(d.resolve,d.reject);
+}
 function __pushCloud(scope){
-  if(!window.__cloud)return;
+  if(!window.__cloud)return Promise.resolve();
   if(__cloudSaving){
-    if(__cloudSavePending==='all')return;
-    if(scope==null||scope==='all'){__cloudSavePending='all';return;}
-    if(!Array.isArray(__cloudSavePending))__cloudSavePending=[];
-    (Array.isArray(scope)?scope:[scope]).forEach(function(s){if(__cloudSavePending.indexOf(s)<0)__cloudSavePending.push(s);});
-    return;
+    // 앞선 저장이 끝날 때까지 기다렸다가 이어서 보낸다(같은 대기열에 합침).
+    if(__cloudSavePending!=='all'){
+      if(scope==null||scope==='all'){__cloudSavePending='all';}
+      else{
+        if(!Array.isArray(__cloudSavePending))__cloudSavePending=[];
+        (Array.isArray(scope)?scope:[scope]).forEach(function(s){if(__cloudSavePending.indexOf(s)<0)__cloudSavePending.push(s);});
+      }
+    }
+    if(!__cloudPendingDeferred){
+      var res,rej;var pr=new Promise(function(a,b){res=a;rej=b;});
+      __cloudPendingDeferred={promise:pr,resolve:res,reject:rej};
+    }
+    return __cloudPendingDeferred.promise;
   }
   __cloudSaving=true;
-  try{
-    Promise.resolve(window.__cloud.pushSettings(S,scope)).catch(function(e){console.warn('cloud save',e);alert('저장 중 서버 오류가 발생했습니다. 화면엔 "저장됨"으로 보여도 실제로는 반영되지 않았을 수 있으니, 인터넷 연결을 확인하고 다시 저장해 주세요.\n('+((e&&e.message)||e)+')');}).then(function(){
-      __cloudSaving=false;
-      if(__cloudSavePending){var p=__cloudSavePending;__cloudSavePending=null;__pushCloud(p);}
-    });
-  }catch(e){__cloudSaving=false;}
+  var run;
+  try{run=Promise.resolve(window.__cloud.pushSettings(S,scope));}
+  catch(e){__cloudSaving=false;return Promise.reject(e);}
+  return run.then(function(r){
+    __cloudSaving=false;__flushPendingCloud();return r;
+  },function(e){
+    __cloudSaving=false;__flushPendingCloud();
+    console.warn('cloud save',e);
+    alert('저장 중 서버 오류가 발생했습니다. 이 내용은 서버에 반영되지 않았습니다. 인터넷 연결을 확인하고 다시 저장해 주세요.\n('+((e&&e.message)||e)+')');
+    throw e;
+  });
 }
-function save(scope){var j=JSON.stringify(S);localStorage.setItem('uuhee_settings',j);__pushCloud(scope);}
+function save(scope){var j=JSON.stringify(S);localStorage.setItem('uuhee_settings',j);return __pushCloud(scope);}
 const branchNames=()=>S.branches.map(b=>b.name).filter(Boolean);
 
 function unlock(){$('#gate').style.display='none';$('#app').style.display='flex';renderAll();applyMenuVisibility();applyButtonPerms();}
@@ -1179,7 +1261,7 @@ document.addEventListener('click',function(e){
   var map={receipt:'notifyReceiptOn',confirm:'notifyConfirmOn',inquiry:'notifyInquiryOn'};
   var k=map[b.getAttribute('data-notifytg')];if(!k)return;
   S.site[k]=!(S.site[k]!==false);
-  try{save('site');flash($('#notifyTogglesSaved'));}catch(_){}
+  try{flash($('#notifyTogglesSaved'),save('site'));}catch(_){}
   renderNotify();
 });
 /* ---------- 결제수단 관리(활성화 토글 + 지점별 결제 링크) ---------- */
@@ -1202,7 +1284,7 @@ document.addEventListener('click',function(e){
   var k=map[b.getAttribute('data-paymenttg')];if(!k)return;
   var br=S.branches[i];
   br[k]=!(br[k]!==false);
-  try{save('branches');flash($('#paymentTogglesSaved'));}catch(_){}
+  try{flash($('#paymentTogglesSaved'),save('branches'));}catch(_){}
   renderPaymentToggles();
 });
 function renderPaymentLinks(){
@@ -1217,7 +1299,7 @@ document.addEventListener('input',function(e){
   var i=+t.dataset.pi;if(S.branches&&S.branches[i])S.branches[i][t.dataset.plink]=t.value;
 });
 $('#savePaymentLinks')&&$('#savePaymentLinks').addEventListener('click',function(){
-  try{save('branches');flash($('#paymentLinksSaved'));}catch(e){alert('저장 실패');}
+  try{flash($('#paymentLinksSaved'),save('branches'));}catch(e){alert('저장 실패');}
 });
 $('#seReceipt')&&$('#seReceipt').addEventListener('click',function(){openMsgModal('receipt');});
 $('#seConfirm')&&$('#seConfirm').addEventListener('click',function(){if(EW!=='apps'||EI===-1)return;openMsgModal('confirm');});
@@ -1333,7 +1415,7 @@ function download(name,text){const b=new Blob(['﻿'+text],{type:'text/csv;chars
 function renderSite(){$$('[data-site]').forEach(i=>{i.value=(S.site[i.dataset.site]||'');});}
 document.addEventListener('input',e=>{const t=e.target;if(t.dataset.site!=null)S.site[t.dataset.site]=t.value;});
 document.addEventListener('change',e=>{const t=e.target;if(t.dataset.siteup!=null){const f=t.files[0];if(!f)return;const k=t.dataset.siteup;if(window.__cloud&&window.__cloud.uploadFile){window.__cloud.uploadFile(f).then(function(u){S.site[k]=u;renderSite();}).catch(function(er){alert('업로드 실패: '+(er.message||er));});}else{const r=new FileReader();r.onload=()=>{S.site[k]=r.result;renderSite();};r.readAsDataURL(f);}}});
-$('#saveSite').addEventListener('click',()=>{try{save('site');flash($('#siteSaved'));}catch(e){alert('저장 실패: 이미지 용량이 큽니다.');}});
+$('#saveSite').addEventListener('click',()=>{try{flash($('#siteSaved'),save('site'));}catch(e){alert('저장 실패: 이미지 용량이 큽니다.');}});
 
 /* 공통 표 엔진 */
 function makeTable(sel,key,cols,blank,addLabel){
@@ -1372,7 +1454,7 @@ function makeTable(sel,key,cols,blank,addLabel){
       if(t.dataset.add!=null){S[key].push(blank());render();}
       else if(t.dataset.rm!=null){S[key].splice(+t.dataset.rm,1);render();}
       else if(t.dataset.tg!=null){S[key][+t.dataset.tg][t.dataset.c]=!S[key][+t.dataset.tg][t.dataset.c];render();}
-      else if(t.dataset.save!=null){try{save(key);flash(mount.querySelector('.saved'));}catch(err){alert('저장 실패: 이미지 용량이 큽니다. 더 작게 줄여 올려주세요.');}}});
+      else if(t.dataset.save!=null){try{flash(mount.querySelector('.saved'),save(key));}catch(err){alert('저장 실패: 이미지 용량이 큽니다. 더 작게 줄여 올려주세요.');}}});
   }
   render();return {render};
 }
@@ -1415,7 +1497,7 @@ function renderInvoiceUploader(){
     box.addEventListener('click',function(e){var t=e.target;
       if(t.dataset.padd!=null){S.photos.push({img:'',category:'단체문의',folder:'',title:'',desc:'',cover:false,order:S.photos.length+1,link:''});renderInvoiceUploader();}
       else if(t.dataset.prm!=null){S.photos.splice(+t.dataset.prm,1);renderInvoiceUploader();}
-      else if(t.dataset.psave!=null){try{save('photos');flash(box.querySelector('.saved'));}catch(err){alert('저장 실패: 이미지 용량이 큽니다. 더 작게 줄여 올려주세요.');}}});
+      else if(t.dataset.psave!=null){try{flash(box.querySelector('.saved'),save('photos'));}catch(err){alert('저장 실패: 이미지 용량이 큽니다. 더 작게 줄여 올려주세요.');}}});
   }
   var ps=[];(S.photos||[]).forEach(function(p,gi){if((p.category||'')==='단체문의')ps.push({p:p,gi:gi});});
   ps.sort(function(a,b){return (a.p.order||0)-(b.p.order||0);});
@@ -1442,7 +1524,7 @@ function renderSpaceUploader(){
     box.addEventListener('click',function(e){var t=e.target;
       if(t.dataset.padd!=null){S.photos.push({img:'',category:'공간',folder:t.dataset.padd,title:'',desc:'',cover:false,order:S.photos.length+1,link:''});renderSpaceUploader();}
       else if(t.dataset.prm!=null){S.photos.splice(+t.dataset.prm,1);renderSpaceUploader();}
-      else if(t.dataset.psave!=null){try{save(['photos','branches']);flash(box.querySelector('.saved'));}catch(err){alert('저장 실패: 이미지 용량이 큽니다. 더 작게 줄여 올려주세요.');}}});
+      else if(t.dataset.psave!=null){try{flash(box.querySelector('.saved'),save(['photos','branches']));}catch(err){alert('저장 실패: 이미지 용량이 큽니다. 더 작게 줄여 올려주세요.');}}});
   }
   var branches=[];(S.branches||[]).forEach(function(b,oi){if(b&&b.name)branches.push({b:b,oi:oi});});
   if(!branches.length){box.innerHTML='<div class="empty">먼저 지점설정 탭에서 지점을 등록해 주세요.</div>';return;}
@@ -1473,7 +1555,7 @@ function renderFolderMgr(cat,mountId){
     box.addEventListener('click',function(e){var t=e.target;
       if(t.dataset.fadd!=null){S.photoFolders.push({category:t.dataset.fadd,name:'',order:(S.photoFolders.length+1)});renderFoldersAll();renderUploadersAll();}
       else if(t.dataset.frm!=null){S.photoFolders.splice(+t.dataset.frm,1);renderFoldersAll();renderUploadersAll();}
-      else if(t.dataset.fsave!=null){try{save('photo_folders');flash(box.querySelector('.saved'));renderUploadersAll();}catch(err){alert('저장 실패: 용량이 큽니다.');}}});
+      else if(t.dataset.fsave!=null){try{flash(box.querySelector('.saved'),save('photo_folders'));renderUploadersAll();}catch(err){alert('저장 실패: 용량이 큽니다.');}}});
   }
   var items=[];(S.photoFolders||[]).forEach(function(f,gi){if((f.category||'')===cat)items.push({f:f,gi:gi});});
   var html='<table><thead><tr><th>순서</th><th>폴더명</th><th></th></tr></thead><tbody>';
@@ -1493,7 +1575,7 @@ function renderUploader(cat,boxId){
     box.addEventListener('click',function(e){var t=e.target;
       if(t.dataset.padd!=null){var parts=t.dataset.padd.split('||');S.photos.push({img:'',category:parts[0]||'갤러리',folder:parts[1]||'',title:'',desc:'',cover:false,order:S.photos.length+1,link:''});renderUploadersAll();}
       else if(t.dataset.prm!=null){S.photos.splice(+t.dataset.prm,1);renderUploadersAll();}
-      else if(t.dataset.psave!=null){try{save('photos');flash(box.querySelector('.saved'));}catch(err){alert('저장 실패: 이미지 용량이 큽니다. 더 작게 줄여 올려주세요.');}}});
+      else if(t.dataset.psave!=null){try{flash(box.querySelector('.saved'),save('photos'));}catch(err){alert('저장 실패: 이미지 용량이 큽니다. 더 작게 줄여 올려주세요.');}}});
   }
   var folders=(S.photoFolders||[]).filter(function(f){return (f.category||'')===cat&&f.name;}).slice().sort(function(a,b){return (a.order||0)-(b.order||0);});
   if(!folders.length){box.innerHTML='<div class="empty">먼저 위에서 폴더를 만들어 주세요.</div>';return;}
@@ -1526,7 +1608,7 @@ function renderConceptMedia(){
       else if(t.dataset.cmrm!=null){S.conceptMedia.splice(+t.dataset.cmrm,1);renderConceptMedia();}
       else if(t.dataset.cmmu!=null){var iu=+t.dataset.cmmu;if(iu>0){var a=S.conceptMedia;var tp=a[iu-1];a[iu-1]=a[iu];a[iu]=tp;renderConceptMedia();}}
       else if(t.dataset.cmmd!=null){var idn=+t.dataset.cmmd;var b=S.conceptMedia;if(idn<b.length-1){var tp2=b[idn+1];b[idn+1]=b[idn];b[idn]=tp2;renderConceptMedia();}}
-      else if(t.dataset.cmsave!=null){try{save('concept_media');flash(box.querySelector('.saved'));}catch(err){alert('저장 실패: 용량이 큽니다.');}}});
+      else if(t.dataset.cmsave!=null){try{flash(box.querySelector('.saved'),save('concept_media'));}catch(err){alert('저장 실패: 용량이 큽니다.');}}});
   }
   var html='';
   S.conceptMedia.forEach(function(item,i){var src=item&&item.url;var v=isVid(src);html+='<div class="up-row" style="margin-bottom:8px"><span class="thumb" style="'+((src&&!v)?("background-image:url('"+String(src).replace(/'/g,'%27')+"')"):'')+'">'+((src&&v)?'▶':'')+'</span><input data-cm="'+i+'" value="'+esc(src||'')+'" placeholder="URL 또는 업로드"><label class="upbtn">⬆<input type="file" accept="image/*,video/*" data-cmup="'+i+'" hidden></label><button class="del" data-cmmu="'+i+'" title="위로" style="margin-left:6px">▲</button><button class="del" data-cmmd="'+i+'" title="아래로">▼</button><button class="del" data-cmrm="'+i+'">삭제</button></div>';});
@@ -1537,7 +1619,7 @@ function renderPayForm(){
   var box=document.getElementById('payForm');if(!box)return;if(!S.pay)S.pay={};var p=S.pay;
   var fields=[['depositAmount','예약금 금액(원) — 현장 카드결제 시 안내']];
   box.innerHTML='<div class="lg-grid">'+fields.map(function(f){return '<label class="lg-f"><span>'+esc(f[1])+'</span><input data-pay="'+f[0]+'" value="'+esc(p[f[0]]||'')+'"></label>';}).join('')+'</div><div class="row-tools" style="margin-top:16px"><span class="saved">저장됨 ✓</span><button class="btn gold" id="paySave">저장</button></div>';
-  if(!box._wired){box._wired=1;box.addEventListener('input',function(e){var t=e.target;if(t.dataset.pay){if(!S.pay)S.pay={};S.pay[t.dataset.pay]=t.value;}});box.addEventListener('click',function(e){if(e.target.id==='paySave'){try{save('site');flash(box.querySelector('.saved'));}catch(err){alert('저장 실패');}}});}
+  if(!box._wired){box._wired=1;box.addEventListener('input',function(e){var t=e.target;if(t.dataset.pay){if(!S.pay)S.pay={};S.pay[t.dataset.pay]=t.value;}});box.addEventListener('click',function(e){if(e.target.id==='paySave'){try{flash(box.querySelector('.saved'),save('site'));}catch(err){alert('저장 실패');}}});}
 }
 function renderLegalForm(){
   var box=$('#legalForm');if(!box)return;
@@ -1546,7 +1628,7 @@ function renderLegalForm(){
   box.innerHTML='<div class="lg-grid">'+fields.map(function(f){return '<label class="lg-f"><span>'+esc(f[1])+'</span><input data-lg="'+f[0]+'" value="'+esc(lg[f[0]]||'')+'"></label>';}).join('')+'</div><div class="row-tools" style="margin-top:16px"><span class="saved">저장됨 ✓</span><button class="btn gold" id="legalSave">저장</button></div>';
   if(!box._wired){box._wired=1;
     box.addEventListener('input',function(e){var t=e.target;if(t.dataset.lg){if(!S.legal)S.legal={};S.legal[t.dataset.lg]=t.value;}});
-    box.addEventListener('click',function(e){if(e.target.id==='legalSave'){try{save('legal');flash(box.querySelector('.saved'));}catch(err){alert('저장 실패: 용량이 큽니다.');}}});
+    box.addEventListener('click',function(e){if(e.target.id==='legalSave'){try{flash(box.querySelector('.saved'),save('legal'));}catch(err){alert('저장 실패: 용량이 큽니다.');}}});
   }
 }
 /* ===== 클래스설정 (날짜별 운영) ===== */
@@ -1623,8 +1705,10 @@ function buildSchedule(){
       try{localStorage.setItem('uuhee_settings',JSON.stringify(S));}catch(_){}
       pasteMode=false;selDates=[];dragging=false;renderCal();renderPasteBar();renderSchedEditor();
       if(window.__cloud&&window.__cloud.saveScheduleDate){
+        if(window.__busy)window.__busy('일정 저장 중...',targets.length+'개 날짜를 저장하고 있습니다');
         Promise.all(pasteJobs.map(function(t){var jobs=[window.__cloud.saveScheduleDate(schedBranch,t.ds,t.rows)];if(t.wasHoliday&&window.__cloud.saveHolidayToggle)jobs.push(window.__cloud.saveHolidayToggle(schedBranch,t.ds,false));return Promise.all(jobs);}))
-          .then(function(){alert(targets.length+'개 날짜에 붙여넣었습니다.');}).catch(function(err){alert('일부 날짜 저장에 실패했습니다: '+((err&&err.message)||err));});
+          .then(function(){if(window.__busyDone)window.__busyDone();alert(targets.length+'개 날짜에 붙여넣었습니다.');})
+          .catch(function(err){if(window.__busyDone)window.__busyDone();alert('일부 날짜 저장에 실패했습니다: '+((err&&err.message)||err));});
       }else{alert(targets.length+'개 날짜에 붙여넣었습니다.');}
       return;}
     var rm=e.target.closest('[data-srm]');if(rm){schedRows.splice(+rm.dataset.srm,1);renderSchedEditor();return;}
@@ -1636,7 +1720,11 @@ function buildSchedule(){
       S.schedule[schedBranch+'|'+schedDate]=rowsCopy;
       try{localStorage.setItem('uuhee_settings',JSON.stringify(S));}catch(_){}
       renderCal();
-      if(window.__cloud&&window.__cloud.saveScheduleDate){window.__cloud.saveScheduleDate(schedBranch,schedDate,rowsCopy).then(function(){alert('저장되었습니다.');}).catch(function(err){alert('서버 저장 실패: '+((err&&err.message)||err));});}
+      if(window.__cloud&&window.__cloud.saveScheduleDate){
+        if(window.__busy)window.__busy('일정 저장 중...',schedDate);
+        window.__cloud.saveScheduleDate(schedBranch,schedDate,rowsCopy)
+          .then(function(){if(window.__busyDone)window.__busyDone();alert('저장되었습니다.');})
+          .catch(function(err){if(window.__busyDone)window.__busyDone();alert('서버 저장 실패: '+((err&&err.message)||err));});}
       else alert('저장되었습니다.');
       return;}
     if(e.target.id==='schedHol'){var k=schedBranch+'|'+schedDate;if(!S.holidays)S.holidays=[];var ix=S.holidays.indexOf(k);
