@@ -20,3 +20,7 @@
 alter table applications add column if not exists deposit numeric;
 alter table applications add column if not exists pay_status text;
 alter table applications add column if not exists balance_method text;
+
+-- PostgREST 스키마 캐시 갱신(이걸 안 하면 어드민 저장 시
+-- "Could not find the 'balance_method' column ... in the schema cache" 가 뜬다)
+notify pgrst, 'reload schema';
