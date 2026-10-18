@@ -281,6 +281,7 @@ footer{background:var(--accent);color:#cdccc6;padding:48px 0 40px;font-size:12px
 .pb-sum{display:grid;gap:10px}
 .pb-row{display:flex;align-items:baseline;justify-content:space-between;gap:12px;font-size:15px;color:var(--ink-soft)}
 .pb-row b{font-size:21px;font-weight:700;color:var(--ink);letter-spacing:.01em}
+.pb-row b em{font-style:normal;font-size:14px;font-weight:500;color:var(--ink-soft);margin-left:7px}
 .opt-list.collapsed .opt:not(.sel){display:none}
 .opt-list.collapsed .opt.sel{position:relative}
 .opt-list.collapsed .opt.sel::after{content:"변경하려면 클릭";position:absolute;top:50%;right:16px;transform:translateY(-50%);font-size:11px;letter-spacing:.04em;color:var(--brass)}
@@ -305,7 +306,12 @@ footer{background:var(--accent);color:#cdccc6;padding:48px 0 40px;font-size:12px
 .summary .sr .k{color:var(--ink-soft);font-size:12px;letter-spacing:.06em}
 .summary .sr .v{font-weight:600;text-align:right}
 .modal-foot{padding:16px 26px;border-top:1px solid var(--line);display:flex;justify-content:space-between;gap:12px;background:var(--paper)}
-.modal-foot #btnNext{margin-left:auto}
+.modal-foot #btnNext,.modal-foot #payGo{margin-left:auto}
+/* 좁은 화면에서는 '50,000원 예약금 결제하기' 같은 긴 버튼이 푸터를 넘쳐서
+   잘려 보였다 — 여백·글자를 줄이고 남는 폭을 결제 버튼이 쓰게 한다. */
+@media(max-width:560px){.modal-foot{padding:14px 16px;gap:8px}
+.modal-foot .btn{padding:0 14px;font-size:13px}
+.modal-foot #payGo{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis}}
 .modal-done{text-align:center;padding:30px 10px}
 .modal-done .check{font-size:40px;color:var(--gold)}
 .modal-done h3{font-size:20px;margin:12px 0 8px;font-family:"Nanum Myeongjo",serif}
@@ -1107,10 +1113,10 @@ window.UUHEE_SB={url:'https://ybfwnmgnledlumppfjbh.supabase.co',key:'sb_publisha
           </div>
           <div id="payTransfer" class="pay-box" style="display:none"></div>
           <div class="err" data-err="pay">결제 방법을 선택해 주세요.</div>
-          <div style="margin-top:16px"><button class="btn" id="payGo" type="button" style="width:100%">결제 페이지로 이동</button></div></div>
+</div>
         <div class="modal-step" data-step="7"><div class="modal-done"><div class="check">◎</div><h3>신청이 접수되었습니다</h3><p id="doneMsg">결제(입금) 확인 후 예약이 확정되면 안내드립니다.</p></div></div>
       </div>
-      <div class="modal-foot" id="modalFoot"><button class="btn ghost" id="btnBack">이전</button><button class="btn" id="btnNext">다음</button></div>
+      <div class="modal-foot" id="modalFoot"><button class="btn ghost" id="btnBack">이전</button><button class="btn" id="btnNext">다음</button><button class="btn" id="payGo" type="button" style="display:none">결제 페이지로 이동</button></div>
     </div>
   </div>`;
 
@@ -1364,7 +1370,9 @@ window.UUHEE_SB={url:'https://ybfwnmgnledlumppfjbh.supabase.co',key:'sb_publisha
       document.getElementById('btnBack').style.visibility=(n>1&&n<7)?'visible':'hidden';
       document.getElementById('modalFoot').style.display=n===7?'none':'flex';
       document.getElementById('btnNext').style.display=(n===6)?'none':'';
-      document.getElementById('btnNext').textContent=n===5?'결제하기':(n===4?'확인하기':'다음');if(n===3){buildSizeQty();populateTimes();}if(n===6)preparePay();};
+      document.getElementById('btnNext').textContent=(n===4)?'확인하기':'다음';
+      var pg=document.getElementById('payGo');if(pg)pg.style.display=(n===6)?'':'none';
+      if(n===3){buildSizeQty();populateTimes();}if(n===6)preparePay();};
     const hideErr=()=>modal.querySelectorAll('.err').forEach(e=>e.style.display='none');
     const err=k=>{const e=modal.querySelector('[data-err="'+k+'"]');if(e)e.style.display='block';};
     const validate=n=>{hideErr();
@@ -1398,9 +1406,8 @@ window.UUHEE_SB={url:'https://ybfwnmgnledlumppfjbh.supabase.co',key:'sb_publisha
         var bal=total>0?Math.max(total-dep,0):0;
         var fw=function(v){return '\u20a9'+Number(v).toLocaleString();};
         html='<div class="pb-sum">'
-          +'<div class="pb-row"><span>예약금 (지금 입금)</span><b>'+(dep>0?fw(dep):'-')+'</b></div>'
-          +'<div class="pb-row"><span>잔액 (방문 시 결제)</span><b>'+(total>0?fw(bal):'-')+'</b></div>'
-          +'<div class="pb-row"><span>결제 방법</span><b>현장 결제</b></div>'
+          +'<div class="pb-row"><span>예약금</span><b>'+(dep>0?fw(dep):'-')+'<em>/ 이체</em></b></div>'
+          +'<div class="pb-row"><span>잔액</span><b>'+(total>0?fw(bal):'-')+'<em>/ 현장 결제</em></b></div>'
           +'</div>'
           +'<div class="pb-note">예약금 입금이 확인되면 예약이 확정됩니다. 잔액은 방문 시 현장에서 카드로 결제하시거나, 예약금을 환불받으신 뒤 전액을 현장에서 결제하실 수도 있습니다. 아래 버튼을 누르면 예약금 입금 안내 링크가 새 창으로 열립니다.</div>';
       }else{tb.style.display='none';return;}
