@@ -1125,8 +1125,8 @@ function renderSubs(){
     head='<th>구분</th><th>이름</th><th>연락처</th><th>내용</th><th>상세</th>';
     rowf=function(r,w){return '<td>'+(w==='apps'?'클래스':'단체·기업')+'</td><td>'+esc(r.name||'')+'</td><td>'+esc(r.phone||'')+'</td><td>'+esc(contentText(w,r))+'</td><td class="cdetail">'+esc(detailText(w,r))+'</td>';};
   }
-  var body=list.length?list.map(function(o){var r=o.row;return '<tr><td><input type="checkbox" class="subck" data-w="'+o.w+'" data-i="'+o.i+'"></td>'+rowf(r,o.w)+'<td class="cmemo">'+esc(r.memo||'')+'</td><td class="mono">'+fmt(r.ts)+'</td><td>'+esc(KNLAB[r.kakaoNotice]||'-')+'</td><td>'+stBadge(r.status)+'</td><td><button class="btn-link" data-edit="'+o.w+'" data-i="'+o.i+'">상세</button></td></tr>';}).join(''):'<tr><td colspan="20" class="empty">접수된 내역이 없습니다.</td></tr>';
-  box.innerHTML='<table class="subs"><thead><tr><th><input type="checkbox" id="subAll"></th>'+head+'<th>메모</th><th>신청일시</th><th>카톡알림</th><th>상태</th><th>작업</th></tr></thead><tbody>'+body+'</tbody></table>';
+  var body=list.length?list.map(function(o){var r=o.row;return '<tr><td><input type="checkbox" class="subck" data-w="'+o.w+'" data-i="'+o.i+'"></td>'+rowf(r,o.w)+'<td class="mono">'+fmt(r.ts)+'</td><td>'+stBadge(r.status)+'</td><td><button class="btn-link" data-edit="'+o.w+'" data-i="'+o.i+'">상세</button></td><td>'+esc(KNLAB[r.kakaoNotice]||'-')+'</td><td class="cmemo">'+esc(r.memo||'')+'</td></tr>';}).join(''):'<tr><td colspan="20" class="empty">접수된 내역이 없습니다.</td></tr>';
+  box.innerHTML='<table class="subs"><thead><tr><th><input type="checkbox" id="subAll"></th>'+head+'<th>신청일시</th><th>상태</th><th>작업</th><th>카톡</th><th>메모</th></tr></thead><tbody>'+body+'</tbody></table>';
 }
 $$('#subTabs .subtab').forEach(function(t){t.addEventListener('click',function(){$$('#subTabs .subtab').forEach(function(x){x.classList.remove('active');});t.classList.add('active');SUBTAB=t.dataset.st;renderSubs();});});
 ['subSearch'].forEach(function(id){var el=$('#'+id);if(el)el.addEventListener('input',renderSubs);});
