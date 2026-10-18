@@ -123,8 +123,16 @@ td .del{color:var(--warn);background:none;border:0;font-size:12px;text-decoratio
 .se-f.se-full{grid-column:1/-1}
 .se-f input,.se-f select,.se-f textarea{width:100%;font:inherit;font-size:13px;border:1px solid var(--line);border-radius:4px;padding:9px 10px;color:var(--ink)}
 .subrow{cursor:pointer}.subrow:hover{background:#faf8f4}
-.stbadge{display:inline-block;border:1px solid;border-radius:999px;padding:2px 9px;font-size:11px;font-weight:600}
-.subs td.cmemo,.subs td.cdetail{max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;color:var(--ink-soft)}
+.stbadge{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:600;white-space:nowrap}
+.stbadge::before{content:'';width:6px;height:6px;border-radius:50%;background:currentColor;flex:none}
+.btn-link{background:none;border:0;padding:0;font:inherit;font-size:12px;color:var(--ink-soft);text-decoration:underline;cursor:pointer;white-space:nowrap}
+.btn-link:hover{color:var(--ink)}
+/* 신청 목록은 컬럼이 많아 표 폭에 억지로 맞추면 글자가 줄바뀜된다.
+   표는 내용만큼 넓히고 .tbl-wrap이 가로로 스크롤되게 둔다. */
+.subs{width:auto;min-width:100%}
+.subs th,.subs td{white-space:nowrap;padding:8px 6px}
+.subs td.cmemo,.subs td.cdetail,.subs td.cell{max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;color:var(--ink-soft)}
+.subs td.cell{max-width:150px;color:var(--ink)}
 .stt{padding:5px 6px;border:1px solid var(--line);border-radius:4px;font:inherit;font-size:12px;background:#fff;cursor:pointer}
 .memo{padding:6px 8px;border:1px solid var(--line);border-radius:4px;font:inherit;font-size:12px;min-width:130px}
 .pf-block{border:1px solid var(--line);border-radius:6px;padding:12px 14px;margin:0 0 12px}
@@ -1066,7 +1074,7 @@ var KN_RECEIPT=1,KN_CONFIRM=2;
 var KNLAB={1:'접수',2:'확정'};
 function stColor(c){return {1:'#8a8a82',2:'#c98a2e',3:'#3c7d4f',4:'#4a4a44',5:'#c0392b',6:'#d35400',7:'#2e6da4'}[+c]||'#8a8a82';}
 function stOpts(cur){var o='';for(var k=1;k<=7;k++){o+='<option value="'+k+'"'+(+cur===k?' selected':'')+'>'+k+'. '+STLAB[k]+'</option>';}return o;}
-function stBadge(c){c=c||1;return '<span class="stbadge" style="color:'+stColor(c)+';border-color:'+stColor(c)+'">'+STLAB[c]+'</span>';}
+function stBadge(c){c=c||1;return '<span class="stbadge" style="color:'+stColor(c)+'">'+STLAB[c]+'</span>';}
 function won(v){return (v===''||v==null||isNaN(+v))?'-':('\u20a9'+Number(v).toLocaleString());}
 /* ---------- 결제 구분 ----------
    결제상태  : 예약 시 지불한 방법. 사이트에서 고른 결제수단으로 '대기' 값이 자동으로 잡히고,
@@ -1112,12 +1120,12 @@ function renderSubs(){
     rowf=function(r){return '<td>'+esc(r.type||'')+'</td><td>'+esc(r.branch||'')+'</td><td>'+esc(r.company||'')+'</td><td>'+esc(r.name||'')+'</td><td>'+esc(r.phone||'')+'</td><td>'+esc(r.volume||'-')+'</td><td class="cdetail">'+esc(r.msg||'')+'</td>';};
   } else if(SUBTAB==='class'){
     head='<th>희망일</th><th>시간</th><th>이름</th><th>연락처</th><th>지점</th><th>클래스</th><th>용량</th><th>인원</th><th>결제금액</th><th>예약금</th><th>잔액</th><th>결제상태</th><th>잔액결제</th><th>최종결제</th>';
-    rowf=function(r){return '<td>'+esc(r.date||'')+'</td><td>'+esc(r.time||'')+'</td><td>'+esc(r.name||'')+'</td><td>'+esc(r.phone||'')+'</td><td>'+esc(r.branch||'')+'</td><td>'+esc(r.class||'')+'</td><td>'+esc(r.size||'')+'</td><td>'+esc(r.people||'')+'</td><td class="mono">'+won(r.estimate)+'</td><td class="mono">'+won(depositOf(r))+'</td><td class="mono">'+won(balanceOf(r))+'</td><td>'+esc(payStatusOf(r)||'-')+'</td><td>'+esc(r.balanceMethod||'-')+'</td><td>'+esc(finalPayOf(r)||'-')+'</td>';};
+    rowf=function(r){return '<td>'+esc(r.date||'')+'</td><td>'+esc(r.time||'')+'</td><td>'+esc(r.name||'')+'</td><td>'+esc(r.phone||'')+'</td><td>'+esc(r.branch||'')+'</td><td class="cell">'+esc(r.class||'')+'</td><td>'+esc(r.size||'')+'</td><td>'+esc(r.people||'')+'</td><td class="mono">'+won(r.estimate)+'</td><td class="mono">'+won(depositOf(r))+'</td><td class="mono">'+won(balanceOf(r))+'</td><td>'+esc(payStatusOf(r)||'-')+'</td><td>'+esc(r.balanceMethod||'-')+'</td><td>'+esc(finalPayOf(r)||'-')+'</td>';};
   } else {
     head='<th>구분</th><th>이름</th><th>연락처</th><th>내용</th><th>상세</th>';
     rowf=function(r,w){return '<td>'+(w==='apps'?'클래스':'단체·기업')+'</td><td>'+esc(r.name||'')+'</td><td>'+esc(r.phone||'')+'</td><td>'+esc(contentText(w,r))+'</td><td class="cdetail">'+esc(detailText(w,r))+'</td>';};
   }
-  var body=list.length?list.map(function(o){var r=o.row;return '<tr><td><input type="checkbox" class="subck" data-w="'+o.w+'" data-i="'+o.i+'"></td>'+rowf(r,o.w)+'<td class="cmemo">'+esc(r.memo||'')+'</td><td class="mono">'+fmt(r.ts)+'</td><td>'+esc(KNLAB[r.kakaoNotice]||'-')+'</td><td>'+stBadge(r.status)+'</td><td><button class="btn ghost btn-sm" data-edit="'+o.w+'" data-i="'+o.i+'">상세</button></td></tr>';}).join(''):'<tr><td colspan="20" class="empty">접수된 내역이 없습니다.</td></tr>';
+  var body=list.length?list.map(function(o){var r=o.row;return '<tr><td><input type="checkbox" class="subck" data-w="'+o.w+'" data-i="'+o.i+'"></td>'+rowf(r,o.w)+'<td class="cmemo">'+esc(r.memo||'')+'</td><td class="mono">'+fmt(r.ts)+'</td><td>'+esc(KNLAB[r.kakaoNotice]||'-')+'</td><td>'+stBadge(r.status)+'</td><td><button class="btn-link" data-edit="'+o.w+'" data-i="'+o.i+'">상세</button></td></tr>';}).join(''):'<tr><td colspan="20" class="empty">접수된 내역이 없습니다.</td></tr>';
   box.innerHTML='<table class="subs"><thead><tr><th><input type="checkbox" id="subAll"></th>'+head+'<th>메모</th><th>신청일시</th><th>카톡알림</th><th>상태</th><th>작업</th></tr></thead><tbody>'+body+'</tbody></table>';
 }
 $$('#subTabs .subtab').forEach(function(t){t.addEventListener('click',function(){$$('#subTabs .subtab').forEach(function(x){x.classList.remove('active');});t.classList.add('active');SUBTAB=t.dataset.st;renderSubs();});});
