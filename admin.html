@@ -1684,8 +1684,10 @@ function renderCal(){
 function selectSchedDate(ds){schedDate=ds;var key=schedBranch+'|'+ds;
   schedRows=(S.schedule&&S.schedule[key])?S.schedule[key].map(function(r){return Object.assign({},r);}):[];
   renderCal();renderSchedEditor();}
-function bookedForDay(classId,tm){var nm=classNameById(classId);var n=0;(typeof apps!=='undefined'?apps:[]).forEach(function(a){if(a.branch===schedBranch&&a.date===schedDate&&a.time===tm&&(!nm||a.class===nm)){n+=parseInt(a.people||'0',10)||0;}});return n;}
-function appsSummaryForDate(ds){var count=0,people=0;(typeof apps!=='undefined'?apps:[]).forEach(function(a){if(a.branch===schedBranch&&a.date===ds){count++;people+=parseInt(a.people||'0',10)||0;}});return {count:count,people:people};}
+// 취소(5)·환불완료(7)는 서버 정원 트리거에서도 빼므로 여기서도 뺀다 — 안 그러면 취소된 건이 정원을 계속 잡아먹는 것처럼 보인다.
+function liveApp(a){return [5,7].indexOf(+(a.status||1))<0;}
+function bookedForDay(classId,tm){var nm=classNameById(classId);var n=0;(typeof apps!=='undefined'?apps:[]).forEach(function(a){if(liveApp(a)&&a.branch===schedBranch&&a.date===schedDate&&a.time===tm&&(!nm||a.class===nm)){n+=parseInt(a.people||'0',10)||0;}});return n;}
+function appsSummaryForDate(ds){var count=0,people=0;(typeof apps!=='undefined'?apps:[]).forEach(function(a){if(liveApp(a)&&a.branch===schedBranch&&a.date===ds){count++;people+=parseInt(a.people||'0',10)||0;}});return {count:count,people:people};}
 function renderSchedEditor(){
   var ed=$('#schedEditor');if(!ed)return;
   if(!schedDate){ed.innerHTML='<div class="empty">왼쪽 달력에서 날짜를 선택해 주세요.</div>';return;}
