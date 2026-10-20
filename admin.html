@@ -415,6 +415,8 @@ window.UUHEE_SB={url:'https://ybfwnmgnledlumppfjbh.supabase.co',key:'sb_publisha
   var sb=window.supabase.createClient(c.url,c.key); window.__sb=sb;
   var s=function(v){return v==null?'':String(v);};
   var N=function(v){if(v===''||v==null)return null;var n=Number(v);return isNaN(n)?null:n;};
+  // 지점은 branch_id가 진짜 키. 이름 컬럼은 되돌리기·예전 화면 호환을 위해 함께 저장하는 스냅샷이다.
+  var bnById=function(id){var L=(typeof S!=='undefined'&&S&&S.branches)||[];var b=L.filter(function(x){return String(x.id)===String(id);})[0];return b?s(b.name):'';};
   var noD=function(v){v=s(v);return /^data:/i.test(v)?'':v;};
   function pullSettings(){
     return Promise.all([
@@ -436,15 +438,17 @@ window.UUHEE_SB={url:'https://ybfwnmgnledlumppfjbh.supabase.co',key:'sb_publisha
       if(site)S.pay={depositAmount:(site.deposit_amount==null?'':String(site.deposit_amount))};
       if(legal)S.legal={company:s(legal.company),ceo:s(legal.ceo),bizno:s(legal.bizno),mailorder:s(legal.mailorder),privacy:s(legal.privacy),addr:s(legal.addr),tel:s(legal.tel),email:s(legal.email),kakao:s(legal.kakao),hosting:s(legal.hosting),termsUrl:s(legal.terms_url),privacyUrl:s(legal.privacy_url),refundUrl:s(legal.refund_url)};
       S.branches=br.map(function(b){return {id:b.id,name:s(b.name),phone:s(b.phone),addr:s(b.addr),map:s(b.map),hours:s(b.hours),ig:s(b.ig),fb:s(b.fb),lt:s(b.lt),spaceDesc:s(b.space_desc),transferLink:s(b.transfer_link),smartstoreLink:s(b.smartstore_link),payTransferOn:(b.pay_transfer_on!==false),paySmartstoreOn:(b.pay_smartstore_on!==false),payOnsiteOn:(b.pay_onsite_on!==false)};});
-      S.classes=cl.map(function(x){var brs=cb.filter(function(b){return b.class_id===x.id;}).map(function(b){return s(b.branch_name);});return {id:x.id,order:x.ord,tag:s(x.tag),name:s(x.name),desc:s(x.descr),active:!!x.active,inquiryOnly:!!x.inquiry_only,branches:brs};});
+      // 마이그레이션 전(= branch_id 컬럼이 아직 없는 서버)에서도 동작하도록, id가 없으면 이름으로 찾는다.
+      var bidOf=function(row,nameKey){if(row&&row.branch_id!=null)return String(row.branch_id);var nm=row?s(row[nameKey||'branch']):'';var b=(S.branches||[]).filter(function(x){return x.name===nm;})[0];return b?String(b.id):'';};
+      S.classes=cl.map(function(x){var brs=cb.filter(function(b){return b.class_id===x.id;}).map(function(b){return bidOf(b,'branch_name');}).filter(Boolean);return {id:x.id,order:x.ord,tag:s(x.tag),name:s(x.name),desc:s(x.descr),active:!!x.active,inquiryOnly:!!x.inquiry_only,branchIds:brs};});
       // 클래스는 이름 문자열이 아니라 classId로 연결(조인)합니다. cls는 참고용으로만 남겨두고 매칭에는 쓰지 않습니다.
-      S.details=de.map(function(d){return {id:d.id,classId:d.class_id,branch:s(d.branch),size:s(d.size),price:(d.price==null?'':String(d.price)),discountType:s(d.discount_type),discountVal:(d.discount_val==null?'':String(d.discount_val)),desc:s(d.descr)};});
-      S.slots=sl.map(function(x){return {id:x.id,classId:x.class_id,branch:s(x.branch),time:s(x.stime),cap:(x.cap==null?'':String(x.cap))};});
+      S.details=de.map(function(d){return {id:d.id,classId:d.class_id,branchId:bidOf(d),size:s(d.size),price:(d.price==null?'':String(d.price)),discountType:s(d.discount_type),discountVal:(d.discount_val==null?'':String(d.discount_val)),desc:s(d.descr)};});
+      S.slots=sl.map(function(x){return {id:x.id,classId:x.class_id,branchId:bidOf(x),time:s(x.stime),cap:(x.cap==null?'':String(x.cap))};});
       S.partners=pa.map(function(p){return {id:p.id,name:s(p.name),logo:s(p.logo),cover:!!p.cover,order:p.ord,link:s(p.link)};});
       S.photos=ph.map(function(p){return {id:p.id,img:s(p.img),category:s(p.category),folder:s(p.folder),title:s(p.title),desc:s(p.descr),cover:!!p.cover,order:p.ord,link:s(p.link)};});
       S.photoFolders=pf.map(function(f){return {id:f.id,category:s(f.category),name:s(f.name),order:f.ord};});
-      var sd={};sc.forEach(function(x){var k=s(x.branch)+'|'+s(x.sdate);(sd[k]=sd[k]||[]).push({classId:x.class_id,time:s(x.stime),cap:(x.cap==null?'':String(x.cap))});});S.schedule=sd;
-      S.holidays=ho.map(function(h){return s(h.branch)+'|'+s(h.sdate);});
+      var sd={};sc.forEach(function(x){var k=bidOf(x)+'|'+s(x.sdate);(sd[k]=sd[k]||[]).push({classId:x.class_id,time:s(x.stime),cap:(x.cap==null?'':String(x.cap))});});S.schedule=sd;
+      S.holidays=ho.map(function(h){return bidOf(h)+'|'+s(h.sdate);});
       return S;
     });
   }
@@ -520,7 +524,7 @@ window.UUHEE_SB={url:'https://ybfwnmgnledlumppfjbh.supabase.co',key:'sb_publisha
             if(delRes&&delRes.error)throw delRes.error;
             var allIds=payload.map(function(p){return p.id;}).filter(function(id){return id!=null;});
             var cbRows=[];
-            payload.forEach(function(p){var bs=(list[p._idx]&&list[p._idx].branches)||[];bs.forEach(function(bn){if(p.id!=null&&s(bn))cbRows.push({class_id:p.id,branch_name:s(bn)});});});
+            payload.forEach(function(p){var bs=(list[p._idx]&&list[p._idx].branchIds)||[];bs.forEach(function(bid){if(p.id!=null&&N(bid)!=null)cbRows.push({class_id:p.id,branch_id:N(bid),branch_name:bnById(bid)});});});
             var cbDel=allIds.length?sb.from('class_branches').delete().in('class_id',allIds):Promise.resolve({error:null});
             return Promise.resolve(cbDel).then(function(cbDelRes){
               if(cbDelRes&&cbDelRes.error)throw cbDelRes.error;
@@ -542,8 +546,8 @@ window.UUHEE_SB={url:'https://ybfwnmgnledlumppfjbh.supabase.co',key:'sb_publisha
     if(want('legal'))jobs.push(sb.from('legal').upsert({id:'uuhee',company:s(lg.company),ceo:s(lg.ceo),bizno:s(lg.bizno),mailorder:s(lg.mailorder),privacy:s(lg.privacy),addr:s(lg.addr),tel:s(lg.tel),email:s(lg.email),kakao:s(lg.kakao),hosting:s(lg.hosting),terms_url:s(lg.termsUrl),privacy_url:s(lg.privacyUrl),refund_url:s(lg.refundUrl)}));
     if(want('branches'))jobs.push(replUpsert('branches',S.branches||[],function(b,i){return {ord:i,name:s(b.name),phone:s(b.phone),addr:s(b.addr),map:s(b.map),hours:s(b.hours),ig:s(b.ig),fb:s(b.fb),lt:s(b.lt),space_desc:s(b.spaceDesc),transfer_link:s(b.transferLink),smartstore_link:s(b.smartstoreLink),pay_transfer_on:(b.payTransferOn!==false),pay_smartstore_on:(b.paySmartstoreOn!==false),pay_onsite_on:(b.payOnsiteOn!==false)};}));
     if(want('classes'))jobs.push(replClasses(S.classes||[]));
-    if(want('details'))jobs.push(replUpsert('details',S.details||[],function(d){return {branch:s(d.branch),class_id:(d.classId===''||d.classId==null?null:N(d.classId)),cls:cnById(d.classId),size:s(d.size),price:N(d.price),discount_type:s(d.discountType),discount_val:N(d.discountVal),descr:s(d.desc)};}));
-    if(want('slots'))jobs.push(replUpsert('slots',S.slots||[],function(x){return {branch:s(x.branch),class_id:(x.classId===''||x.classId==null?null:N(x.classId)),cls:cnById(x.classId),stime:s(x.time),cap:N(x.cap)};}));
+    if(want('details'))jobs.push(replUpsert('details',S.details||[],function(d){return {branch_id:N(d.branchId),branch:bnById(d.branchId),class_id:(d.classId===''||d.classId==null?null:N(d.classId)),cls:cnById(d.classId),size:s(d.size),price:N(d.price),discount_type:s(d.discountType),discount_val:N(d.discountVal),descr:s(d.desc)};}));
+    if(want('slots'))jobs.push(replUpsert('slots',S.slots||[],function(x){return {branch_id:N(x.branchId),branch:bnById(x.branchId),class_id:(x.classId===''||x.classId==null?null:N(x.classId)),cls:cnById(x.classId),stime:s(x.time),cap:N(x.cap)};}));
     if(want('partners'))jobs.push(replUpsert('partners',S.partners||[],function(p,i){return {ord:(p.order!=null?p.order:i),name:s(p.name),logo:noD(p.logo),cover:!!p.cover,link:s(p.link)};}));
     if(want('photos'))jobs.push(replUpsert('photos',(S.photos||[]).filter(function(p){return !(p.img&&/^data:/i.test(String(p.img)));}),function(p,i){return {ord:(p.order!=null?p.order:i),img:s(p.img),category:s(p.category),folder:s(p.folder),title:s(p.title),descr:s(p.desc),cover:!!p.cover,link:s(p.link)};}));
     if(want('photo_folders'))jobs.push(replUpsert('photo_folders',S.photoFolders||[],function(f,i){return {ord:(f.order!=null?f.order:i),category:s(f.category),name:s(f.name)};}));
@@ -577,12 +581,12 @@ window.UUHEE_SB={url:'https://ybfwnmgnledlumppfjbh.supabase.co',key:'sb_publisha
   }
   // 날짜 하나(schedule)/휴무일 키 하나(holidays)만 건드리는 저장 — 캘린더 저장이 테이블 전체를
   // 지우고 다시 쓰던 방식(repl)을 쓰면서 반복적으로 중복·유실 사고가 났던 문제의 근본 원인을 없앤다.
-  function saveScheduleDate(branch,sdate,rows){
+  function saveScheduleDate(branchId,sdate,rows){
     var payload=(rows||[]).map(function(r){
       var c=(S.classes||[]).filter(function(x){return String(x.id)===String(r.classId);})[0];
-      return {branch:s(branch),sdate:s(sdate),class_id:(r.classId===''||r.classId==null?null:N(r.classId)),cls:c?c.name:'',stime:s(r.time),cap:N(r.cap)};
+      return {branch_id:N(branchId),branch:bnById(branchId),sdate:s(sdate),class_id:(r.classId===''||r.classId==null?null:N(r.classId)),cls:c?c.name:'',stime:s(r.time),cap:N(r.cap)};
     });
-    return sb.from('schedule').select('id').eq('branch',branch).eq('sdate',sdate).then(function(r){
+    return sb.from('schedule').select('id').eq('branch_id',N(branchId)).eq('sdate',sdate).then(function(r){
       if(r.error)throw r.error;
       var oldIds=(r.data||[]).map(function(x){return x.id;});
       var ins=payload.length?sb.from('schedule').insert(payload):Promise.resolve({error:null});
@@ -593,9 +597,9 @@ window.UUHEE_SB={url:'https://ybfwnmgnledlumppfjbh.supabase.co',key:'sb_publisha
       });
     });
   }
-  function saveHolidayToggle(branch,sdate,isHoliday){
-    if(isHoliday)return sb.from('holidays').insert({branch:s(branch),sdate:s(sdate)}).then(function(res){if(res&&res.error)throw res.error;return res;});
-    return sb.from('holidays').delete().eq('branch',branch).eq('sdate',sdate).then(function(res){if(res&&res.error)throw res.error;return res;});
+  function saveHolidayToggle(branchId,sdate,isHoliday){
+    if(isHoliday)return sb.from('holidays').insert({branch_id:N(branchId),branch:bnById(branchId),sdate:s(sdate)}).then(function(res){if(res&&res.error)throw res.error;return res;});
+    return sb.from('holidays').delete().eq('branch_id',N(branchId)).eq('sdate',sdate).then(function(res){if(res&&res.error)throw res.error;return res;});
   }
   /* ---------- 영상 코덱 확인(HEVC 감지) + 필요 시 H.264로 변환 후 업로드 ----------
      iPhone "고효율" 설정으로 찍은 영상은 HEVC(H.265)로 저장되는데, 이 코덱은
@@ -981,7 +985,7 @@ const CRUD_MAP=[
   {sel:'[data-srm]',menu:'schedule',action:'delete'},
   {sel:'#schedSave',menu:'schedule',action:'update'},
   {sel:'#schedClear',menu:'schedule',action:'delete'},
-  {sel:'#schedHol',menu:'schedule',action:function(){var k=schedBranch+'|'+schedDate;return (S.holidays||[]).indexOf(k)>-1?'delete':'create';}},
+  {sel:'#schedHol',menu:'schedule',action:function(){var k=schedBranchId+'|'+schedDate;return (S.holidays||[]).indexOf(k)>-1?'delete':'create';}},
   {sel:'#schedPaste',menu:'schedule',action:'update'},
   {sel:'[data-add]',menu:'settings',action:'create'},
   {sel:'[data-rm]',menu:'settings',action:'delete'},
@@ -1105,7 +1109,7 @@ function curBranch(){return ($('#subFBranch')||{}).value||'';}
 function curSearch(){return ((($('#subSearch')||{}).value)||'').trim().toLowerCase();}
 function curDate(){return (($('#subFDate')||{}).value)||'';}
 function dateOk(o,d){if(!d)return true;var r=o.row;if(o.w==='apps')return (r.date||'')===d;return r.ts?ymd(new Date(r.ts))===d:false;}
-function populateBranchFilter(){var sel=$('#subFBranch');if(!sel)return;var cur=sel.value;var names=(typeof branchNames==='function')?branchNames():[];sel.innerHTML='<option value="">전체 지점</option>'+names.map(function(n){return '<option'+(n===cur?' selected':'')+'>'+esc(n)+'</option>';}).join('');}
+function populateBranchFilter(){var sel=$('#subFBranch');if(!sel)return;var cur=sel.value;var bl=(S.branches||[]).filter(function(b){return b.name;});sel.innerHTML='<option value="">전체 지점</option>'+bl.map(function(b){return '<option value="'+esc(b.id)+'"'+(String(b.id)===String(cur)?' selected':'')+'>'+esc(b.name)+'</option>';}).join('');}
 function renderCards(base){var c={};for(var k=0;k<=7;k++)c[k]=0;base.forEach(function(o){c[0]++;c[(o.row.status||1)]++;});
   var defs=[['전체',0],['신청',1],['대기',2],['확정',3],['완료',4],['취소',5],['환불요청',6],['환불완료',7]];
   if($('#subCards'))$('#subCards').innerHTML=defs.map(function(d){return '<div class="scard"><div class="l">'+d[0]+'</div><div class="v">'+c[d[1]]+'</div></div>';}).join('');
@@ -1113,7 +1117,7 @@ function renderCards(base){var c={};for(var k=0;k<=7;k++)c[k]=0;base.forEach(fun
 function renderSubs(){
   var box=$('#subsTable');if(!box)return;populateBranchFilter();
   var base=baseRows();var st=curStatus(),br=curBranch(),q=curSearch(),d=curDate();
-  var scoped=base.filter(function(o){var r=o.row;if(br&&(r.branch||'')!==br)return false;if(q){if((((r.name||'')+' '+(r.phone||'')).toLowerCase()).indexOf(q)<0)return false;}if(!dateOk(o,d))return false;return true;});
+  var scoped=base.filter(function(o){var r=o.row;if(br&&String(r.branchId||'')!==String(br))return false;if(q){if((((r.name||'')+' '+(r.phone||'')).toLowerCase()).indexOf(q)<0)return false;}if(!dateOk(o,d))return false;return true;});
   renderCards(scoped);
   var list=scoped.filter(function(o){var r=o.row;if(st&&(r.status||1)!==st)return false;return true;});
   if($('#subCount'))$('#subCount').textContent='총 '+list.length+'건';
@@ -1453,7 +1457,8 @@ function makeTable(sel,key,cols,blank,addLabel){
   function cell(c,v,i){
     v=v==null?'':v;
     if(c.type==='multi'){var mopts=(typeof c.options==='function'?c.options():c.options);var arr=Array.isArray(v)?v:(v?String(v).split(',').map(function(s){return s.trim();}):[]);
-      return mopts.map(function(o){return '<label style="display:inline-flex;align-items:center;gap:4px;margin:2px 10px 2px 0;font-size:12px;white-space:nowrap"><input type="checkbox" data-mi="'+i+'" data-c="'+c.k+'" value="'+esc(o)+'" '+(arr.indexOf(o)>-1?'checked':'')+' style="width:auto">'+esc(o)+'</label>';}).join('');}
+      return mopts.map(function(o){var ov=(o&&typeof o==='object')?o.value:o,ol=(o&&typeof o==='object')?o.label:o;
+        return '<label style="display:inline-flex;align-items:center;gap:4px;margin:2px 10px 2px 0;font-size:12px;white-space:nowrap"><input type="checkbox" data-mi="'+i+'" data-c="'+c.k+'" value="'+esc(ov)+'" '+(arr.map(String).indexOf(String(ov))>-1?'checked':'')+' style="width:auto">'+esc(ol)+'</label>';}).join('');}
     if(c.type==='select'){const opts=(typeof c.options==='function'?c.options():c.options);
       const isObj=opts.length&&typeof opts[0]==='object';
       const body=isObj
@@ -1493,6 +1498,8 @@ const galFolderNames=()=>S.galleryFolders.map(f=>f.name).filter(Boolean);
 const classNames=()=>S.classes.map(c=>c.name).filter(Boolean);
 const classOptions=()=>(S.classes||[]).map(c=>({value:c.id,label:c.name}));
 const branchOpts=()=>(S.branches||[]).map(b=>[b.id,b.name]);
+const branchOptions=()=>(S.branches||[]).filter(b=>b.name).map(b=>({value:b.id,label:b.name}));
+const firstBranchId=()=>{const b=(S.branches||[]).filter(x=>x.name)[0];return b?String(b.id):'';};
 const classOpts=()=>(S.classes||[]).filter(c=>c.name).map(c=>[c.id,c.name]);
 const branchNameById=id=>{if(id==null||id==='')return '';const b=(S.branches||[]).filter(x=>String(x.id)===String(id))[0];return b?b.name:'';};
 const classNameById=id=>{if(id==null||id==='')return '';const c=(S.classes||[]).filter(x=>String(x.id)===String(id))[0];return c?c.name:'';};
@@ -1504,16 +1511,16 @@ function buildTables(){
     {k:'ig',l:'Instagram'},{k:'fb',l:'Facebook'},{k:'lt',l:'Linktree'}],
     ()=>({name:'',nameEn:'',phone:'',addr:'',addrEn:'',map:'',hours:'',ig:'',fb:'',lt:'',transferLink:'',smartstoreLink:''}),'지점 추가');
   T.classes=makeTable('#tbl-classes','classes',[
-    {k:'branches',l:'지점(복수선택)',type:'multi',options:branchNames},{k:'order',l:'순서',type:'num'},{k:'tag',l:'라벨(EN)'},{k:'name',l:'이름'},{k:'nameEn',l:'이름(EN)'},{k:'desc',l:'클래스 설명',type:'ta',w:'220px'},{k:'descEn',l:'설명(EN)',type:'ta',w:'220px'},
+    {k:'branchIds',l:'지점(복수선택)',type:'multi',options:branchOptions},{k:'order',l:'순서',type:'num'},{k:'tag',l:'라벨(EN)'},{k:'name',l:'이름'},{k:'nameEn',l:'이름(EN)'},{k:'desc',l:'클래스 설명',type:'ta',w:'220px'},{k:'descEn',l:'설명(EN)',type:'ta',w:'220px'},
     {k:'active',l:'상태',type:'toggle',on:'활성',off:'중지'},{k:'inquiryOnly',l:'문의전용',type:'toggle',on:'문의',off:'일반'}],
-    ()=>({branches:branchNames(),order:S.classes.length+1,tag:'',name:'',nameEn:'',desc:'',descEn:'',active:true,inquiryOnly:false}),'클래스 추가');
+    ()=>({branchIds:(S.branches||[]).filter(b=>b.name).map(b=>String(b.id)),order:S.classes.length+1,tag:'',name:'',nameEn:'',desc:'',descEn:'',active:true,inquiryOnly:false}),'클래스 추가');
   T.details=makeTable('#tbl-details','details',[
-    {k:'branch',l:'지점',type:'select',options:branchNames},{k:'classId',l:'클래스',type:'select',options:classOptions},{k:'size',l:'용량'},
+    {k:'branchId',l:'지점',type:'select',options:branchOptions},{k:'classId',l:'클래스',type:'select',options:classOptions},{k:'size',l:'용량'},
     {k:'price',l:'₩ 가격',type:'num'},{k:'discountType',l:'할인유형',type:'select',options:['없음','% 할인','정액 할인']},{k:'discountVal',l:'할인값',type:'num'}],
-    ()=>({branch:branchNames()[0]||'',classId:'',size:'',price:'',discountType:'없음',discountVal:'',desc:'',descEn:''}),'항목 추가');
+    ()=>({branchId:firstBranchId(),classId:'',size:'',price:'',discountType:'없음',discountVal:'',desc:'',descEn:''}),'항목 추가');
   T.slots=makeTable('#tbl-slots','slots',[
-    {k:'branch',l:'지점',type:'select',options:branchNames},{k:'classId',l:'클래스',type:'select',options:classOptions},{k:'time',l:'시간',type:'time'},{k:'cap',l:'정원',type:'num'}],
-    ()=>({branch:branchNames()[0]||'',classId:'',time:'',cap:''}),'시간대 추가');
+    {k:'branchId',l:'지점',type:'select',options:branchOptions},{k:'classId',l:'클래스',type:'select',options:classOptions},{k:'time',l:'시간',type:'time'},{k:'cap',l:'정원',type:'num'}],
+    ()=>({branchId:firstBranchId(),classId:'',time:'',cap:''}),'시간대 추가');
   T.partners=makeTable('#tbl-partners','partners',[
     {k:'name',l:'이름'},{k:'logo',l:'로고',type:'image'},{k:'cover',l:'대표',type:'check'},{k:'order',l:'순서',type:'num'},{k:'link',l:'링크'}],
     ()=>({name:'',logo:'',cover:false,order:S.partners.length+1,link:''}),'로고 추가');
@@ -1665,16 +1672,18 @@ function renderLegalForm(){
   }
 }
 /* ===== 클래스설정 (날짜별 운영) ===== */
-let schedBranch='', schedMonth=new Date(), schedDate='', schedRows=[];
+let schedBranch='', schedBranchId='', schedMonth=new Date(), schedDate='', schedRows=[];
 let schedInit=false, schedClip=null, pasteMode=false, selDates=[], dragging=false, didDrag=false, dragStartDay='', dragRange=[];
 function parseYmd(s){var p=String(s||'').split('-');return new Date(+p[0],+p[1]-1,+p[2]);}
 function dateRangeBetween(a,b){var da=parseYmd(a),db=parseYmd(b);var lo=da<=db?da:db,hi=da<=db?db:da;var out=[],cur=new Date(lo);while(cur<=hi){out.push(ymd(cur));cur.setDate(cur.getDate()+1);}return out;}
 function ymd(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
-function defSlots(b){return (S.slots||[]).filter(function(s){return s.branch===b;}).map(function(s){return {classId:s.classId,time:s.time,cap:s.cap};});}
+function defSlots(bid){return (S.slots||[]).filter(function(s){return String(s.branchId)===String(bid);}).map(function(s){return {classId:s.classId,time:s.time,cap:s.cap};});}
 function renderSchedule(){
-  var names=branchNames();if(!schedBranch||names.indexOf(schedBranch)<0)schedBranch=names[0]||'';
-  var sel=$('#schedBranch');if(sel)sel.innerHTML=names.map(function(n){return '<option '+(n===schedBranch?'selected':'')+'>'+esc(n)+'</option>';}).join('');
-  if(!schedInit){schedInit=true;var _t=new Date();schedMonth=new Date(_t.getFullYear(),_t.getMonth(),1);schedDate=ymd(_t);var _k=schedBranch+'|'+schedDate;schedRows=(S.schedule&&S.schedule[_k])?S.schedule[_k].map(function(r){return Object.assign({},r);}):[];}
+  var bl=(S.branches||[]).filter(function(b){return b.name;});
+  if(!schedBranchId||!bl.some(function(b){return String(b.id)===String(schedBranchId);}))schedBranchId=bl.length?String(bl[0].id):'';
+  schedBranch=branchNameById(schedBranchId);
+  var sel=$('#schedBranch');if(sel)sel.innerHTML=bl.map(function(b){return '<option value="'+esc(b.id)+'"'+(String(b.id)===String(schedBranchId)?' selected':'')+'>'+esc(b.name)+'</option>';}).join('');
+  if(!schedInit){schedInit=true;var _t=new Date();schedMonth=new Date(_t.getFullYear(),_t.getMonth(),1);schedDate=ymd(_t);var _k=schedBranchId+'|'+schedDate;schedRows=(S.schedule&&S.schedule[_k])?S.schedule[_k].map(function(r){return Object.assign({},r);}):[];}
   renderCal();renderSchedEditor();renderPasteBar();
 }
 function renderCal(){
@@ -1685,26 +1694,25 @@ function renderCal(){
   var c='';['일','월','화','수','목','금','토'].forEach(function(h){c+='<div class="h">'+h+'</div>';});
   for(var i=0;i<start;i++)c+='<div class="d off"></div>';
   var _today=ymd(new Date());
-  for(var dd=1;dd<=days;dd++){var ds=ymd(new Date(y,m,dd)),key=schedBranch+'|'+ds;
+  for(var dd=1;dd<=days;dd++){var ds=ymd(new Date(y,m,dd)),key=schedBranchId+'|'+ds;
     var hol=(S.holidays||[]).indexOf(key)>-1,ov=S.schedule&&S.schedule[key];
     var tag=hol?'<div class="tag hol">휴무</div>':(ov?'<div class="tag">●설정 '+ov.length+'</div>':'');
     var pc=(pasteMode&&(selDates.indexOf(ds)>-1||(dragging&&dragRange.indexOf(ds)>-1)))?' psel':'';var tc=(ds===_today)?' today':'';
     c+='<div class="d '+(ds===schedDate?'sel':'')+pc+tc+'" data-d="'+ds+'"><div class="n">'+dd+'</div>'+tag+'</div>';}
   cal.innerHTML=c;
 }
-function selectSchedDate(ds){schedDate=ds;var key=schedBranch+'|'+ds;
+function selectSchedDate(ds){schedDate=ds;var key=schedBranchId+'|'+ds;
   schedRows=(S.schedule&&S.schedule[key])?S.schedule[key].map(function(r){return Object.assign({},r);}):[];
   renderCal();renderSchedEditor();}
 // 취소(5)·환불완료(7)는 서버 정원 트리거에서도 빼므로 여기서도 뺀다 — 안 그러면 취소된 건이 정원을 계속 잡아먹는 것처럼 보인다.
 function liveApp(a){return [5,7].indexOf(+(a.status||1))<0;}
-function branchIdByName(nm){var b=(S.branches||[]).filter(function(x){return x.name===nm;})[0];return b?b.id:null;}
 // 이름이 아니라 id로 맞춘다 — 지점·클래스 이름을 바꿔도 기존 예약이 정원에서 빠지지 않도록.
-function bookedForDay(classId,tm){var bid=branchIdByName(schedBranch);var n=0;(typeof apps!=='undefined'?apps:[]).forEach(function(a){if(liveApp(a)&&String(a.branchId)===String(bid)&&a.date===schedDate&&a.time===tm&&(!classId||String(a.classId)===String(classId))){n+=parseInt(a.people||'0',10)||0;}});return n;}
-function appsSummaryForDate(ds){var bid=branchIdByName(schedBranch);var count=0,people=0;(typeof apps!=='undefined'?apps:[]).forEach(function(a){if(liveApp(a)&&String(a.branchId)===String(bid)&&a.date===ds){count++;people+=parseInt(a.people||'0',10)||0;}});return {count:count,people:people};}
+function bookedForDay(classId,tm){var bid=schedBranchId;var n=0;(typeof apps!=='undefined'?apps:[]).forEach(function(a){if(liveApp(a)&&String(a.branchId)===String(bid)&&a.date===schedDate&&a.time===tm&&(!classId||String(a.classId)===String(classId))){n+=parseInt(a.people||'0',10)||0;}});return n;}
+function appsSummaryForDate(ds){var bid=schedBranchId;var count=0,people=0;(typeof apps!=='undefined'?apps:[]).forEach(function(a){if(liveApp(a)&&String(a.branchId)===String(bid)&&a.date===ds){count++;people+=parseInt(a.people||'0',10)||0;}});return {count:count,people:people};}
 function renderSchedEditor(){
   var ed=$('#schedEditor');if(!ed)return;
   if(!schedDate){ed.innerHTML='<div class="empty">왼쪽 달력에서 날짜를 선택해 주세요.</div>';return;}
-  var key=schedBranch+'|'+schedDate,hol=(S.holidays||[]).indexOf(key)>-1,opts=classOptions();
+  var key=schedBranchId+'|'+schedDate,hol=(S.holidays||[]).indexOf(key)>-1,opts=classOptions();
   var bookedFor=bookedForDay;
   ed.innerHTML='<div style="font-size:14px;font-weight:600;margin-bottom:4px">'+esc(schedBranch)+' · '+schedDate+'</div>'
     +'<div class="desc">'+(hol?'휴무일로 지정된 날짜입니다.':'이 날짜의 클래스·시간·정원을 설정하세요.')+'</div>'
@@ -1728,7 +1736,7 @@ function renderPasteBar(){
 var schedWired=false;
 function buildSchedule(){
   if(schedWired)return;var p=$('#panel-schedule');if(!p)return;schedWired=true;
-  $('#schedBranch').addEventListener('change',function(e){schedBranch=e.target.value;schedDate='';renderCal();renderSchedEditor();});
+  $('#schedBranch').addEventListener('change',function(e){schedBranchId=e.target.value;schedBranch=branchNameById(schedBranchId);schedDate='';renderCal();renderSchedEditor();});
   $('#schedPrev').addEventListener('click',function(){schedMonth=new Date(schedMonth.getFullYear(),schedMonth.getMonth()-1,1);renderCal();});
   $('#schedNext').addEventListener('click',function(){schedMonth=new Date(schedMonth.getFullYear(),schedMonth.getMonth()+1,1);renderCal();});
   $('#schedToday').addEventListener('click',function(){var t=new Date();schedMonth=new Date(t.getFullYear(),t.getMonth(),1);if(pasteMode){var dst=ymd(t);var ixt=selDates.indexOf(dst);if(ixt>-1)selDates.splice(ixt,1);else selDates.push(dst);renderCal();renderPasteBar();}else selectSchedDate(ymd(t));});
@@ -1738,38 +1746,38 @@ function buildSchedule(){
     if(e.target.id==='schedPasteCancel'){pasteMode=false;selDates=[];dragging=false;renderCal();renderPasteBar();return;}
     if(e.target.id==='schedPaste'){if(!schedClip){pasteMode=false;renderPasteBar();return;}var targets=selDates.length?selDates.slice():(schedDate?[schedDate]:[]);if(!targets.length){alert('붙여넣을 날짜를 선택하세요.');return;}if(!S.schedule)S.schedule={};
       var pasteJobs=[];
-      targets.forEach(function(ds){var rowsCopy=schedClip.map(function(r){return Object.assign({},r);});S.schedule[schedBranch+'|'+ds]=rowsCopy;var hk=schedBranch+'|'+ds,hi=(S.holidays||[]).indexOf(hk);var wasHoliday=hi>-1;if(wasHoliday)S.holidays.splice(hi,1);pasteJobs.push({ds:ds,rows:rowsCopy,wasHoliday:wasHoliday});});
+      targets.forEach(function(ds){var rowsCopy=schedClip.map(function(r){return Object.assign({},r);});S.schedule[schedBranchId+'|'+ds]=rowsCopy;var hk=schedBranchId+'|'+ds,hi=(S.holidays||[]).indexOf(hk);var wasHoliday=hi>-1;if(wasHoliday)S.holidays.splice(hi,1);pasteJobs.push({ds:ds,rows:rowsCopy,wasHoliday:wasHoliday});});
       try{localStorage.setItem('uuhee_settings',JSON.stringify(S));}catch(_){}
       pasteMode=false;selDates=[];dragging=false;renderCal();renderPasteBar();renderSchedEditor();
       if(window.__cloud&&window.__cloud.saveScheduleDate){
         if(window.__busy)window.__busy('일정 저장 중...',targets.length+'개 날짜를 저장하고 있습니다');
-        Promise.all(pasteJobs.map(function(t){var jobs=[window.__cloud.saveScheduleDate(schedBranch,t.ds,t.rows)];if(t.wasHoliday&&window.__cloud.saveHolidayToggle)jobs.push(window.__cloud.saveHolidayToggle(schedBranch,t.ds,false));return Promise.all(jobs);}))
+        Promise.all(pasteJobs.map(function(t){var jobs=[window.__cloud.saveScheduleDate(schedBranchId,t.ds,t.rows)];if(t.wasHoliday&&window.__cloud.saveHolidayToggle)jobs.push(window.__cloud.saveHolidayToggle(schedBranch,t.ds,false));return Promise.all(jobs);}))
           .then(function(){if(window.__busyDone)window.__busyDone();alert(targets.length+'개 날짜에 붙여넣었습니다.');})
           .catch(function(err){if(window.__busyDone)window.__busyDone();alert('일부 날짜 저장에 실패했습니다: '+((err&&err.message)||err));});
       }else{alert(targets.length+'개 날짜에 붙여넣었습니다.');}
       return;}
     var rm=e.target.closest('[data-srm]');if(rm){schedRows.splice(+rm.dataset.srm,1);renderSchedEditor();return;}
     if(e.target.id==='schedAdd'){schedRows.push({classId:(S.classes[0]&&S.classes[0].id)||'',time:'',cap:''});renderSchedEditor();return;}
-    if(e.target.id==='schedDefault'){var anyB=schedRows.some(function(r){return bookedForDay(r.classId,r.time)>0;});if(anyB&&!confirm('이 날짜에 접수된 신청이 있습니다. 기본값으로 덮어쓸까요?'))return;schedRows=defSlots(schedBranch);renderSchedEditor();return;}
+    if(e.target.id==='schedDefault'){var anyB=schedRows.some(function(r){return bookedForDay(r.classId,r.time)>0;});if(anyB&&!confirm('이 날짜에 접수된 신청이 있습니다. 기본값으로 덮어쓸까요?'))return;schedRows=defSlots(schedBranchId);renderSchedEditor();return;}
     if(e.target.id==='schedSave'){
       if(!S.schedule)S.schedule={};
       var rowsCopy=schedRows.map(function(r){return Object.assign({},r);});
-      S.schedule[schedBranch+'|'+schedDate]=rowsCopy;
+      S.schedule[schedBranchId+'|'+schedDate]=rowsCopy;
       try{localStorage.setItem('uuhee_settings',JSON.stringify(S));}catch(_){}
       renderCal();
       if(window.__cloud&&window.__cloud.saveScheduleDate){
         if(window.__busy)window.__busy('일정 저장 중...',schedDate);
-        window.__cloud.saveScheduleDate(schedBranch,schedDate,rowsCopy)
+        window.__cloud.saveScheduleDate(schedBranchId,schedDate,rowsCopy)
           .then(function(){if(window.__busyDone)window.__busyDone();alert('저장되었습니다.');})
           .catch(function(err){if(window.__busyDone)window.__busyDone();alert('서버 저장 실패: '+((err&&err.message)||err));});}
       else alert('저장되었습니다.');
       return;}
-    if(e.target.id==='schedHol'){var k=schedBranch+'|'+schedDate;if(!S.holidays)S.holidays=[];var ix=S.holidays.indexOf(k);
+    if(e.target.id==='schedHol'){var k=schedBranchId+'|'+schedDate;if(!S.holidays)S.holidays=[];var ix=S.holidays.indexOf(k);
       if(ix>-1){
         S.holidays.splice(ix,1);
         try{localStorage.setItem('uuhee_settings',JSON.stringify(S));}catch(_){}
         renderCal();renderSchedEditor();
-        if(window.__cloud&&window.__cloud.saveHolidayToggle)window.__cloud.saveHolidayToggle(schedBranch,schedDate,false).catch(function(err){alert('서버 저장 실패: '+((err&&err.message)||err));});
+        if(window.__cloud&&window.__cloud.saveHolidayToggle)window.__cloud.saveHolidayToggle(schedBranchId,schedDate,false).catch(function(err){alert('서버 저장 실패: '+((err&&err.message)||err));});
         return;
       } // 휴무 해제는 바로 처리
       var sum=appsSummaryForDate(schedDate);
@@ -1777,14 +1785,14 @@ function buildSchedule(){
       S.holidays.push(k);
       try{localStorage.setItem('uuhee_settings',JSON.stringify(S));}catch(_){}
       renderCal();renderSchedEditor();
-      if(window.__cloud&&window.__cloud.saveHolidayToggle)window.__cloud.saveHolidayToggle(schedBranch,schedDate,true).catch(function(err){alert('서버 저장 실패: '+((err&&err.message)||err));});
+      if(window.__cloud&&window.__cloud.saveHolidayToggle)window.__cloud.saveHolidayToggle(schedBranchId,schedDate,true).catch(function(err){alert('서버 저장 실패: '+((err&&err.message)||err));});
       return;}
     if(e.target.id==='schedClear'){var anyB2=schedRows.some(function(r){return bookedForDay(r.classId,r.time)>0;});if(anyB2&&!confirm('이 날짜에 접수된 신청이 있습니다. 개별설정을 해제할까요?'))return;
-      var k2=schedBranch+'|'+schedDate;if(S.schedule)delete S.schedule[k2];
-      schedRows=defSlots(schedBranch);
+      var k2=schedBranchId+'|'+schedDate;if(S.schedule)delete S.schedule[k2];
+      schedRows=defSlots(schedBranchId);
       try{localStorage.setItem('uuhee_settings',JSON.stringify(S));}catch(_){}
       renderCal();renderSchedEditor();
-      if(window.__cloud&&window.__cloud.saveScheduleDate)window.__cloud.saveScheduleDate(schedBranch,schedDate,[]).catch(function(err){alert('서버 저장 실패: '+((err&&err.message)||err));});
+      if(window.__cloud&&window.__cloud.saveScheduleDate)window.__cloud.saveScheduleDate(schedBranchId,schedDate,[]).catch(function(err){alert('서버 저장 실패: '+((err&&err.message)||err));});
       return;}
   });
   p.addEventListener('input',function(e){var t=e.target;if(t.dataset.sc!=null)schedRows[+t.dataset.i][t.dataset.sc]=t.value;});
