@@ -854,7 +854,7 @@ window.UUHEE_SB={url:'https://ybfwnmgnledlumppfjbh.supabase.co',key:'sb_publisha
       S.conceptMedia=cm.map(function(m){return s(m.url);});
       if(site)S.pay={depositAmount:(site.deposit_amount==null?'':String(site.deposit_amount)),transferOn:(site.pay_transfer_on!==false),smartstoreOn:(site.pay_smartstore_on!==false),onsiteOn:(site.pay_onsite_on!==false)};
       if(legal)S.legal={company:s(legal.company),ceo:s(legal.ceo),bizno:s(legal.bizno),mailorder:s(legal.mailorder),privacy:s(legal.privacy),addr:s(legal.addr),tel:s(legal.tel),email:s(legal.email),kakao:s(legal.kakao),hosting:s(legal.hosting),termsUrl:s(legal.terms_url),privacyUrl:s(legal.privacy_url),refundUrl:s(legal.refund_url)};
-      S.branches=br.map(function(b){return {name:s(b.name),nameEn:s(b.name_en),phone:s(b.phone),addr:s(b.addr),addrEn:s(b.addr_en),map:s(b.map),hours:s(b.hours),ig:s(b.ig),fb:s(b.fb),lt:s(b.lt),spaceDesc:s(b.space_desc),transferLink:s(b.transfer_link),smartstoreLink:s(b.smartstore_link),payTransferOn:(b.pay_transfer_on!==false),paySmartstoreOn:(b.pay_smartstore_on!==false),payOnsiteOn:(b.pay_onsite_on!==false)};});
+      S.branches=br.map(function(b){return {id:b.id,name:s(b.name),nameEn:s(b.name_en),phone:s(b.phone),addr:s(b.addr),addrEn:s(b.addr_en),map:s(b.map),hours:s(b.hours),ig:s(b.ig),fb:s(b.fb),lt:s(b.lt),spaceDesc:s(b.space_desc),transferLink:s(b.transfer_link),smartstoreLink:s(b.smartstore_link),payTransferOn:(b.pay_transfer_on!==false),paySmartstoreOn:(b.pay_smartstore_on!==false),payOnsiteOn:(b.pay_onsite_on!==false)};});
       S.classes=cl.map(function(x){var brs=cb.filter(function(b){return b.class_id===x.id;}).map(function(b){return s(b.branch_name);});return {id:x.id,order:x.ord,tag:s(x.tag),name:s(x.name),nameEn:s(x.name_en),desc:s(x.descr),descEn:s(x.desc_en),active:!!x.active,inquiryOnly:!!x.inquiry_only,branches:brs};});
       // 클래스는 이름이 아니라 classId로 연결(조인)합니다 — 이름을 바꿔도 연결이 끊기지 않도록.
       S.details=de.map(function(d){return {classId:d.class_id,branch:s(d.branch),size:s(d.size),price:(d.price==null?'':String(d.price)),discountType:s(d.discount_type),discountVal:(d.discount_val==null?'':String(d.discount_val)),desc:s(d.descr),descEn:s(d.desc_en)};});
@@ -942,17 +942,17 @@ window.UUHEE_SB={url:'https://ybfwnmgnledlumppfjbh.supabase.co',key:'sb_publisha
     },
     // RETURNING(방금 넣은 행 id 조회)이 필요한데 익명 사용자에겐 applications SELECT가 막혀있어
     // 직접 insert하면 저장 자체가 거부됨 — SECURITY DEFINER RPC로 저장(관리자 권한으로 우회)한다.
-    insertApplication:function(rec){var qty=rec.qty||{},keys=Object.keys(qty);var items=keys.map(function(k){return {size:k,qty:N(qty[k])||0};});return sb.rpc('uuhee_submit_application',{p_branch:s(rec.branch),p_cls:s(rec.class),p_size:s(rec.size),p_sdate:s(rec.date),p_stime:s(rec.time),p_people:N(rec.people),p_name:s(rec.name),p_phone:s(rec.phone),p_email:s(rec.email),p_msg:s(rec.msg),p_estimate:N(rec.estimate),p_pay_method:s(rec.payMethod),p_status:(rec.status||1),p_items:items});},
+    insertApplication:function(rec){var qty=rec.qty||{},keys=Object.keys(qty);var items=keys.map(function(k){return {size:k,qty:N(qty[k])||0};});return sb.rpc('uuhee_submit_application',{p_branch:s(rec.branch),p_cls:s(rec.class),p_size:s(rec.size),p_sdate:s(rec.date),p_stime:s(rec.time),p_people:N(rec.people),p_name:s(rec.name),p_phone:s(rec.phone),p_email:s(rec.email),p_msg:s(rec.msg),p_estimate:N(rec.estimate),p_pay_method:s(rec.payMethod),p_status:(rec.status||1),p_items:items,p_class_id:N(rec.classId),p_branch_id:N(rec.branchId)});},
     // inquiries도 익명 사용자에겐 SELECT가 막혀있어 direct insert로는 새 id를 돌려받을 수
     // 없다(카톡 접수 안내 발송에 필요) — applications와 동일하게 RPC로 우회한다.
-    insertInquiry:function(rec){return sb.rpc('uuhee_submit_inquiry',{p_itype:s(rec.type),p_volume:s(rec.volume),p_branch:s(rec.branch),p_company:s(rec.company),p_name:s(rec.name),p_phone:s(rec.phone),p_email:s(rec.email),p_isize:s(rec.size),p_msg:s(rec.msg)});},
+    insertInquiry:function(rec){return sb.rpc('uuhee_submit_inquiry',{p_branch_id:N(rec.branchId),p_itype:s(rec.type),p_volume:s(rec.volume),p_branch:s(rec.branch),p_company:s(rec.company),p_name:s(rec.name),p_phone:s(rec.phone),p_email:s(rec.email),p_isize:s(rec.size),p_msg:s(rec.msg)});},
     sendKakaoInquiryReceipt:function(inqId){return sb.functions.invoke('send-kakao',{body:{kind:'inquiry-receipt',id:inqId}});},
     // 신청 접수 직후 카카오 알림톡 발송(결제수단별 템플릿은 서버에서 자동 선택). 실패해도 신청 자체는
     // 이미 저장된 상태이므로 화면 흐름을 막지 않고 콘솔에만 남긴다(호출부에서 catch로 처리).
     sendKakaoReceipt:function(appId){return sb.functions.invoke('send-kakao',{body:{kind:'app-receipt',id:appId}});},
     // 시간대별 예약 인원. 익명 사용자는 RLS 때문에 applications를 직접 조회할 수 없어서,
     // 개인정보 없이 '시간: 인원'만 돌려주는 RPC로 받는다(취소·환불완료는 정원 트리거와 동일하게 제외).
-    bookedCounts:function(branch,cls,sdate){return sb.rpc('uuhee_booked',{p_branch:s(branch),p_cls:s(cls),p_sdate:s(sdate)}).then(function(r){if(r.error){console.warn(r.error);return null;}var m={};(r.data||[]).forEach(function(x){m[x.stime]=parseInt(x.booked,10)||0;});return m;});}
+    bookedCounts:function(branchId,classId,sdate){return sb.rpc('uuhee_booked',{p_branch_id:N(branchId),p_class_id:N(classId),p_sdate:s(sdate)}).then(function(r){if(r.error){console.warn(r.error);return null;}var m={};(r.data||[]).forEach(function(x){m[x.stime]=parseInt(x.booked,10)||0;});return m;});}
   };
   var isAdmin=/admin\.html$/i.test(location.pathname);
   var tasks=[ pullSettings().then(function(S){if(!S)return false;var j=JSON.stringify(S);if(j!==(localStorage.getItem('uuhee_settings')||'')){localStorage.setItem('uuhee_settings',j);return true;}return false;}) ];
@@ -1277,11 +1277,11 @@ window.UUHEE_SB={url:'https://ybfwnmgnledlumppfjbh.supabase.co',key:'sb_publisha
     var E=function(s){return (s==null?'':String(s)).replace(/[<>&"]/g,function(c){return {'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c];});};
     var br=(S.branches||[]).filter(function(b){return b.name;});
     var cls=(S.classes||[]).filter(function(c){return c.name;});
-    var opt=function(val,ti,de){return '<div class="opt" data-val="'+E(val)+'"><div><div class="ti">'+E(ti)+'</div>'+(de?'<div class="de">'+E(de)+'</div>':'')+'</div></div>';};
+    var opt=function(val,ti,de,bid){return '<div class="opt" data-val="'+E(val)+'"'+(bid!=null?' data-bid="'+E(bid)+'"':'')+'><div><div class="ti">'+E(ti)+'</div>'+(de?'<div class="de">'+E(de)+'</div>':'')+'</div></div>';};
     var set=function(sel,html){var el=document.querySelector(sel);if(el&&html)el.innerHTML=html;};
     if(br.length){
-      set('#applyModal .opt-list[data-field="branch"]', br.map(function(b){return opt(b.name,b.name,b.addr);}).join(''));
-      var gb=br.map(function(b){return opt(b.name,b.name,b.addr);}).join('')+opt('상담 후 결정','상담 후 결정','');
+      set('#applyModal .opt-list[data-field="branch"]', br.map(function(b){return opt(b.name,b.name,b.addr,b.id);}).join(''));
+      var gb=br.map(function(b){return opt(b.name,b.name,b.addr,b.id);}).join('')+opt('상담 후 결정','상담 후 결정','');
       document.querySelectorAll('.gbranch').forEach(function(g){g.innerHTML=gb;});
     }
     var book=cls.filter(function(c){return c.active;});
@@ -1362,14 +1362,14 @@ window.UUHEE_SB={url:'https://ybfwnmgnledlumppfjbh.supabase.co',key:'sb_publisha
     // 먼저 알고 있는 값으로 그리고, 서버에서 예약 인원을 받아오면 다시 그린다.
     // (예전엔 이 브라우저의 localStorage 기록만 빼서, 다른 고객 예약이 전혀 반영되지 않았다)
     var BOOKED={};
-    const populateTimes=function(){var k=data.branch+'|'+data.class+'|'+data.date;renderTimes(BOOKED[k]);
-      if(data.branch&&data.class&&data.date&&window.__cloud&&window.__cloud.bookedCounts){
-        window.__cloud.bookedCounts(data.branch,data.class,data.date).then(function(m){if(!m)return;BOOKED[k]=m;renderTimes(m);}).catch(function(e){console.warn(e);});}};
+    const populateTimes=function(){var k=data.branchId+'|'+data.classId+'|'+data.date;renderTimes(BOOKED[k]);
+      if(data.branchId&&data.classId&&data.date&&window.__cloud&&window.__cloud.bookedCounts){
+        window.__cloud.bookedCounts(data.branchId,data.classId,data.date).then(function(m){if(!m)return;BOOKED[k]=m;renderTimes(m);}).catch(function(e){console.warn(e);});}};
     let step=1;
     const openModal=(preset)=>{modal.classList.add('open');document.body.style.overflow='hidden';
       // 지점 기본값: 목록의 첫 번째 지점 선택
       var brList=modal.querySelector('.opt-list[data-field="branch"]');var firstBr=brList?brList.querySelector('.opt'):null;
-      if(firstBr){brList.querySelectorAll('.opt').forEach(function(o){o.classList.remove('sel');});firstBr.classList.add('sel');data.branch=firstBr.dataset.val||'';populateClasses(data.branch);}
+      if(firstBr){brList.querySelectorAll('.opt').forEach(function(o){o.classList.remove('sel');});firstBr.classList.add('sel');data.branch=firstBr.dataset.val||'';data.branchId=firstBr.dataset.bid||'';populateClasses(data.branch);}
       else populateClasses('');
       var di=modal.querySelector('input[data-field="date"]');if(di&&!di.value){var yy=todayKST();di.value=yy;data.date=yy;}
       var ppl=modal.querySelector('input[data-field="people"]');if(ppl)ppl.value='2';data.people='2';
@@ -1378,7 +1378,7 @@ window.UUHEE_SB={url:'https://ybfwnmgnledlumppfjbh.supabase.co',key:'sb_publisha
     const closeModal=()=>{modal.classList.remove('open');document.body.style.overflow='';};
     document.querySelectorAll('[data-open-apply]').forEach(b=>b.addEventListener('click',e=>{e.preventDefault();openModal(b.getAttribute('data-aclass')||'');}));
     document.getElementById('modalClose').addEventListener('click',closeModal);
-    modal.addEventListener('click',function(e){var opt=e.target.closest('.opt-list .opt');if(opt){var list=opt.closest('.opt-list');list.querySelectorAll('.opt').forEach(function(o){o.classList.remove('sel');});opt.classList.add('sel');var f=list.dataset.field;if(f){data[f]=opt.dataset.val;if(f==='class')data.classId=opt.dataset.cid||'';if(f==='pay')onPaySelected();}}});
+    modal.addEventListener('click',function(e){var opt=e.target.closest('.opt-list .opt');if(opt){var list=opt.closest('.opt-list');list.querySelectorAll('.opt').forEach(function(o){o.classList.remove('sel');});opt.classList.add('sel');var f=list.dataset.field;if(f){data[f]=opt.dataset.val;if(f==='class')data.classId=opt.dataset.cid||'';if(f==='branch')data.branchId=opt.dataset.bid||'';if(f==='pay')onPaySelected();}}});
     document.addEventListener('keydown',e=>{if(e.key==='Escape'&&modal.classList.contains('open'))closeModal();});
     modal.querySelectorAll('[data-field]').forEach(inp=>{if(inp.tagName==='INPUT'||inp.tagName==='SELECT'||inp.tagName==='TEXTAREA')inp.addEventListener('input',function(){
       if(inp.dataset.field==='phone'){var f=formatPhone(inp.value);inp.value=f;data.phone=f;return;}
@@ -1475,12 +1475,11 @@ window.UUHEE_SB={url:'https://ybfwnmgnledlumppfjbh.supabase.co',key:'sb_publisha
     document.getElementById('payGo').addEventListener('click',function(){
       var btn=this;if(btn.disabled)return; // 중복 클릭으로 예약/결제가 두 번 접수되는 것을 방지
       hideErr();if(!data.pay)return err('pay');
-      var methodLabel={transfer:'계좌이체',smartstore:'스마트스토어 카드결제',onsite:'현장 카드결제(예약금)'}[data.pay]||data.pay;
       var link=payLinkFor(data.pay);
       if(!link){alert('아직 결제 링크가 준비되지 않았습니다. 매장으로 문의해 주세요.');return;}
       // 클릭 이벤트 핸들러 안에서 동기적으로 열어야 브라우저 팝업 차단을 피할 수 있어, 저장(비동기) 전에 먼저 연다.
       window.open(link,'_blank');
-      btn.disabled=true;data.status=2;data.payMethod=methodLabel;
+      btn.disabled=true;data.status=2;data.payMethod=data.pay;
       finalizeApp().then(function(r){
         btn.disabled=false;
         if(!r.ok){alert(r.message||'죄송합니다, 방금 다른 예약으로 자리가 찼습니다. 다른 시간을 선택해 주세요.');step=3;return render();}
@@ -1516,7 +1515,7 @@ window.UUHEE_SB={url:'https://ybfwnmgnledlumppfjbh.supabase.co',key:'sb_publisha
       const er=gm.querySelector('[data-err="group"]');
       if(!st||!sb||!c||!n||!p){er.style.display='block';return;}er.style.display='none';
       gsBtn.disabled=true;
-      var grec={type:st.dataset.val,branch:sb.dataset.val,company:c,name:n,phone:p,email:gm.querySelector('[data-field="gemail"]').value,size:gm.querySelector('[data-field="gsize"]').value,msg:gm.querySelector('[data-field="gmsg"]').value,ts:Date.now()};try{const all=JSON.parse(localStorage.getItem('uuhee_group')||'[]');all.push(grec);localStorage.setItem('uuhee_group',JSON.stringify(all));}catch(e){}
+      var grec={type:st.dataset.val,branch:sb.dataset.val,branchId:(sb.dataset.bid||''),company:c,name:n,phone:p,email:gm.querySelector('[data-field="gemail"]').value,size:gm.querySelector('[data-field="gsize"]').value,msg:gm.querySelector('[data-field="gmsg"]').value,ts:Date.now()};try{const all=JSON.parse(localStorage.getItem('uuhee_group')||'[]');all.push(grec);localStorage.setItem('uuhee_group',JSON.stringify(all));}catch(e){}
       var done=function(){document.getElementById('groupForm').style.display='none';document.getElementById('groupFoot').style.display='none';document.getElementById('groupDone').style.display='block';gsBtn.disabled=false;};
       if(window.__cloud){
         try{window.__cloud.insertInquiry(grec).then(function(r){if(r&&r.error){console.warn(r.error);alert('문의 접수 중 서버 저장에 문제가 발생했습니다. 확인을 위해 매장으로 연락해 주세요.');}else if(r&&r.data!=null){try{window.__cloud.sendKakaoInquiryReceipt(r.data).catch(function(e){console.warn('카톡 문의접수안내 발송 실패',e);});}catch(e){console.warn(e);}}done();}).catch(function(e){console.warn(e);alert('문의 접수 중 오류가 발생했습니다. 확인을 위해 매장으로 연락해 주세요.');done();});}catch(e){done();}
@@ -1548,7 +1547,7 @@ window.UUHEE_SB={url:'https://ybfwnmgnledlumppfjbh.supabase.co',key:'sb_publisha
       const er=f.querySelector('[data-err="inq"]');
       if(!type||!sb||!c||!n||!p||(needVol&&!vol.value)){er.style.display='block';return;}er.style.display='none';
       inqBtn.disabled=true;
-      var irec={type:type,volume:vol.value||'',branch:sb.dataset.val,company:c,name:n,phone:p,email:f.querySelector('[data-field="iemail"]').value,msg:f.querySelector('[data-field="imsg"]').value,ts:Date.now()};try{const all=JSON.parse(localStorage.getItem('uuhee_group')||'[]');all.push(irec);localStorage.setItem('uuhee_group',JSON.stringify(all));}catch(e){}
+      var irec={type:type,volume:vol.value||'',branch:sb.dataset.val,branchId:(sb.dataset.bid||''),company:c,name:n,phone:p,email:f.querySelector('[data-field="iemail"]').value,msg:f.querySelector('[data-field="imsg"]').value,ts:Date.now()};try{const all=JSON.parse(localStorage.getItem('uuhee_group')||'[]');all.push(irec);localStorage.setItem('uuhee_group',JSON.stringify(all));}catch(e){}
       var done=function(){f.style.display='none';document.getElementById('inqDone').style.display='block';inqBtn.disabled=false;};
       if(window.__cloud){
         try{window.__cloud.insertInquiry(irec).then(function(r){if(r&&r.error){console.warn(r.error);alert('문의 접수 중 서버 저장에 문제가 발생했습니다. 확인을 위해 매장으로 연락해 주세요.');}else if(r&&r.data!=null){try{window.__cloud.sendKakaoInquiryReceipt(r.data).catch(function(e){console.warn('카톡 문의접수안내 발송 실패',e);});}catch(e){console.warn(e);}}done();}).catch(function(e){console.warn(e);alert('문의 접수 중 오류가 발생했습니다. 확인을 위해 매장으로 연락해 주세요.');done();});}catch(e){done();}

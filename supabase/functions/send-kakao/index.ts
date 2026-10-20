@@ -175,8 +175,14 @@ Deno.serve(async (req) => {
 
       if (kind === "app-receipt") {
         if (a.kakao_notice) return json({ ok: true, alreadySent: true });
+        // pay_method는 코드(transfer/smartstore/onsite)로 저장된다.
+        // 코드화 이전에 저장된 한글 라벨도 그대로 받아준다.
         const pm = String(a.pay_method || "");
-        const variant = /스마트스토어/.test(pm) ? "smartstore" : /현장/.test(pm) ? "onsite" : "transfer";
+        const variant = (pm === "smartstore" || /스토어/.test(pm))
+          ? "smartstore"
+          : (pm === "onsite" || /현장/.test(pm))
+          ? "onsite"
+          : "transfer";
         const { data: items } = await admin
           .from("application_items")
           .select("size,qty")

@@ -451,8 +451,8 @@ window.UUHEE_SB={url:'https://ybfwnmgnledlumppfjbh.supabase.co',key:'sb_publisha
   function pullSubs(){
     return Promise.all([sb.from('applications').select('*').order('id'),sb.from('inquiries').select('*').order('id'),sb.from('application_items').select('*')]).then(function(r){
       var itemsBy={};(r[2].data||[]).forEach(function(it){var k=it.application_id;(itemsBy[k]=itemsBy[k]||{})[s(it.size)]=it.qty;});
-      var apps=(r[0].data||[]).map(function(a){return {id:a.id,status:(a.status||1),memo:s(a.memo),branch:s(a.branch),class:s(a.cls),size:s(a.size),date:s(a.sdate),time:s(a.stime),people:(a.people==null?'':String(a.people)),name:s(a.name),phone:fmtPhone(s(a.phone)),email:s(a.email),msg:s(a.msg),estimate:a.estimate,payMethod:s(a.pay_method),deposit:a.deposit,payStatus:s(a.pay_status),balanceMethod:s(a.balance_method),kakaoNotice:(a.kakao_notice==null?null:+a.kakao_notice),qty:itemsBy[a.id]||null,ts:a.created_at?Date.parse(a.created_at):Date.now()};});
-      var grp=(r[1].data||[]).map(function(g){return {type:s(g.itype),volume:s(g.volume),branch:s(g.branch),company:s(g.company),name:s(g.name),phone:fmtPhone(s(g.phone)),email:s(g.email),size:s(g.isize),msg:s(g.msg),ts:g.created_at?Date.parse(g.created_at):Date.now()};});
+      var apps=(r[0].data||[]).map(function(a){return {id:a.id,status:(a.status||1),memo:s(a.memo),branch:s(a.branch),class:s(a.cls),size:s(a.size),date:s(a.sdate),time:s(a.stime),people:(a.people==null?'':String(a.people)),name:s(a.name),phone:fmtPhone(s(a.phone)),email:s(a.email),msg:s(a.msg),estimate:a.estimate,payMethod:s(a.pay_method),deposit:a.deposit,payStatus:s(a.pay_status),balanceMethod:s(a.balance_method),classId:a.class_id,branchId:a.branch_id,kakaoNotice:(a.kakao_notice==null?null:+a.kakao_notice),qty:itemsBy[a.id]||null,ts:a.created_at?Date.parse(a.created_at):Date.now()};});
+      var grp=(r[1].data||[]).map(function(g){return {id:g.id,branchId:g.branch_id,type:s(g.itype),volume:s(g.volume),branch:s(g.branch),company:s(g.company),name:s(g.name),phone:fmtPhone(s(g.phone)),email:s(g.email),size:s(g.isize),msg:s(g.msg),ts:g.created_at?Date.parse(g.created_at):Date.now()};});
       return {apps:apps,grp:grp};
     });
   }
@@ -776,8 +776,8 @@ window.UUHEE_SB={url:'https://ybfwnmgnledlumppfjbh.supabase.co',key:'sb_publisha
         return maybeConvertVideoCodec(file).then(putToStorage);
       }
       return compressImage(file,1920,0.82).then(putToStorage);},
-    insertApplication:function(rec){var qty=rec.qty||{},keys=Object.keys(qty);var items=keys.map(function(k){return {size:k,qty:N(qty[k])||0};});return sb.rpc('uuhee_submit_application',{p_branch:s(rec.branch),p_cls:s(rec.class),p_size:s(rec.size),p_sdate:s(rec.date),p_stime:s(rec.time),p_people:N(rec.people),p_name:s(rec.name),p_phone:s(rec.phone),p_email:s(rec.email),p_msg:s(rec.msg),p_estimate:N(rec.estimate),p_pay_method:s(rec.payMethod),p_status:(rec.status||1),p_items:items});},
-    insertInquiry:function(rec){return sb.from('inquiries').insert({itype:s(rec.type),volume:s(rec.volume),branch:s(rec.branch),company:s(rec.company),name:s(rec.name),phone:s(rec.phone),email:s(rec.email),isize:s(rec.size),msg:s(rec.msg)});}
+    insertApplication:function(rec){var qty=rec.qty||{},keys=Object.keys(qty);var items=keys.map(function(k){return {size:k,qty:N(qty[k])||0};});return sb.rpc('uuhee_submit_application',{p_branch:s(rec.branch),p_cls:s(rec.class),p_size:s(rec.size),p_sdate:s(rec.date),p_stime:s(rec.time),p_people:N(rec.people),p_name:s(rec.name),p_phone:s(rec.phone),p_email:s(rec.email),p_msg:s(rec.msg),p_estimate:N(rec.estimate),p_pay_method:s(rec.payMethod),p_status:(rec.status||1),p_items:items,p_class_id:N(rec.classId),p_branch_id:N(rec.branchId)});},
+    insertInquiry:function(rec){return sb.from('inquiries').insert({itype:s(rec.type),volume:s(rec.volume),branch_id:N(rec.branchId),branch:s(rec.branch),company:s(rec.company),name:s(rec.name),phone:s(rec.phone),email:s(rec.email),isize:s(rec.size),msg:s(rec.msg)});}
   };
   var isAdmin=/admin\.html$/i.test(location.pathname);
   var tasks=[ pullSettings().then(function(S){if(!S)return false;var j=JSON.stringify(S);if(j!==(localStorage.getItem('uuhee_settings')||'')){localStorage.setItem('uuhee_settings',j);return true;}return false;}) ];
@@ -1082,11 +1082,14 @@ function won(v){return (v===''||v==null||isNaN(+v))?'-':('\u20a9'+Number(v).toLo
                솜씨당·주말토리·탈잉처럼 외부 플랫폼 예약은 처음부터 관리자가 직접 고른다.
    잔액결제  : 남은 금액을 실제로 받은 방법(현장결제 건에서만 보통 쓰임).
    최종결제  : 잔액결제가 있으면 그 값, 없으면 결제상태 — 즉 '이 건을 최종적으로 어떻게 받았나'. */
-var PAY_ST=['계좌대기','계좌완','예약금대기','예약금 완','카드결제','스토어대기','스토어','솜씨당','주말토리','탈잉','예약금 환불'];
-var BAL_ST=['계좌완','카드결제','스토어'];
-function payStatusOf(r){if(r.payStatus)return r.payStatus;var m=r.payMethod||'';if(/현장/.test(m))return '예약금대기';if(/스토어/.test(m))return '스토어대기';if(/계좌/.test(m))return '계좌대기';return '';}
+var PAYM_LAB={transfer:'계좌이체',smartstore:'스마트스토어 카드결제',onsite:'현장 카드결제(예약금)'};
+var PAY_ST=[['transfer_wait','계좌대기'],['transfer_done','계좌완'],['deposit_wait','예약금대기'],['deposit_done','예약금 완'],['card','카드결제'],['store_wait','스토어대기'],['store','스토어'],['somssidang','솜씨당'],['jumaltori','주말토리'],['taling','탈잉'],['deposit_refund','예약금 환불']];
+var BAL_ST=[['transfer_done','계좌완'],['card','카드결제'],['store','스토어']];
+function payLab(code,list){if(!code)return '';var L=(list||PAY_ST.concat(BAL_ST));for(var i=0;i<L.length;i++)if(L[i][0]===code)return L[i][1];return code;}
+function payMethodLab(code){return PAYM_LAB[code]||code||'';}
+function payStatusOf(r){if(r.payStatus)return r.payStatus;var m=r.payMethod||'';if(m==='onsite')return 'deposit_wait';if(m==='smartstore')return 'store_wait';if(m==='transfer')return 'transfer_wait';return '';}
 // 예약금: 현장결제는 설정된 예약금, 그 외(계좌이체·스토어)는 예약 시 전액을 받으므로 총액이 곧 예약금이다.
-function depositOf(r){if(r.deposit!=null&&r.deposit!==''&&!isNaN(+r.deposit))return Number(r.deposit);var est=Number(r.estimate||0)||0;if(/현장/.test(r.payMethod||'')){var d=+((S.pay||{}).depositAmount||0)||0;return est>0?Math.min(d,est):d;}return est;}
+function depositOf(r){if(r.deposit!=null&&r.deposit!==''&&!isNaN(+r.deposit))return Number(r.deposit);var est=Number(r.estimate||0)||0;if((r.payMethod||'')==='onsite'){var d=+((S.pay||{}).depositAmount||0)||0;return est>0?Math.min(d,est):d;}return est;}
 function balanceOf(r){var est=Number(r.estimate||0)||0;return Math.max(est-depositOf(r),0);}
 function finalPayOf(r){return r.balanceMethod||payStatusOf(r)||'';}
 function contentText(w,r){return w==='apps'?(r.class||''):(r.type||'');}
@@ -1120,7 +1123,7 @@ function renderSubs(){
     rowf=function(r){return '<td>'+esc(r.type||'')+'</td><td>'+esc(r.branch||'')+'</td><td>'+esc(r.company||'')+'</td><td>'+esc(r.name||'')+'</td><td>'+esc(r.phone||'')+'</td><td>'+esc(r.volume||'-')+'</td><td class="cdetail">'+esc(r.msg||'')+'</td>';};
   } else if(SUBTAB==='class'){
     head='<th>희망일</th><th>시간</th><th>이름</th><th>연락처</th><th>지점</th><th>클래스</th><th>용량</th><th>인원</th><th>결제금액</th><th>예약금</th><th>잔액</th><th>결제상태</th><th>잔액결제</th><th>최종결제</th>';
-    rowf=function(r){return '<td>'+esc(r.date||'')+'</td><td>'+esc(r.time||'')+'</td><td>'+esc(r.name||'')+'</td><td>'+esc(r.phone||'')+'</td><td>'+esc(r.branch||'')+'</td><td class="cell">'+esc(r.class||'')+'</td><td>'+esc(r.size||'')+'</td><td>'+esc(r.people||'')+'</td><td class="mono">'+won(r.estimate)+'</td><td class="mono">'+won(depositOf(r))+'</td><td class="mono">'+won(balanceOf(r))+'</td><td>'+esc(payStatusOf(r)||'-')+'</td><td>'+esc(r.balanceMethod||'-')+'</td><td>'+esc(finalPayOf(r)||'-')+'</td>';};
+    rowf=function(r){return '<td>'+esc(r.date||'')+'</td><td>'+esc(r.time||'')+'</td><td>'+esc(r.name||'')+'</td><td>'+esc(r.phone||'')+'</td><td>'+esc(r.branch||'')+'</td><td class="cell">'+esc(r.class||'')+'</td><td>'+esc(r.size||'')+'</td><td>'+esc(r.people||'')+'</td><td class="mono">'+won(r.estimate)+'</td><td class="mono">'+won(depositOf(r))+'</td><td class="mono">'+won(balanceOf(r))+'</td><td>'+esc(payLab(payStatusOf(r))||'-')+'</td><td>'+esc(payLab(r.balanceMethod)||'-')+'</td><td>'+esc(payLab(finalPayOf(r))||'-')+'</td>';};
   } else {
     head='<th>구분</th><th>이름</th><th>연락처</th><th>내용</th><th>상세</th>';
     rowf=function(r,w){return '<td>'+(w==='apps'?'클래스':'단체·기업')+'</td><td>'+esc(r.name||'')+'</td><td>'+esc(r.phone||'')+'</td><td>'+esc(contentText(w,r))+'</td><td class="cdetail">'+esc(detailText(w,r))+'</td>';};
@@ -1146,20 +1149,24 @@ $('#bulkModal')&&$('#bulkModal').addEventListener('click',function(e){if(e.targe
 $('#bkApply')&&$('#bkApply').addEventListener('click',function(){var picks=window.__bkPicks||[];var from=+$('#bkFrom').value,to=+$('#bkTo').value,ig=$('#bkIgnore').checked;var aid=[],gid=[];picks.forEach(function(p){if(ig||(p.rec.status||1)===from){p.rec.status=to;if(p.rec.id)(p.w==='apps'?aid:gid).push(p.rec.id);}});if(window.__sb){if(aid.length)window.__sb.from('applications').update({status:to}).in('id',aid).then(function(r){if(r.error){console.warn(r.error);alert('일부 항목의 서버 저장에 실패했습니다: '+r.error.message);}});if(gid.length)window.__sb.from('inquiries').update({status:to}).in('id',gid).then(function(r){if(r.error){console.warn(r.error);alert('일부 항목의 서버 저장에 실패했습니다: '+r.error.message);}});}try{localStorage.setItem('uuhee_apps',JSON.stringify(apps));localStorage.setItem('uuhee_group',JSON.stringify(group));}catch(_){}renderSubs();renderOverview();$('#bulkModal').style.display='none';});
 $('#bulkDel')&&$('#bulkDel').addEventListener('click',function(){var picks=checkedPicks();if(!picks.length){alert('선택된 항목이 없습니다.');return;}if(!confirm(picks.length+'건 삭제할까요?'))return;var aid=[],gid=[];picks.forEach(function(p){var arr=p.w==='apps'?apps:group;var r=arr[p.i];if(r&&r.id)(p.w==='apps'?aid:gid).push(r.id);});if(window.__sb){if(aid.length)window.__sb.from('applications').delete().in('id',aid).then(function(r){if(r.error){console.warn(r.error);alert('일부 항목의 서버 삭제에 실패했습니다: '+r.error.message);}});if(gid.length)window.__sb.from('inquiries').delete().in('id',gid).then(function(r){if(r.error){console.warn(r.error);alert('일부 항목의 서버 삭제에 실패했습니다: '+r.error.message);}});}apps=apps.filter(function(a){return aid.indexOf(a.id)<0;});group=group.filter(function(g){return gid.indexOf(g.id)<0;});try{localStorage.setItem('uuhee_apps',JSON.stringify(apps));localStorage.setItem('uuhee_group',JSON.stringify(group));}catch(_){}renderSubs();renderOverview();});
 $('#subAdd')&&$('#subAdd').addEventListener('click',function(){openSubEditNew(SUBTAB==='group'?'group':'apps');});
-$('#csvApps')&&$('#csvApps').addEventListener('click',function(){download('uuhee_class_apps.csv',toCSV([['지점','클래스','용량','날짜','시간','인원','이름','연락처','이메일','남길 말','결제금액','예약금','잔액','결제상태','잔액결제','최종결제','상태','메모','접수'],].concat(apps.map(function(a){return [a.branch,a.class,a.size,a.date,a.time,a.people,a.name,a.phone,a.email,a.msg,a.estimate,depositOf(a),balanceOf(a),payStatusOf(a),(a.balanceMethod||''),finalPayOf(a),STLAB[a.status||1],a.memo,fmt(a.ts)];}))));});
+$('#csvApps')&&$('#csvApps').addEventListener('click',function(){download('uuhee_class_apps.csv',toCSV([['지점','클래스','용량','날짜','시간','인원','이름','연락처','이메일','남길 말','결제금액','예약금','잔액','결제상태','잔액결제','최종결제','상태','메모','접수'],].concat(apps.map(function(a){return [a.branch,a.class,a.size,a.date,a.time,a.people,a.name,a.phone,a.email,a.msg,a.estimate,depositOf(a),balanceOf(a),payLab(payStatusOf(a)),payLab(a.balanceMethod),payLab(finalPayOf(a)),STLAB[a.status||1],a.memo,fmt(a.ts)];}))));});
 $('#csvGroup')&&$('#csvGroup').addEventListener('click',function(){download('uuhee_group.csv',toCSV([['유형','용량','지점','회사단체','담당자','연락처','이메일','내용','상태','메모','접수'],].concat(group.map(function(g){return [g.type,g.volume,g.branch,g.company,g.name,g.phone,g.email,g.msg,STLAB[g.status||1],g.memo,fmt(g.ts)];}))));});
 var EW=null,EI=null,ENEW=null;
-function seSel(label,key,val,opts){return '<label class="se-f"><span>'+label+'</span><select data-fk="'+key+'"><option value="">-</option>'+opts.map(function(o){return '<option'+(o===val?' selected':'')+'>'+esc(o)+'</option>';}).join('')+'</select></label>';}
+function seSel(label,key,val,opts){return '<label class="se-f"><span>'+label+'</span><select data-fk="'+key+'"><option value="">-</option>'+opts.map(function(o){var v=o[0],t=o[1];return '<option value="'+esc(v)+'"'+(String(v)===String(val)?' selected':'')+'>'+esc(t)+'</option>';}).join('')+'</select></label>';}
 function seField(label,key,val,type){val=val==null?'':val;if(type==='ta')return '<label class="se-f se-full"><span>'+label+'</span><textarea data-fk="'+key+'" rows="2">'+esc(val)+'</textarea></label>';if(type==='st')return '<label class="se-f"><span>'+label+'</span><select data-fk="status">'+stOpts(val||1)+'</select></label>';return '<label class="se-f"><span>'+label+'</span><input data-fk="'+key+'" value="'+esc(val)+'"></label>';}
 function buildSeBody(w,r){var h=seField('상태','status',r.status||1,'st');
-  if(w==='apps'){h+=seField('지점','branch',r.branch);h+=seField('클래스','class',r.class);h+=seField('용량','size',r.size);h+=seField('날짜','date',r.date);h+=seField('시간','time',r.time);h+=seField('인원','people',r.people);h+=seField('결제금액(총액)','estimate',r.estimate);h+=seField('예약금 (비우면 자동)','deposit',(r.deposit==null?'':r.deposit));h+=seSel('결제상태(예약 시)','payStatus',payStatusOf(r),PAY_ST);h+=seSel('잔액결제방법','balanceMethod',r.balanceMethod||'',BAL_ST);h+=seField('이름','name',r.name);h+=seField('연락처','phone',r.phone);h+=seField('이메일','email',r.email);h+=seField('남길 말','msg',r.msg,'ta');}
-  else{h+=seField('유형','type',r.type);h+=seField('신청 용량','volume',r.volume);h+=seField('지점','branch',r.branch);h+=seField('회사/단체','company',r.company);h+=seField('담당자','name',r.name);h+=seField('연락처','phone',r.phone);h+=seField('이메일','email',r.email);h+=seField('문의 내용','msg',r.msg,'ta');}
+  if(w==='apps'){h+=seSel('지점','branchId',r.branchId,branchOpts());h+=seSel('클래스','classId',r.classId,classOpts());h+=seField('용량','size',r.size);h+=seField('날짜','date',r.date);h+=seField('시간','time',r.time);h+=seField('인원','people',r.people);h+=seField('결제금액(총액)','estimate',r.estimate);h+=seField('예약금 (비우면 자동)','deposit',(r.deposit==null?'':r.deposit));h+=seSel('결제상태(예약 시)','payStatus',payStatusOf(r),PAY_ST);h+=seSel('잔액결제방법','balanceMethod',r.balanceMethod||'',BAL_ST);h+=seField('이름','name',r.name);h+=seField('연락처','phone',r.phone);h+=seField('이메일','email',r.email);h+=seField('남길 말','msg',r.msg,'ta');}
+  else{h+=seField('유형','type',r.type);h+=seField('신청 용량','volume',r.volume);h+=seSel('지점','branchId',r.branchId,branchOpts());h+=seField('회사/단체','company',r.company);h+=seField('담당자','name',r.name);h+=seField('연락처','phone',r.phone);h+=seField('이메일','email',r.email);h+=seField('문의 내용','msg',r.msg,'ta');}
   h+=seField('메모','memo',r.memo,'ta');return h;}
 function openSubEdit(w,i){EW=w;EI=i;ENEW=null;var r=(w==='apps')?apps[i]:group[i];if(!r)return;$('#seBody').innerHTML=buildSeBody(w,r);$('#seTitle').textContent=(w==='apps'?'클래스 신청':'단체·기업 문의')+' 수정';$('#seDelete').style.display='';var st=S.site||{};$('#seReceipt').style.display=(w==='apps'&&st.notifyReceiptOn!==false)?'':'none';$('#seConfirm').style.display=(w==='apps'&&st.notifyConfirmOn!==false)?'':'none';$('#seInquiry').style.display=(w==='group'&&st.notifyInquiryOn!==false)?'':'none';$('#seGroupConfirm').style.display=(w==='group'&&st.notifyConfirmOn!==false)?'':'none';$('#subEdit').style.display='flex';}
 function openSubEditNew(w){EW=w;EI=-1;ENEW={status:1};if(w==='apps')ENEW.people='1';$('#seBody').innerHTML=buildSeBody(w,ENEW);$('#seTitle').textContent=(w==='apps'?'클래스 신청':'단체·기업 문의')+' 추가';$('#seDelete').style.display='none';$('#seReceipt').style.display='none';$('#seConfirm').style.display='none';$('#seInquiry').style.display='none';$('#seGroupConfirm').style.display='none';$('#subEdit').style.display='flex';}
 function closeSubEdit(){$('#subEdit').style.display='none';EW=null;EI=null;ENEW=null;}
 function collectSe(r){$$('#seBody [data-fk]').forEach(function(el){var k=el.getAttribute('data-fk');var v=el.value;if(k==='status')v=+v||1;r[k]=v;});}
-function payloadOf(w,r){if(w==='apps')return {status:r.status,branch:r.branch,cls:r.class,size:r.size,sdate:r.date,stime:r.time,people:(r.people===''||r.people==null?null:parseInt(r.people,10)),name:r.name,phone:r.phone,email:r.email,msg:r.msg,estimate:(r.estimate===''||r.estimate==null||isNaN(+r.estimate)?null:Number(r.estimate)),deposit:(r.deposit===''||r.deposit==null||isNaN(+r.deposit)?null:Number(r.deposit)),pay_status:(r.payStatus||null),balance_method:(r.balanceMethod||null),memo:r.memo};return {status:r.status,itype:r.type,volume:r.volume,branch:r.branch,company:r.company,name:r.name,phone:r.phone,email:r.email,msg:r.msg,memo:r.memo};}
+function payloadOf(w,r){
+  var bid=(r.branchId===''||r.branchId==null?null:parseInt(r.branchId,10));
+  var cid=(r.classId===''||r.classId==null?null:parseInt(r.classId,10));
+  // branch/cls(이름)는 지우지 않고 id에서 다시 만들어 넣는다 — 카톡 템플릿·CSV가 쓰는 표시용 스냅샷.
+  if(w==='apps')return {status:r.status,branch_id:bid,class_id:cid,branch:(branchNameById(bid)||r.branch),cls:(classNameById(cid)||r.class),size:r.size,sdate:r.date,stime:r.time,people:(r.people===''||r.people==null?null:parseInt(r.people,10)),name:r.name,phone:r.phone,email:r.email,msg:r.msg,estimate:(r.estimate===''||r.estimate==null||isNaN(+r.estimate)?null:Number(r.estimate)),deposit:(r.deposit===''||r.deposit==null||isNaN(+r.deposit)?null:Number(r.deposit)),pay_status:(r.payStatus||null),balance_method:(r.balanceMethod||null),memo:r.memo};return {status:r.status,itype:r.type,volume:r.volume,branch_id:bid,branch:(branchNameById(bid)||r.branch),company:r.company,name:r.name,phone:r.phone,email:r.email,msg:r.msg,memo:r.memo};}
 function saveSubEdit(){if(EW==null)return;var w=EW,tbl=(w==='apps')?'applications':'inquiries';
   if(EI===-1){var nr=ENEW||{status:1};collectSe(nr);nr.status=nr.status||1;var pl=payloadOf(w,nr);if(window.__sb){window.__sb.from(tbl).insert(pl).then(function(res){if(res.error){alert('추가 실패: '+res.error.message);return;}refreshSubmissionsFromCloud();}).catch(function(e){alert('추가 실패: '+(e.message||e));});}else{nr.ts=Date.now();(w==='apps'?apps:group).push(nr);try{localStorage.setItem(w==='apps'?'uuhee_apps':'uuhee_group',JSON.stringify(w==='apps'?apps:group));}catch(_){}renderSubs();renderOverview();}closeSubEdit();return;}
   var r=(w==='apps')?apps[EI]:group[EI];if(!r){closeSubEdit();return;}collectSe(r);var id=r.id,pl2=payloadOf(w,r);if(window.__sb&&id)window.__sb.from(tbl).update(pl2).eq('id',id).then(function(res){if(res.error)alert('저장 실패: '+res.error.message);});try{localStorage.setItem(w==='apps'?'uuhee_apps':'uuhee_group',JSON.stringify(w==='apps'?apps:group));}catch(_){}renderSubs();renderOverview();closeSubEdit();
@@ -1181,9 +1188,10 @@ var CONFIRM_MSG="예약 확정 되셨습니다:)\n\n**** 꼭 읽어주세요 ! *
 var INQUIRY_TEMPLATE="안녕하세요, 유유히 입니다 :)\n문의해 주신 내용은 담당 부서로 전달 완료되었습니다.\n\n확인 후 담당자가 최대한 빠르게 연락드릴 예정입니다.\n조금만 기다려 주시면 빠르게 안내 도와드리겠습니다.\n감사합니다.\n\n[접수 내역]\n회사/단체명 : #{회사단체명}\n담당자명 : #{담당자명}\n연락처 : #{연락처}\n지점 : #{지점명}\n인원 : #{인원}\n문의내용 : #{문의내용}";
 function qtyText(qty){if(!qty)return '-';var parts=[];Object.keys(qty).forEach(function(k){var v=qty[k];if(v)parts.push(k+' × '+v+'병');});return parts.length?parts.join(', '):'-';}
 function receiptTemplateFor(payMethod){
+  // pay_method는 코드(transfer/smartstore/onsite)로 저장된다. 코드화 이전 한글 값도 받아준다.
   var pm=payMethod||'';
-  if(/스마트스토어/.test(pm))return RECEIPT_TEMPLATE_SMARTSTORE;
-  if(/현장/.test(pm))return RECEIPT_TEMPLATE_ONSITE;
+  if(pm==='smartstore'||/스토어/.test(pm))return RECEIPT_TEMPLATE_SMARTSTORE;
+  if(pm==='onsite'||/현장/.test(pm))return RECEIPT_TEMPLATE_ONSITE;
   return RECEIPT_TEMPLATE_TRANSFER;
 }
 function fillReceiptTemplate(tpl,r){
@@ -1484,6 +1492,9 @@ function makeTable(sel,key,cols,blank,addLabel){
 const galFolderNames=()=>S.galleryFolders.map(f=>f.name).filter(Boolean);
 const classNames=()=>S.classes.map(c=>c.name).filter(Boolean);
 const classOptions=()=>(S.classes||[]).map(c=>({value:c.id,label:c.name}));
+const branchOpts=()=>(S.branches||[]).map(b=>[b.id,b.name]);
+const classOpts=()=>(S.classes||[]).filter(c=>c.name).map(c=>[c.id,c.name]);
+const branchNameById=id=>{if(id==null||id==='')return '';const b=(S.branches||[]).filter(x=>String(x.id)===String(id))[0];return b?b.name:'';};
 const classNameById=id=>{if(id==null||id==='')return '';const c=(S.classes||[]).filter(x=>String(x.id)===String(id))[0];return c?c.name:'';};
 const spaceFolderNames=()=>S.spaceFolders.map(f=>f.name).filter(Boolean);
 let T={};
@@ -1686,8 +1697,10 @@ function selectSchedDate(ds){schedDate=ds;var key=schedBranch+'|'+ds;
   renderCal();renderSchedEditor();}
 // 취소(5)·환불완료(7)는 서버 정원 트리거에서도 빼므로 여기서도 뺀다 — 안 그러면 취소된 건이 정원을 계속 잡아먹는 것처럼 보인다.
 function liveApp(a){return [5,7].indexOf(+(a.status||1))<0;}
-function bookedForDay(classId,tm){var nm=classNameById(classId);var n=0;(typeof apps!=='undefined'?apps:[]).forEach(function(a){if(liveApp(a)&&a.branch===schedBranch&&a.date===schedDate&&a.time===tm&&(!nm||a.class===nm)){n+=parseInt(a.people||'0',10)||0;}});return n;}
-function appsSummaryForDate(ds){var count=0,people=0;(typeof apps!=='undefined'?apps:[]).forEach(function(a){if(liveApp(a)&&a.branch===schedBranch&&a.date===ds){count++;people+=parseInt(a.people||'0',10)||0;}});return {count:count,people:people};}
+function branchIdByName(nm){var b=(S.branches||[]).filter(function(x){return x.name===nm;})[0];return b?b.id:null;}
+// 이름이 아니라 id로 맞춘다 — 지점·클래스 이름을 바꿔도 기존 예약이 정원에서 빠지지 않도록.
+function bookedForDay(classId,tm){var bid=branchIdByName(schedBranch);var n=0;(typeof apps!=='undefined'?apps:[]).forEach(function(a){if(liveApp(a)&&String(a.branchId)===String(bid)&&a.date===schedDate&&a.time===tm&&(!classId||String(a.classId)===String(classId))){n+=parseInt(a.people||'0',10)||0;}});return n;}
+function appsSummaryForDate(ds){var bid=branchIdByName(schedBranch);var count=0,people=0;(typeof apps!=='undefined'?apps:[]).forEach(function(a){if(liveApp(a)&&String(a.branchId)===String(bid)&&a.date===ds){count++;people+=parseInt(a.people||'0',10)||0;}});return {count:count,people:people};}
 function renderSchedEditor(){
   var ed=$('#schedEditor');if(!ed)return;
   if(!schedDate){ed.innerHTML='<div class="empty">왼쪽 달력에서 날짜를 선택해 주세요.</div>';return;}
@@ -1937,8 +1950,8 @@ function refreshSubmissionsFromCloud(){
   Promise.all([window.__sb.from('applications').select('*').order('id'),window.__sb.from('inquiries').select('*').order('id'),window.__sb.from('application_items').select('*')]).then(function(r){
     if(r[0].error||r[1].error){console.warn('subs load',r[0].error||r[1].error);return;}
     var itemsBy={};(r[2].data||[]).forEach(function(it){var k=it.application_id;(itemsBy[k]=itemsBy[k]||{})[s(it.size)]=it.qty;});
-    apps=(r[0].data||[]).map(function(a){return {id:a.id,status:(a.status||1),memo:s(a.memo),branch:s(a.branch),class:s(a.cls),size:s(a.size),date:s(a.sdate),time:s(a.stime),people:(a.people==null?'':String(a.people)),name:s(a.name),phone:fmtPhone(s(a.phone)),email:s(a.email),msg:s(a.msg),estimate:a.estimate,payMethod:s(a.pay_method),deposit:a.deposit,payStatus:s(a.pay_status),balanceMethod:s(a.balance_method),kakaoNotice:(a.kakao_notice==null?null:+a.kakao_notice),qty:itemsBy[a.id]||null,ts:a.created_at?Date.parse(a.created_at):Date.now()};});
-    group=(r[1].data||[]).map(function(g){return {id:g.id,status:(g.status||1),memo:s(g.memo),type:s(g.itype),volume:s(g.volume),branch:s(g.branch),company:s(g.company),name:s(g.name),phone:fmtPhone(s(g.phone)),email:s(g.email),size:s(g.isize),msg:s(g.msg),kakaoNotice:(g.kakao_notice==null?null:+g.kakao_notice),ts:g.created_at?Date.parse(g.created_at):Date.now()};});
+    apps=(r[0].data||[]).map(function(a){return {id:a.id,status:(a.status||1),memo:s(a.memo),branch:s(a.branch),class:s(a.cls),size:s(a.size),date:s(a.sdate),time:s(a.stime),people:(a.people==null?'':String(a.people)),name:s(a.name),phone:fmtPhone(s(a.phone)),email:s(a.email),msg:s(a.msg),estimate:a.estimate,payMethod:s(a.pay_method),deposit:a.deposit,payStatus:s(a.pay_status),balanceMethod:s(a.balance_method),classId:a.class_id,branchId:a.branch_id,kakaoNotice:(a.kakao_notice==null?null:+a.kakao_notice),qty:itemsBy[a.id]||null,ts:a.created_at?Date.parse(a.created_at):Date.now()};});
+    group=(r[1].data||[]).map(function(g){return {id:g.id,branchId:g.branch_id,status:(g.status||1),memo:s(g.memo),type:s(g.itype),volume:s(g.volume),branch:s(g.branch),company:s(g.company),name:s(g.name),phone:fmtPhone(s(g.phone)),email:s(g.email),size:s(g.isize),msg:s(g.msg),kakaoNotice:(g.kakao_notice==null?null:+g.kakao_notice),ts:g.created_at?Date.parse(g.created_at):Date.now()};});
     try{localStorage.setItem('uuhee_apps',JSON.stringify(apps));localStorage.setItem('uuhee_group',JSON.stringify(group));}catch(e){}
     renderLists();renderOverview();
   }).catch(function(e){console.warn('subs refresh',e);});
