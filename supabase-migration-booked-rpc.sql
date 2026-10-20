@@ -30,3 +30,13 @@ $$;
 grant execute on function uuhee_booked(text,text,text) to anon, authenticated;
 
 notify pgrst, 'reload schema';
+
+-- 확인용: 아래 SELECT가 1줄 나와야 정상(anon_ok = true 여야 공개 사이트에서 호출된다).
+-- 0줄이면 위 create가 실제로 실행되지 않은 것이고,
+-- anon_ok = false면 grant가 빠진 것이다(둘 다 이 파일을 통째로 다시 돌리면 해결).
+select p.proname,
+       pg_get_function_identity_arguments(p.oid) as args,
+       has_function_privilege('anon', p.oid, 'execute') as anon_ok
+from pg_proc p
+join pg_namespace n on n.oid = p.pronamespace
+where n.nspname = 'public' and p.proname = 'uuhee_booked';
